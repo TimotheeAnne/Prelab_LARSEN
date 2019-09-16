@@ -1,0 +1,6 @@
+Wed Sep 11 14:34:42 2019
+ERROR: Invalid activation key
+
+Fri Sep 13 16:45:36 2019
+WARNING: Nan, Inf or huge value in QACC at DOF 0. The simulation is unstable. Time = 0.0500.
+
