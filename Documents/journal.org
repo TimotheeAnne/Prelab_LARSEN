@@ -1,0 +1,144 @@
+* TODOs
+** PETS
+*** TODO how many DOFs can we control? how does that scale? e.g. Half-cheetah vs minitaur vs hexapod vs humanoid
+-5 it works (5 Dof arm)
+-6 (Half-cheetah) 
+*** TODO is the cross-entropy optimization helping? how much? is it necessary? what about replacing it with CMA-ES (or a simplified CMA-ES variant)?
+*** TODO what control frequency can we achieve depending on the horizon?
+Env: action space x H : frequency on GPU (CPU) : portable on GPU (CPU)
+**** 5-Dof Arm: 5 x 5 : ~40Hz (4Hz) : 2Hz (0.5Hz)
+**** Half-Cheetah (pop 500): 
+-6 x 30: ~6Hz
+-6 x 20: ~10Hz
+-6 x 20 (5 particles): 16Hz
+-6 x 30: 12Hz
+*** TODO do we need the uncertainty?
+*** TODO how much faster is the neural network versus a true physics engine (pybullet and maybe PhysX or even RaiSim)?
+*** TODO what is the model quality compared to the true model? does this technique learn an actual model (capable of good predictions) or something that only works for a specific trajectory?
+*** TODO how much do we gain with a GPU? (in term of control frequency)
+*** TODO what about actual trajectories (not only moving forward)
+
+** Questions about meta-learning (more to be added better)
+*** TODO can we reproduce their result for an interesting robot (e.g. minitaur)?
+*** TODO can we add the uncertainty?
+*** TODO does it really work? how more data-efficient is meta-learning vs learning from scratch? 
+*** TODO how good is the model compared to a model learned from scratch?
+*** TODO how well does it scale to more complex robots?
+
+* To remember
+** Handful of trials, PETS, Chua et al.
+Comme ils évaluent en plottant la plus grande réwarsd trouvée so far, il ne font pas vraiment du mpc controller mais du RL/planning qui ne consiste quand trouvé une bonne séquence d'action. 
+* Septembre
+** 04/09/2019
+*** installation pybullet
+**** with pybullet-gym
+il n'y a pas de rendu
+**** with robotschool
+il y a du rendu 
+*Warning* j'ai du installé une librairie manquante
+sudo apt-get install libpcre16-3 
+** 05/09/2019
+*** connection par ssh avec partage de dossier (hors console) 
+ nautilus sftp://tanne@k2so
+ssh tanne-local@k2so  (pour se co sur la machine) 
+ssh -X tanne-local@k2so (pour se co en permettant le server X et donc les rendues)
+*** activer coànda
+exec bash
+
+
+
+** 06/09/2019
+*** PETS with 5-dof arm
+params: 500 population, 50 episode length, 5 planning horizon
+It works with different goals and the same initial state
+
+** 09/09/2019
+*** HC
+roboschool donne un example de controller performant, la période de marche est d'environ 25-30 steps (d'où le 30 steps d'horizon).
+**** RPY
+Roll, tourner autour de son axe longitudinale
+Pitch, picker ou monté du nez
+Yaw, tanguer a gauche ou à droite
+**** observation space
+ (x_t - x_t-1)/ dt
+z
+y *seems to be constantly null* 
+joints_angles (6)
+vx
+vz
+vy
+joints_velocities (6)
+**** changes in the files
+***** gym_mujoco_walkers
+I changed the obs dim from 26 to 16
+I add in the step return as info the triple (x,y,z) from self.robot_body_pose().xyz() in gym_forward_walker
+** 11/09/2019
+*** rendering with pybullet 
+put the rendering before the reset
+*** new paper by levin inplicit MAML (méta-learning)
+- they use xplicit L2 regularisation for the inner-loop optimisation
+- they reduce the memory complexity by using an implicite outer-gradient approximation isntead of differentiate through the inner-loop gradient step.
+** 12/09/2019
+*** PETS params
+marche:
+python mbexp.py -ca opt-type Random -o ctrl_cfg.prop_cfg.model_pretrained True 
+[[file:///home/timothee/Videos/HCworking_100.mp4][video]] 100 steps, [[file:///home/timothee/Videos/HCworking_1000.mp4][video]] 1000 steps
+*** gym video recording for the recent version
+change 
+from gym.monitoring import VideoRecorder
+into
+from gym.wrappers.monitoring.video_recorder import VideoRecorder
+** 13/09/2019
+*** Rendering with pybullet
+to have the camera following the agent, I looked at the rendering function of pybulletgym 
+(pybullet-gym/pybulletgym/envs/mujoco/envs/env_baseswhich is in the installer fodler and not in the installed folder) and the camera is 
+translated follwing the robot.body_xyz which was always 0,0,0 so i added in my robot class
+*self.body_xyz = [qpos.flat[0], qpos.flat[2], qpos.flat[1]]* in the cals_state
+**** camera adjust
+As the camera move_and_look_at needed the _p (pybullet env) when you call video_recorder.camera_adjust(), I give it in _reset 
+*** dt
+in mujoco it's dt=0.05s (20fps), in pybullet dt=0.0165 (64fps), I change the timestep and framskip from (0.004125, 4) to (0.005, 10) 
+in WalkerBaseMijocoEnv.create_single_player_scene
+*** deprecated registration in gym env for Mujoco HC
+lib/python3.6/site-packages/gym/envs/registration.py
+I changed load(false) into resolve()
+
+** 16/09/2019
+*** Grid500
+ssh tanne@access.grid5000.fr (mdp work)
+ssh nancy
+exec bash
+**** SSH
+I had to create a new ssh key that i have added on github
+*Warning* mdp inria work
+*** Half cheetah
+I abandoned the use of the environment on pybullet, to much work to make it work
+*** Ant 
+I used the Ant environment, it works first run (>1100 reward) 
+The replaying is not identicall due to float precision in the action replayed
+ 
+
+
+** 17/09/2019
+*** ssh passphrase reasking on git for grid5000
+in .ssh:
+eval `ssh-agent -s`
+then:
+ssh-add id_rsa
+
+*** using the conda env after connecting to node in ionteractive mode
+export PATH=/home/tanne/miniconda3/ens/chua/bin:$PATH
+exec bash
+conda activate chua
+
+*** connect to graffiti 
+oarsub -q production -p "cluster='graffiti'" -I
+
+*** know jobs
+oarstat -u tanne
+
+*** example from resibots wiki 
+[[https://gitlab.inria.fr/resibots/docs/wikis/reference/Cluster][example]] 
+
+*** create conda env for graffiti tensorflow-gpu
+conda create -n ENVNAME [[./conda_env_graffiti.txt][lib version]]
