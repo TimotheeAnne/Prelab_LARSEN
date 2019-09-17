@@ -27,7 +27,7 @@ External forces (force x,y,z + torque x,y,z) applied to the CoM of each link (An
 class AntConfigModule:
     ENV_NAME = "AntMuJoCoEnv_fastAdapt-v0"
     TASK_HORIZON = 1000
-    NTRAIN_ITERS = 300
+    NTRAIN_ITERS = 150
     NROLLOUTS_PER_ITER = 1
     PLAN_HOR = 30
     MODEL_IN, MODEL_OUT = 35, 27
