@@ -10,7 +10,7 @@ from dmbrl.misc.DotmapUtils import get_required_argument
 from dmbrl.modeling.layers import FC
 import dmbrl.env
 
-""" z (height) of the Torso -> 1
+""" z (height) of the Torso -> 1 banana 
 
 orientation (quarternion x,y,z,w) of the Torso -> 4
 

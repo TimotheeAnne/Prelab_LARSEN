@@ -18,7 +18,7 @@ from dmbrl.config import create_config
 
 def main(env, ctrl_type, ctrl_args, overrides, logdir):
     ctrl_args = DotMap(**{key: val for (key, val) in ctrl_args})
-    overrides.append(["exp_cfg.log_cfg.nrecord", "1"])
+    # overrides.append(["exp_cfg.log_cfg.nrecord", "1"])
     cfg = create_config(env, ctrl_type, ctrl_args, overrides, logdir)
     cfg.pprint()
     if ctrl_type == "MPC":
