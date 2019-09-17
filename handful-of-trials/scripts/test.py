@@ -20,15 +20,16 @@ HC_PETS_2 = "working_basic_HC_video_recorder"
 
 PBHC_PETS_1 = "PBHC"
 
-acs = "2019-09-16--14:12:16"
+acs = "2019-09-16--16:58:40"
 
 folder = acs
 
 """ PETS saving files """
-data = scipy.io.loadmat("/home/timothee/Documents/handful-of-trials/scripts/log/Saved/"+folder+"/logs.mat")
+# data = scipy.io.loadmat("/home/timothee/Documents/handful-of-trials/scripts/log/Saved/"+folder+"/logs.mat")
+data = scipy.io.loadmat("/home/timothee/Documents/Prelab_LARSEN/handful-of-trials/scripts/log/Saved/"+folder+"/logs.mat")
+observations = data['observations']
 actions = data['actions']
 rewards = data['returns'][0]
-
 
 # file = "/home/timothee/Documents/gym-kinematicArm/HC_actions.pk"
 # with open(file, 'rb') as f:
@@ -162,6 +163,7 @@ def plot_Ant(j=None):
     video_recorder = None
     # video_recorder = VideoRecorder(env, "test.mp4")
     N = 1 if j is None else len(actions[j])
+    N = 40
     tqdm = lambda x: x
     reward = 0
     for i in tqdm(range(N)):
@@ -170,10 +172,12 @@ def plot_Ant(j=None):
             video_recorder.capture_frame()
         if j is None:
             a = np.random.random(8)*2-1
-            a = [0, 1, 0, 1, 0, 1, 0, 1]
+            # a = [0, 1, 0, 1, 0, 1, 0, 1]
         else:
             a = actions[j][i]
+            # a = Acs[i]
         obs, rew, done, info = env.step(a)
+        Obs.append(obs)
         # print(obs)
         time.sleep(0.01)
         reward += rew
@@ -185,7 +189,9 @@ def plot_Ant(j=None):
         video_recorder.capture_frame()
         video_recorder.close()
     env.close()
-    # with open("./log/test/HC2.pk", 'wb') as f:
+    Obs = np.array(Obs)
+
+    # with open("./log/test/Ant.pk", 'wb') as f:
     #     pickle.dump(Obs, f)
     print("Final reward", reward)
 
@@ -196,7 +202,7 @@ def plot_reward():
     plt.show()
 
 # print(np.argmax(ep_length))
-plot_Ant(4)
+plot_Ant(30)
 # plot_reward()
-# print(np.min(observations[:-2], axis=0)[0])
-#
+# print(np.shape(observations))
+
