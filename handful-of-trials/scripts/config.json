@@ -1,9 +1,9 @@
 [
 {
-    "exp":"/nfs/hal01/rkaushik/projects/multi_dex_python/hexapod_experiments/map_elites_hexapod_cartesian.py", 
+    "exp":"Documents/Prelab_LARSEN/handful-of-trials/scripts/mbexp.py", 
     "prefix": "hexapod_map",
-    "result_dir":"/nfs/hal01/rkaushik/results/MAP_Elites_exps/prior", 
-    "walltime": "100:00", 
+    "result_dir":"Documents/Prelab_LARSEN/handful-of-trials/scripts/log/", 
+    "walltime": "1:00", 
     "args": "",
     "replicates": 2
 }
