@@ -2,7 +2,7 @@
 {
     "exp":"mbexp.py",
     "prefix": "Ant",
-    "result_dir":"log/",
+    "result_dir":"log",
     "walltime": "1:00", 
     "args": "",
     "replicates": 2
