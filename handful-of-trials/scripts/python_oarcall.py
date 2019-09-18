@@ -50,14 +50,7 @@ for d in config_dict_list:
         text += '\n'
         text += 'conda activate $1'
         text += '\n'
-        text += 'shift'
-        text += '\n'
-        text += 'shift'
-        text += '\n'
-        text += 'exec python $BIN $@ -logdir /Documents/Prelab_LARSEN/handful-of-trials/scripts/log/'
-        text += '\n'
-
-        command = 'exec python -u ' + exp + " " + args
+        command = 'exec python -u ' + exp + " " + args + '-logdir /Documents/Prelab_LARSEN/handful-of-trials/scripts/log/'
         
         print("Name: ", name)
         print("Result dir: ", result_dir)

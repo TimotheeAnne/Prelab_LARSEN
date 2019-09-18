@@ -1,8 +1,8 @@
 [
 {
-    "exp":"Documents/Prelab_LARSEN/handful-of-trials/scripts/mbexp.py", 
-    "prefix": "hexapod_map",
-    "result_dir":"Documents/Prelab_LARSEN/handful-of-trials/scripts/log/", 
+    "exp":"mbexp.py",
+    "prefix": "Ant",
+    "result_dir":"log/",
     "walltime": "1:00", 
     "args": "",
     "replicates": 2
