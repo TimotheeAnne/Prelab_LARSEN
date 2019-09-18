@@ -1,4 +1,5 @@
 from subprocess import call
+
 import os
 import datetime
 import argparse
@@ -29,7 +30,7 @@ for d in config_dict_list:
     for rep_count in range(replicates):
         exp_folder = d["prefix"]
         name = d["prefix"] + "_replicate_" + str(rep_count)
-        exp =  d["exp"]
+        exp = d["exp"]
         args = d["args"]
         result_dir = d["result_dir"]
         walltime = d["walltime"]
@@ -41,29 +42,21 @@ for d in config_dict_list:
         f = open(script, "w")  
 
         text = "#!/bin/bash"
-        # ~ text += '\n'    
-        # ~ text += 'export PYTHONPATH=\"\"'
-        # ~ text += '\n'
-        # ~ text += 'export PYTHONPATH=\"/nfs/hal01/rkaushik/installations/anaconda3/lib/python3.6/site-packages:$PYTHONPATH\"' 
-        # ~ text += '\n'
-        # ~ text += 'export PATH=\"/nfs/hal01/rkaushik/installations/anaconda3/bin:$PATH\"' 
-        # ~ text += '\n'
         text += 'cd '+ dir
         text += '\n'
-		text += 'export PATH=/home/tanne/miniconda3/bin:$PATH'
-		text += '\n'
-		text += '. /home/tanne/miniconda3/etc/profile.d/conda.sh'
-		text += '\n'
-		text += 'conda activate $1'
-		text += '\n'
-		text += 'shift'
-		text += '\n'
-		text += 'shift'
-		text += '\n'
-		text += 'exec python $BIN $@ -logdir /Document/Prelab_LARSEN/handful-of-trials/scripts/log/'
-		text += '\n'
+        text += 'export PATH=/home/tanne/miniconda3/bin:$PATH'
+        text += '\n'
+        text += '. /home/tanne/miniconda3/etc/profile.d/conda.sh'
+        text += '\n'
+        text += 'conda activate $1'
+        text += '\n'
+        text += 'shift'
+        text += '\n'
+        text += 'shift'
+        text += '\n'
+        text += 'exec python $BIN $@ -logdir /Documents/Prelab_LARSEN/handful-of-trials/scripts/log/'
+        text += '\n'
 
-        
         command = 'exec python -u ' + exp + " " + args
         
         print("Name: ", name)
