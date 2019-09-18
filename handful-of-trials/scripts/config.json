@@ -1,18 +1,34 @@
 [
-{
+  {
     "exp":"mbexp.py",
     "prefix": "PE_CEM",
     "result_dir":"log",
-    "walltime": "1:00", 
+    "walltime": "24:00",
     "args": "",
-    "replicates": 2
-},
+    "replicates": 5
+  },
   {
     "exp":"mbexp.py",
     "prefix": "D_Random",
     "result_dir":"log",
-    "walltime": "1:00",
+    "walltime": "24:00",
     "args": "-ca model-type D -ca prop-type E -ca opt-type Random ",
-    "replicates": 3
-}
+    "replicates": 5
+  },
+  {
+    "exp":"mbexp.py",
+    "prefix": "PE_Random",
+    "result_dir":"log",
+    "walltime": "24:00",
+    "args": "-ca opt-type Random ",
+    "replicates": 5
+  },
+  {
+    "exp":"mbexp.py",
+    "prefix": "D_CEM",
+    "result_dir":"log",
+    "walltime": "24:00",
+    "args": "-ca model-type D -ca prop-type E ",
+    "replicates": 5
+  }
 ]
