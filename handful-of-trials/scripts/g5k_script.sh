@@ -23,16 +23,17 @@ then
 ################################
 elif [ $1 = "run" ]
 then
-  if [ -z $2 ]
+  if [ -z $2 ] || [ -z $3 ]
   then
-    echo "$0 $1 something went wrong"
+    echo "$0 $1 Conda_Env Python_File"
     exit 0
   else
     nodes=$(uniq $OAR_NODEFILE)
     > /home/tanne/finished_worker.txt
+    shift
     for n in $nodes
     do
-      oarsh tanne@$n "./Documents/Prelab_LARSEN/handful-of-trials/scripts/python_script.sh " &
+      oarsh tanne@$n "./Documents/Prelab_LARSEN/handful-of-trials/scripts/python_script.sh $@" &
     done
   fi 
 fi
