@@ -1,0 +1,10 @@
+[
+{
+    "exp":"/nfs/hal01/rkaushik/projects/multi_dex_python/hexapod_experiments/map_elites_hexapod_cartesian.py", 
+    "prefix": "hexapod_map",
+    "result_dir":"/nfs/hal01/rkaushik/results/MAP_Elites_exps/prior", 
+    "walltime": "100:00", 
+    "args": "",
+    "replicates": 2
+}
+]
