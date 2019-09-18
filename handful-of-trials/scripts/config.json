@@ -12,7 +12,7 @@
     "prefix": "D_Random",
     "result_dir":"log",
     "walltime": "1:00",
-    "args": "-ca model-type D -ca prop-type E -ca opt-type Random",
+    "args": "-ca model-type D -ca prop-type E -ca opt-type Random ",
     "replicates": 3
 }
 ]

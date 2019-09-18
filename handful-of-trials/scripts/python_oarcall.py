@@ -50,7 +50,7 @@ for d in config_dict_list:
         text += '\n'
         text += 'conda activate graffiti'
         text += '\n'
-        command = 'exec python -u ' + exp + " " + args + '-logdir ' + dir
+        command = 'exec python -u ' + exp + " " + args + ' -logdir ' + dir
         
         print("Name: ", name)
         print("Result dir: ", result_dir)
