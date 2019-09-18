@@ -132,7 +132,8 @@ exec bash
 conda activate chua
 
 *** connect to graffiti 
-oarsub -q production -p "cluster='graffiti'" -I
+oarsub -q production -p "cluster='graffiti'" -l gpu=1 -I
+
 
 *** know jobs
 oarstat -u tanne
@@ -142,3 +143,27 @@ oarstat -u tanne
 
 *** create conda env for graffiti tensorflow-gpu
 conda create -n ENVNAME [[./conda_env_graffiti.txt][lib version]]
+
+*** tmux
+ctrl + b suivi de d pour detacher
+tmux a -t SessionName
+
+*** Expé
+j'ai lancé PETS sur Ant (150ep) avec (D,cem), (DE,cem), (PE,random), (D,random)
+avec la commande (une fois sur la machine)
+./my_script.sh graffiti mbexp.py -ca model-typ D -ca prop-type E -ca opt-type Random
+** 18/09/2019
+*** g5k configuration
+**** ssh
+I follow the quick configuration steps [[https://www.grid5000.fr/w/SSH#The_Grid.275000_case][g5k ssh]]
+*** what works for now
+#in my local script folder;
+./g5k_script.sh reservation *N_node* *Walltime*
+#now connected in nancy.g5k
+oarsub -C *JOBID*
+#now connected in the job
+cd Path/To/Script
+./g5k_script.sh run *conda env* *path to python file*
+#example:
+./g5k_script.sh run graffiti ./Documents/Prelab_LARSEN/handful-of-trials/scripts/mbexp.py 
+
