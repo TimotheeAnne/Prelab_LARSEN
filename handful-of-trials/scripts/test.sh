@@ -1,2 +1,2 @@
 #!/bin/sh
-exec python test_sh.py 
+exec python ./Documents/Prelab_LARSEN/handful-of-trials/scripts/test_sh.py 
