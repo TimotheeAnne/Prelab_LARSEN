@@ -65,7 +65,7 @@ class MBExperiment:
 
         self.logdir = os.path.join(
             get_required_argument(params.log_cfg, "logdir", "Must provide log parent directory."),
-            strftime("%Y-%m-%d--%H:%M:%S", localtime())
+            strftime("%Y-%m-%d--%H:%M:%S", localtime()) + str(np.random.randint(10**5))
         )
         self.nrecord = params.log_cfg.get("nrecord", 0)
         self.neval = params.log_cfg.get("neval", 1)
