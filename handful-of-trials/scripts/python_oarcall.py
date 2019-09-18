@@ -48,9 +48,9 @@ for d in config_dict_list:
         text += '\n'
         text += '. /home/tanne/miniconda3/etc/profile.d/conda.sh'
         text += '\n'
-        text += 'conda activate $1'
+        text += 'conda activate graffiti'
         text += '\n'
-        command = 'exec python -u graffiti' + exp + " " + args + '-logdir /Documents/Prelab_LARSEN/handful-of-trials/scripts/log/'
+        command = 'exec python -u ' + exp + " " + args + '-logdir /Documents/Prelab_LARSEN/handful-of-trials/scripts/log/'
         
         print("Name: ", name)
         print("Result dir: ", result_dir)
