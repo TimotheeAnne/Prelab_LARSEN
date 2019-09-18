@@ -32,7 +32,7 @@ then
     > /home/tanne/finished_worker.txt
     for n in $nodes
     do
-      oarsh tanne@$n "./Documents/Prelab_LARSEN/handful-of-trials/scripts/test.sh " &
+      oarsh tanne@$n "./Documents/Prelab_LARSEN/handful-of-trials/scripts/python_script.sh " &
     done
   fi 
 fi
