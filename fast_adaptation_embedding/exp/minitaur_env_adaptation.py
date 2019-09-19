@@ -16,6 +16,8 @@ import pickle
 from os import path
 from gym.wrappers.monitoring.video_recorder import VideoRecorder
 from tqdm import tqdm
+from time import time, localtime, strftime
+import pprint
 
 
 class Cost_meta(object):
@@ -152,7 +154,7 @@ def execute_2(env, init_state, steps, init_mean, init_var, model, config, last_a
     f_rec = config['video_recording_frequency']
     recorder = None
     if f_rec and index_iter % f_rec == 0:
-        recorder = VideoRecorder(env, "/log/iter_"+str(index_iter)+".mp4")
+        recorder = VideoRecorder(env, os.path.join(config['logdir'], "iter_" + str(index_iter) + ".mp4"))
     trajectory = []
     traject_cost = 0
     model_error = 0
@@ -209,6 +211,7 @@ config = {
     "init_state": None,  # Must be updated before passing config as param
     "action_dim": 8,
     "video_recording_frequency": 5,
+    "logdir": 'log',
 
     # Model_parameters
     "dim_in": 8+31,
@@ -256,19 +259,19 @@ config = {
     "discount":1.
 }
 
-#************************************************
+#  ************************************************
 
+logdir = os.path.join(config['logdir'], strftime("%Y-%m-%d--%H:%M:%S", localtime()) + str(np.random.randint(10**5)))
+config['logdir'] = logdir
+os.makedirs(logdir)
+with open(os.path.join(config['logdir'], "config.txt"), 'w') as f:
+    f.write(pprint.pformat(config))
 # mismatches = np.array([[1., 1., 1., 1., 1., 1., 1., 1.], [1., 0., 1., 1., 1., 1., 1., 1.], [1., 1., 0., 1., 1., 1., 1., 1.], [1., 1., 1., 0., 1., 1., 1., 1.], [1., 1., 1., 1., 0., 1., 1., 1.]])
 mismatches = np.array([[1., 1., 1., 1., 1., 1., 1., 1.]])
 n_task = len(mismatches)
 goal = [1000, 0]
 render = False
 envs = [gym.make("MinitaurBulletEnv_fastAdapt-v0", render=render) for i in range(n_task)]
-# for i,e in enumerate(envs):
-#     e.set_mismatch(mismatches[i])
-
-# for e in envs:
-#     e.render(mode="human")
 
 data = n_task * [None]
 models = n_task * [None]
@@ -279,7 +282,7 @@ all_action_seq = []
 all_costs = []
 
 for i in range(n_task):
-    with open("ant_costs_task_"+ str(i)+".txt","w+") as f:
+    with open(os.path.join(config['logdir'], "ant_costs_task_"+ str(i)+".txt"), "w+") as f:
         f.write("")
 
 for index_iter in range(config["iterations"]):
@@ -330,7 +333,7 @@ for index_iter in range(config["iterations"]):
         data[env_index] = np.concatenate((data[env_index], trajectory), axis=0)
         print("Cost : ", c)
 
-        if c<best_cost:
+        if c < best_cost:
             best_cost = c
             best_action_seq = []
             for d in trajectory:
@@ -343,10 +346,10 @@ for index_iter in range(config["iterations"]):
 
         print("Saving trajectories..")
         if index_iter % 10 == 0:
-            np.save("trajectories_ant.npy", data)
-        np.save("best_cost_ant.npy", best_cost)
-        np.save("best_action_seq_ant.npy", best_action_seq)
-    with open("ant_costs_task_"+ str(env_index)+".txt","a+") as f:
+            np.save(os.path.join(config['logdir'], "trajectories_ant.npy"), data)
+        np.save(os.path.join(config['logdir'], "best_cost_ant.npy"), best_cost)
+        np.save(os.path.join(config['logdir'], "best_action_seq_ant.npy"), best_action_seq)
+    with open(os.path.join(config['logdir'], "ant_costs_task_"+ str(env_index)+".txt"),"a+") as f:
         f.write(str(c)+"\n")
 
     print("-------------------------------\n")
