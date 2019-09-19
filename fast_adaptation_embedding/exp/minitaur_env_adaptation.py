@@ -135,25 +135,21 @@ def execute_random(env, steps, init_state):
     current_state = env.reset()
     trajectory = []
     traject_cost = 0
-    recorder = VideoRecorder(env, "test.mp4")
     for i in tqdm(range(steps)):
         a = env.action_space.sample()
         next_state, r = 0, 0
-        recorder.capture_frame()
         for k in range(1):
             next_state, r, _, _ = env.step(a)
 
         trajectory.append([current_state.copy(), a.copy(), next_state-current_state, -r])
         current_state = next_state
         traject_cost += -r
-    recorder.capture_frame()
-    recorder.close()
     return np.array(trajectory), traject_cost
 
 
 def execute_2(env, init_state, steps, init_mean, init_var, model, config, last_action_seq, pred_high, pred_low, index_iter):
     current_state = env.reset()
-    recorder = VideoRecorder(env, "iter"+str(index_iter)+".mp4")
+    recorder = VideoRecorder(env, "iter_"+str(index_iter)+".mp4")
     trajectory = []
     traject_cost = 0
     model_error = 0
