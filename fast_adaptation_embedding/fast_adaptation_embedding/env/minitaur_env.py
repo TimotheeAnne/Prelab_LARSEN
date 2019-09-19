@@ -21,6 +21,7 @@ from pybullet_envs.bullet import minitaur_env_randomizer
 from pybullet_envs.bullet import motor
 import copy
 
+
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(os.path.dirname(currentdir))
 os.sys.path.insert(0, parentdir)
@@ -551,6 +552,7 @@ class MinitaurBulletEnv(gym.Env):
             energy_weight=0.0,
             shake_weight=0.0,
             drift_weight=0.0,
+            survival_weight=0.1,
             distance_limit=float("inf"),
             observation_noise_stdev=0.0,
             self_collision_enabled=True,
@@ -618,6 +620,7 @@ class MinitaurBulletEnv(gym.Env):
         self._energy_weight = energy_weight
         self._drift_weight = drift_weight
         self._shake_weight = shake_weight
+        self._survival_weight = survival_weight
         self._distance_limit = distance_limit
         self._observation_noise_stdev = observation_noise_stdev
         self._action_bound = 1
@@ -857,12 +860,14 @@ class MinitaurBulletEnv(gym.Env):
         forward_reward = current_base_position[0] - self._last_base_position[0]
         drift_reward = -abs(current_base_position[1] - self._last_base_position[1])
         shake_reward = -abs(current_base_position[2] - self._last_base_position[2])
+        survival_reward = -(current_base_position[2] < 0.1)
         self._last_base_position = current_base_position
         energy_reward = np.abs(
             np.dot(self.minitaur.GetMotorTorques(),
                    self.minitaur.GetMotorVelocities())) * self._time_step
         reward = (self._distance_weight * forward_reward - self._energy_weight * energy_reward +
-                  self._drift_weight * drift_reward + self._shake_weight * shake_reward)
+                  self._drift_weight * drift_reward + self._shake_weight * shake_reward +
+                  self._survival_weight* survival_reward)
         self._objectives.append([forward_reward, energy_reward, drift_reward, shake_reward])
         return reward
 
