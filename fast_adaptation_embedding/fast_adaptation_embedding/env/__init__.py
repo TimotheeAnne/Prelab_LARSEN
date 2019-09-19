@@ -14,3 +14,10 @@ register(
 	max_episode_steps=1000,
 	reward_threshold=2500.0
 )
+
+register(
+	id='MinitaurBulletEnv_fastAdapt-v0',
+	entry_point='fast_adaptation_embedding.env.minitaur_env:MinitaurBulletEnv',
+	max_episode_steps=1000,
+	reward_threshold=2500.0
+)
