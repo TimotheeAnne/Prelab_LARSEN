@@ -149,7 +149,7 @@ def execute_random(env, steps, init_state):
 
 def execute_2(env, init_state, steps, init_mean, init_var, model, config, last_action_seq, pred_high, pred_low, index_iter):
     current_state = env.reset()
-    recorder = VideoRecorder(env, "iter_"+str(index_iter)+".mp4")
+    recorder = VideoRecorder(env, "/log/iter_"+str(index_iter)+".mp4")
     trajectory = []
     traject_cost = 0
     model_error = 0
