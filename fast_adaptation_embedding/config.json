@@ -1,0 +1,10 @@
+[
+  {
+    "exp":"exp/minitaur_env_adaptation.py",
+    "prefix": "minitaur_basic",
+    "result_dir":"exp/log",
+    "walltime": "00:20",
+    "args": "",
+    "replicates": 2
+  }
+]
