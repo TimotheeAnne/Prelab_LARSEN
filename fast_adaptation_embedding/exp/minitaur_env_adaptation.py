@@ -18,7 +18,7 @@ from gym.wrappers.monitoring.video_recorder import VideoRecorder
 from tqdm import tqdm
 from time import time, localtime, strftime
 import pprint
-
+from scipy.io import savemat
 
 class Cost_meta(object):
     def __init__(self, model, init_state, horizon, action_dim, goal, task_likelihoods):
@@ -133,29 +133,43 @@ def process_data(data):
     return np.array(training_in), np.array(training_out), np.max(training_in, axis=0), np.min(training_in, axis=0)
 
 
-def execute_random(env, steps, init_state):
+def execute_random(env, steps, init_state, samples):
     current_state = env.reset()
+    obs = [current_state]
+    acs = []
     trajectory = []
+    reward = []
     traject_cost = 0
     for i in tqdm(range(steps)):
         a = env.action_space.sample()
         next_state, r = 0, 0
         for k in range(1):
             next_state, r, _, _ = env.step(a)
-
+            obs.append(next_state)
+            acs.append(a)
+            reward.append(r)
         trajectory.append([current_state.copy(), a.copy(), next_state-current_state, -r])
         current_state = next_state
         traject_cost += -r
+    samples['acs'].append(np.copy(acs))
+    samples['obs'].append(np.copy(obs))
+    samples['reward'].append(np.copy(reward))
+    samples['reward_sum'].append(-traject_cost)
     return np.array(trajectory), traject_cost
 
 
-def execute_2(env, init_state, steps, init_mean, init_var, model, config, last_action_seq, pred_high, pred_low, index_iter):
+def execute_2(env, init_state, steps, init_mean, init_var, model, config, last_action_seq,
+              pred_high, pred_low, index_iter, samples):
     current_state = env.reset()
     f_rec = config['video_recording_frequency']
     recorder = None
     if f_rec and index_iter % f_rec == 0:
         recorder = VideoRecorder(env, os.path.join(config['logdir'], "iter_" + str(index_iter) + ".mp4"))
     trajectory = []
+    obs = [current_state]
+    acs = []
+    trajectory = []
+    reward = []
     traject_cost = 0
     model_error = 0
     sliding_mean = np.zeros(config["sol_dim"])
@@ -176,6 +190,9 @@ def execute_2(env, init_state, steps, init_mean, init_var, model, config, last_a
             recorder.capture_frame()
         for k in range(1):
             next_state, r, _, _ = env.step(a)
+            obs.append(next_state)
+            acs.append(a)
+            reward.append(r)
         trajectory.append([current_state.copy(), a.copy(), next_state-current_state, -r])
         model_error += test_model(model, current_state.copy(), a.copy(), next_state-current_state)
         current_state = next_state
@@ -185,6 +202,10 @@ def execute_2(env, init_state, steps, init_mean, init_var, model, config, last_a
     if recorder is not None:
         recorder.capture_frame()
         recorder.close()
+    samples['acs'].append(np.copy(acs))
+    samples['obs'].append(np.copy(obs))
+    samples['reward'].append(np.copy(reward))
+    samples['reward_sum'].append(-traject_cost)
     return np.array(trajectory), traject_cost
 
 def test_model(ensemble_model, init_state, action, state_diff):
@@ -248,7 +269,8 @@ config = {
 
     # Optimizer parameters
     "max_iters": 5, 
-    "epsilon": 0.0001, 
+    "epsilon": 0.0001,
+
     "lb": -1., 
     "ub": 1.,
     "popsize": 500,
@@ -285,6 +307,8 @@ for i in range(n_task):
     with open(os.path.join(config['logdir'], "ant_costs_task_"+ str(i)+".txt"), "w+") as f:
         f.write("")
 
+traj_obs, traj_acs, traj_rets, traj_rews = [], [], [], []
+
 for index_iter in range(config["iterations"]):
     '''Pick a random environment'''
     env_index = int(index_iter%n_task)
@@ -294,9 +318,11 @@ for index_iter in range(config["iterations"]):
     print("Env index: ", env_index)
     c = None
 
+    samples = {'acs': [], 'obs': [], 'reward': [], 'reward_sum': []}
+
     if data[env_index] is None or index_iter < 100*n_task:
         print("Execution (Random actions)...")
-        trajectory, c = execute_random(env=env, steps=config["episode_length"], init_state= config["init_state"])
+        trajectory, c = execute_random(env=env, steps=config["episode_length"], init_state= config["init_state"], samples=samples)
         if data[env_index] is None:
             data[env_index] = trajectory
         else:
@@ -329,7 +355,8 @@ for index_iter in range(config["iterations"]):
                                 last_action_seq=best_action_seq,
                                 pred_high= high,
                                 pred_low=low,
-                                index_iter=index_iter)
+                                index_iter=index_iter,
+                                samples=samples)
         data[env_index] = np.concatenate((data[env_index], trajectory), axis=0)
         print("Cost : ", c)
 
@@ -345,11 +372,25 @@ for index_iter in range(config["iterations"]):
         all_costs.append(c)
 
         print("Saving trajectories..")
-        if index_iter % 10 == 0:
-            np.save(os.path.join(config['logdir'], "trajectories_ant.npy"), data)
+        # if index_iter % 10 == 0:
+        #     np.save(os.path.join(config['logdir'], "trajectories_ant.npy"), data)
         np.save(os.path.join(config['logdir'], "best_cost_ant.npy"), best_cost)
         np.save(os.path.join(config['logdir'], "best_action_seq_ant.npy"), best_action_seq)
-    with open(os.path.join(config['logdir'], "ant_costs_task_"+ str(env_index)+".txt"),"a+") as f:
+    with open(os.path.join(config['logdir'], "ant_costs_task_" + str(env_index)+".txt"), "a+") as f:
         f.write(str(c)+"\n")
 
+    traj_obs.extend(samples["obs"])
+    traj_acs.extend(samples["ac"])
+    traj_rets.extend(samples["reward_sum"])
+    traj_rews.extend(samples["reward"])
+
+    savemat(
+        os.path.join(config['logdir'], "logs.mat"),
+        {
+            "observations": traj_obs,
+            "actions": traj_acs,
+            "returns": traj_rets,
+            "rewards": traj_rews
+        }
+    )
     print("-------------------------------\n")
