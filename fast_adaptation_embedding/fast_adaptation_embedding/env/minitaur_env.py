@@ -548,7 +548,7 @@ class MinitaurBulletEnv(gym.Env):
             urdf_root=pybullet_data.getDataPath(),
             action_repeat=1,
             distance_weight=1.0,
-            energy_weight=0.005,
+            energy_weight=0.0,
             shake_weight=0.0,
             drift_weight=0.0,
             distance_limit=float("inf"),
@@ -900,17 +900,19 @@ if __name__ == "__main__":
     system = gym.make("MinitaurBulletEnv_fastAdapt-v0", render=render)
     recorder = None
     # recorder = VideoRecorder(system, "test.mp4")
-    system.reset()
+    previous_obs = system.reset()
     rew = 0
-    for i in range(2000):
+    dist = 0
+    for i in range(200):
         if recorder is not None:
             recorder.capture_frame()
         a = np.random.random(8) * 2 - 1
         obs, r, _, _ = system.step(a)
-        print(obs)
+        dist += obs[28]-previous_obs[28]
+        previous_obs = np.copy(obs)
         rew += r
         time.sleep(0.01)
     if recorder is not None:
         recorder.capture_frame()
         recorder.close()
-    print(rew)
+    print(rew, dist)

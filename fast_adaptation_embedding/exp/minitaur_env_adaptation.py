@@ -149,7 +149,10 @@ def execute_random(env, steps, init_state):
 
 def execute_2(env, init_state, steps, init_mean, init_var, model, config, last_action_seq, pred_high, pred_low, index_iter):
     current_state = env.reset()
-    recorder = VideoRecorder(env, "/log/iter_"+str(index_iter)+".mp4")
+    f_rec = config['video_recording_frequency']
+    recorder = None
+    if f_rec and index_iter % f_rec == 0:
+        recorder = VideoRecorder(env, "/log/iter_"+str(index_iter)+".mp4")
     trajectory = []
     traject_cost = 0
     model_error = 0
@@ -167,7 +170,8 @@ def execute_2(env, init_state, steps, init_mean, init_var, model, config, last_a
         ## Take soft action        
         a = sol[0:env.action_space.shape[0]]
         next_state, r = 0, 0
-        recorder.capture_frame()
+        if recorder is not None:
+            recorder.capture_frame()
         for k in range(1):
             next_state, r, _, _ = env.step(a)
         trajectory.append([current_state.copy(), a.copy(), next_state-current_state, -r])
@@ -176,8 +180,9 @@ def execute_2(env, init_state, steps, init_mean, init_var, model, config, last_a
         traject_cost += -r
         sliding_mean[0:-len(a)] = sol[len(a)::]
     print("Model error: ", model_error)
-    recorder.capture_frame()
-    recorder.close()
+    if recorder is not None:
+        recorder.capture_frame()
+        recorder.close()
     return np.array(trajectory), traject_cost
 
 def test_model(ensemble_model, init_state, action, state_diff):
@@ -203,6 +208,7 @@ config = {
     "episode_length": 1000,
     "init_state": None,  # Must be updated before passing config as param
     "action_dim": 8,
+    "video_recording_frequency": 5,
 
     # Model_parameters
     "dim_in": 8+31,
