@@ -231,7 +231,7 @@ config = {
     "episode_length": 1000,
     "init_state": None,  # Must be updated before passing config as param
     "action_dim": 8,
-    "video_recording_frequency": 5,
+    "video_recording_frequency": 10,
     "logdir": 'log',
 
     # Model_parameters
@@ -380,7 +380,7 @@ for index_iter in range(config["iterations"]):
         f.write(str(c)+"\n")
 
     traj_obs.extend(samples["obs"])
-    traj_acs.extend(samples["ac"])
+    traj_acs.extend(samples["acs"])
     traj_rets.extend(samples["reward_sum"])
     traj_rews.extend(samples["reward"])
 
@@ -389,7 +389,7 @@ for index_iter in range(config["iterations"]):
         {
             "observations": traj_obs,
             "actions": traj_acs,
-            "returns": traj_rets,
+            "reward_sum": traj_rets,
             "rewards": traj_rews
         }
     )
