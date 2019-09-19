@@ -218,7 +218,8 @@ class NN:
         with self.sess.as_default():
             self.scaler.fit(inputs)
 
-        idxs = np.random.randint(inputs.shape[0], size=[self.num_nets, inputs.shape[0]])
+        # idxs = np.random.randint(inputs.shape[0], size=[self.num_nets, inputs.shape[0]])
+        idxs = np.array([np.arange(inputs.shape[0]) for _ in range(self.num_nets)])
         if hide_progress:
             epoch_range = range(epochs)
         else:
