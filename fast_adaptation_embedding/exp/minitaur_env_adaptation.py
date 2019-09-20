@@ -98,17 +98,12 @@ class Cost_ensemble(object):
                 x_vel_cost = -diff_state[:, 28] * self.__distance_weight
                 y_vel_cost = -diff_state[:, 29] * self.__drift_weight
                 shake_cost = abs(diff_state[:, 30]) * self.__shake_weight
-                survive_cost = (start_states[:, 30] < 0.13).type(start_states.dtype) * self.__survival_weight
-
-                # orientation = self.minitaur.GetBaseOrientation()
-                # rot_mat = self._pybullet_client.getMatrixFromQuaternion(orientation)
-                # local_up = rot_mat[6:]
-                # pos = self.minitaur.GetBasePosition()
-                # return (np.dot(np.asarray([0, 0, 1]), np.asarray(local_up)) < 0.85 or pos[2] < 0.13)
-
+                survival_cost = (start_states[:, 30] < 0.13).type(start_states.dtype) * self.__survival_weight
                 all_costs[start_index: end_index] += x_vel_cost * self.__discount**h +\
                                                      action_cost * self.__discount**h + \
-                                                     survive_cost * self.__discount**h
+                                                     survival_cost * self.__discount**h + \
+                                                     y_vel_cost * self.__discount**h + \
+                                                     shake_cost * self.__discount**h
         return all_costs.cpu().detach().numpy()
 
 
