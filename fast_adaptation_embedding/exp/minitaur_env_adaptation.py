@@ -302,8 +302,10 @@ def main(args, logdir):
         "discount": 1.
     }
     for (key, val) in args:
-        config[key] = float(val)
-    print('')
+        if key in ['horizon']:
+            config[key] = int(val)
+        else:
+            config[key] = float(val)
     #  ************************************************
 
     logdir = os.path.join(config['logdir'], strftime("%Y-%m-%d--%H:%M:%S", localtime()) + str(np.random.randint(10**5)))
