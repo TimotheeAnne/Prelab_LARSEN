@@ -212,6 +212,8 @@ def execute_2(env, init_state, steps, init_mean, init_var, model, config, last_a
             obs.append(next_state)
             acs.append(a)
             reward.append(r)
+            diff_pos = next_state[28:] - current_state[28:]
+            print(diff_pos)
         trajectory.append([current_state.copy(), a.copy(), next_state-current_state, -r])
         model_error += test_model(model, current_state.copy(), a.copy(), next_state-current_state)
         current_state = next_state
