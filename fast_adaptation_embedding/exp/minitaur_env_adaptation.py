@@ -20,6 +20,12 @@ from time import time, localtime, strftime
 import pprint
 from scipy.io import savemat
 
+distance_weight = 1.0
+energy_weight = 0.
+shake_weight = 0.
+drift_weight = 0.
+survival_weight = 0.
+
 class Cost_meta(object):
     def __init__(self, model, init_state, horizon, action_dim, goal, task_likelihoods):
        self.__model = model
@@ -86,9 +92,17 @@ class Cost_ensemble(object):
                 for dim in range(self.__obs_dim):
                     start_states[:, dim].clamp_(self.__pred_low[dim], self.__pred_high[dim])
 
-                action_cost = torch.sum(actions * actions, dim=1) * 1.
-                x_vel_cost = -diff_state[:, 28] * 0.
-                survive_cost = (start_states[:, 30] < 0.1).type(start_states.dtype) * 0
+                action_cost = torch.sum(actions * actions, dim=1) * energy_weight
+                x_vel_cost = -diff_state[:, 28] * distance_weight
+                survive_cost = (start_states[:, 30] < 0.1).type(start_states.dtype) * survival_weight
+
+                # orientation = self.minitaur.GetBaseOrientation()
+                # rot_mat = self._pybullet_client.getMatrixFromQuaternion(orientation)
+                # local_up = rot_mat[6:]
+                # pos = self.minitaur.GetBasePosition()
+                # return (np.dot(np.asarray([0, 0, 1]), np.asarray(local_up)) < 0.85 or pos[2] < 0.13)
+
+
                 all_costs[start_index: end_index] += x_vel_cost * config["discount"]**h + action_cost * config["discount"]**h + survive_cost * config["discount"]**h
         return all_costs.cpu().detach().numpy()
 
@@ -178,11 +192,12 @@ def execute_2(env, init_state, steps, init_mean, init_var, model, config, last_a
     mutation *= np.array([1.0 if r > 0.25 else 0.0 for r in rand])
 
     for i in tqdm(range(steps)):
-        cost_object = Cost_ensemble(ensemble_model=model, init_state=current_state, horizon=config["horizon"], action_dim=env.action_space.shape[0], goal=goal, pred_high=pred_high, pred_low=pred_low) 
+        cost_object = Cost_ensemble(ensemble_model=model, init_state=current_state, horizon=config["horizon"],
+                                    action_dim=env.action_space.shape[0], goal=goal, pred_high=pred_high,
+                                    pred_low=pred_low)
         config["cost_fn"] = cost_object.cost_fn   
         optimizer = RS_opt(config)
-        sol = optimizer.obtain_solution()             
-        ## Take soft action        
+        sol = optimizer.obtain_solution()
         a = sol[0:env.action_space.shape[0]]
         next_state, r = 0, 0
         if recorder is not None:
@@ -192,6 +207,8 @@ def execute_2(env, init_state, steps, init_mean, init_var, model, config, last_a
             obs.append(next_state)
             acs.append(a)
             reward.append(r)
+            if env.is_fallen():
+                print('FALLEN', next_state[30:])
         trajectory.append([current_state.copy(), a.copy(), next_state-current_state, -r])
         model_error += test_model(model, current_state.copy(), a.copy(), next_state-current_state)
         current_state = next_state
@@ -292,7 +309,8 @@ mismatches = np.array([[1., 1., 1., 1., 1., 1., 1., 1.]])
 n_task = len(mismatches)
 goal = [1000, 0]
 render = False
-envs = [gym.make("MinitaurBulletEnv_fastAdapt-v0", render=render) for i in range(n_task)]
+envs = [gym.make("MinitaurBulletEnv_fastAdapt-v0", render=render, distance_weight=distance_weight,
+                 energy_weight=energy_weight, survival_weight=energy_weight) for i in range(n_task)]
 
 data = n_task * [None]
 models = n_task * [None]
