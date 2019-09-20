@@ -5,10 +5,10 @@ os.sys.path.insert(0, parentdir)
 import fast_adaptation_embedding.env
 import fast_adaptation_embedding.models.embedding_nn as nn_model
 from fast_adaptation_embedding.models.ffnn import FFNN_Ensemble_Model
-from fast_adaptation_embedding.controllers.cem import CEM_opt 
-from fast_adaptation_embedding.controllers.random_shooting import RS_opt 
+from fast_adaptation_embedding.controllers.cem import CEM_opt
+from fast_adaptation_embedding.controllers.random_shooting import RS_opt
 import torch
-import numpy as np 
+import numpy as np
 import copy
 import gym
 import time
@@ -30,7 +30,7 @@ class Cost_meta(object):
        self.__action_dim = action_dim
        self.__goal = goal
        self.__task_likelihoods = task_likelihoods
-    
+
     def cost_given_task(self, samples, task_id):
         all_costs = []
         for s in samples:
@@ -38,10 +38,10 @@ class Cost_meta(object):
             episode_cost = 0
             for i in range(self.__horizon):
                 action = s[self.__action_dim*i : self.__action_dim*i + self.__action_dim]
-                x = np.concatenate((state, action), axis=1).reshape(1, self.__action_dim) 
+                x = np.concatenate((state, action), axis=1).reshape(1, self.__action_dim)
                 diff_state = self.__model.predict(x, np.array([[task_id]])).data.cpu().numpy().flatten()
                 state += diff_state
-                episode_cost += np.linalg.norm(self.__goal - state)            
+                episode_cost += np.linalg.norm(self.__goal - state)
             all_costs.append(episode_cost * self.__task_likelihoods[task_id])
         return np.array(all_costs)
 
@@ -66,23 +66,24 @@ class Cost_ensemble(object):
         self.__energy_weight = config['energy_weight']
         self.__distance_weight = config['distance_weight']
         self.__survival_weight = config['survival_weight']
-    
+        self.__discount = config['discount']
+
     def cost_fn(self, samples):
         action_samples = torch.FloatTensor(samples).cuda() if self.__ensemble_model.CUDA else torch.FloatTensor(samples)
         init_states = torch.FloatTensor(np.repeat([self.__init_state], len(samples), axis=0)).cuda() if  self.__ensemble_model.CUDA else torch.FloatTensor(np.repeat([self.__init_state], len(samples), axis=0))
         all_costs = torch.FloatTensor(np.zeros(len(samples))).cuda() if self.__ensemble_model.CUDA else torch.FloatTensor(np.zeros(len(samples)))
-        
+
         n_model = len(self.__models)
         # n_batch = min(n_model, int(len(samples)/1024))
         n_batch = max(1, int(len(samples)/1024))
         per_batch = len(samples)/n_batch
 
-        for i in range(n_batch): 
+        for i in range(n_batch):
             start_index = int(i*per_batch)
             end_index = len(samples) if i == n_batch-1 else int(i*per_batch + per_batch)
             action_batch = action_samples[start_index:end_index]
             start_states = init_states[start_index:end_index]
-            dyn_model = self.__models[np.random.randint(0, len(self.__models))]  
+            dyn_model = self.__models[np.random.randint(0, len(self.__models))]
             for h in range(self.__horizon):
                 actions = action_batch[:,h*self.__action_dim : h*self.__action_dim + self.__action_dim]
                 model_input = torch.cat((start_states, actions), dim=1)
@@ -101,8 +102,9 @@ class Cost_ensemble(object):
                 # pos = self.minitaur.GetBasePosition()
                 # return (np.dot(np.asarray([0, 0, 1]), np.asarray(local_up)) < 0.85 or pos[2] < 0.13)
 
-
-                all_costs[start_index: end_index] += x_vel_cost * config["discount"]**h + action_cost * config["discount"]**h + survive_cost * config["discount"]**h
+                all_costs[start_index: end_index] += x_vel_cost * self.__discount**h +\
+                                                     action_cost * self.__discount**h + \
+                                                     survive_cost * self.__discount**h
         return all_costs.cpu().detach().numpy()
 
 
@@ -121,7 +123,7 @@ def train_model(model, train_in, train_out, task_id, config):
 def train_ensemble_model(train_in, train_out, sampling_size, config, model= None):
     network = model
     if network is None:
-        network = FFNN_Ensemble_Model(dim_in=config["ensemble_dim_in"], 
+        network = FFNN_Ensemble_Model(dim_in=config["ensemble_dim_in"],
                                     hidden=config["ensemble_hidden"],
                                     hidden_activation=config["hidden_activation"],
                                     dim_out=config["ensemble_dim_out"],
@@ -194,7 +196,7 @@ def execute_2(env, init_state, steps, init_mean, init_var, model, config, last_a
         cost_object = Cost_ensemble(ensemble_model=model, init_state=current_state, horizon=config["horizon"],
                                     action_dim=env.action_space.shape[0], goal=goal, pred_high=pred_high,
                                     pred_low=pred_low, config=config)
-        config["cost_fn"] = cost_object.cost_fn   
+        config["cost_fn"] = cost_object.cost_fn
         optimizer = RS_opt(config)
         sol = optimizer.obtain_solution()
         a = sol[0:env.action_space.shape[0]]
