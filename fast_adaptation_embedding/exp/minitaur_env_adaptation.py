@@ -308,7 +308,7 @@ def main(args, logdir):
     }
     for (key, val) in args:
         config[key] = float(val)
-
+    print('')
     #  ************************************************
 
     logdir = os.path.join(config['logdir'], strftime("%Y-%m-%d--%H:%M:%S", localtime()) + str(np.random.randint(10**5)))
@@ -321,7 +321,8 @@ def main(args, logdir):
     goal = [1000, 0]
     render = False
     envs = [gym.make("MinitaurBulletEnv_fastAdapt-v0", render=render, distance_weight=config['distance_weight'],
-                     energy_weight=config['energy_weight'], survival_weight=config['energy_weight']) for i in range(n_task)]
+                     energy_weight=config['energy_weight'], survival_weight=config['survival_weight'],
+                     drift_weight=config['drift_weight'], shake_weight=config['shake_weight']) for i in range(n_task)]
 
     data = n_task * [None]
     models = n_task * [None]
