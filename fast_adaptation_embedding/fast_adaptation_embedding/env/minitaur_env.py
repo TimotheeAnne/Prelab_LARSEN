@@ -548,11 +548,11 @@ class MinitaurBulletEnv(gym.Env):
             self,
             urdf_root=pybullet_data.getDataPath(),
             action_repeat=1,
-            distance_weight=1.0,
-            energy_weight=0.0,
+            distance_weight=.0,
+            energy_weight=1.0,
             shake_weight=0.0,
             drift_weight=0.0,
-            survival_weight=0.1,
+            survival_weight=0.,
             distance_limit=float("inf"),
             observation_noise_stdev=0.0,
             self_collision_enabled=True,
@@ -867,7 +867,7 @@ class MinitaurBulletEnv(gym.Env):
                    self.minitaur.GetMotorVelocities())) * self._time_step
         reward = (self._distance_weight * forward_reward - self._energy_weight * energy_reward +
                   self._drift_weight * drift_reward + self._shake_weight * shake_reward +
-                  self._survival_weight* survival_reward)
+                  self._survival_weight * survival_reward)
         self._objectives.append([forward_reward, energy_reward, drift_reward, shake_reward])
         return reward
 

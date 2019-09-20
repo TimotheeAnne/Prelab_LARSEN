@@ -86,9 +86,9 @@ class Cost_ensemble(object):
                 for dim in range(self.__obs_dim):
                     start_states[:, dim].clamp_(self.__pred_low[dim], self.__pred_high[dim])
 
-                action_cost = torch.sum(actions * actions, dim=1) * 0.0
-                x_vel_cost = -diff_state[:, 28]
-                survive_cost = (start_states[:, 30] < 0.1).type(start_states.dtype) * 0.1
+                action_cost = torch.sum(actions * actions, dim=1) * 1.
+                x_vel_cost = -diff_state[:, 28] * 0.
+                survive_cost = (start_states[:, 30] < 0.1).type(start_states.dtype) * 0
                 all_costs[start_index: end_index] += x_vel_cost * config["discount"]**h + action_cost * config["discount"]**h + survive_cost * config["discount"]**h
         return all_costs.cpu().detach().numpy()
 
