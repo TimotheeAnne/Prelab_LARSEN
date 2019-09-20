@@ -163,9 +163,8 @@ def execute_2(env, init_state, steps, init_mean, init_var, model, config, last_a
     current_state = env.reset()
     f_rec = config['video_recording_frequency']
     recorder = None
-    if f_rec and index_iter % f_rec == 0:
+    if f_rec and index_iter % f_rec == (f_rec - 1):
         recorder = VideoRecorder(env, os.path.join(config['logdir'], "iter_" + str(index_iter) + ".mp4"))
-    trajectory = []
     obs = [current_state]
     acs = []
     trajectory = []
@@ -233,6 +232,7 @@ config = {
     "action_dim": 8,
     "video_recording_frequency": 10,
     "logdir": 'log',
+    "load_data": '',
 
     # Model_parameters
     "dim_in": 8+31,
@@ -311,7 +311,7 @@ traj_obs, traj_acs, traj_rets, traj_rews = [], [], [], []
 
 for index_iter in range(config["iterations"]):
     '''Pick a random environment'''
-    env_index = int(index_iter%n_task)
+    env_index = int(index_iter % n_task)
     env = envs[env_index]
 
     print("Episode: ", index_iter)
@@ -319,10 +319,16 @@ for index_iter in range(config["iterations"]):
     c = None
 
     samples = {'acs': [], 'obs': [], 'reward': [], 'reward_sum': []}
-
-    if data[env_index] is None or index_iter < 100*n_task:
+    try:
+        with open(config['load_data'], 'rb') as f:
+            data = pickle.load(f)
+        n_random = 0
+    except:
+        n_random = 100
+    if data[env_index] is None or index_iter < n_random * n_task:
         print("Execution (Random actions)...")
-        trajectory, c = execute_random(env=env, steps=config["episode_length"], init_state= config["init_state"], samples=samples)
+        trajectory, c = execute_random(env=env, steps=config["episode_length"],
+                                       init_state=config["init_state"], samples=samples)
         if data[env_index] is None:
             data[env_index] = trajectory
         else:
@@ -340,6 +346,8 @@ for index_iter in range(config["iterations"]):
         all_costs.append(c)
     else:    
         '''------------Update models------------'''
+        with open("random_data.pk", 'wb') as f:
+            pickle.dump(data, f)
         x, y, high, low = process_data(data[env_index])
         print("Learning model...")
         models[env_index] = train_ensemble_model(train_in=x, train_out=y, sampling_size=-1, config=config, model=models[env_index])
