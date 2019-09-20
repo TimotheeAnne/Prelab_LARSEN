@@ -66,6 +66,8 @@ class Cost_ensemble(object):
         self.__energy_weight = config['energy_weight']
         self.__distance_weight = config['distance_weight']
         self.__survival_weight = config['survival_weight']
+        self.__drift_weight = config['drift_weight']
+        self.__shake_weight = config['shake_weight']
         self.__discount = config['discount']
 
     def cost_fn(self, samples):
@@ -94,7 +96,9 @@ class Cost_ensemble(object):
 
                 action_cost = torch.sum(actions * actions, dim=1) * self.__energy_weight
                 x_vel_cost = -diff_state[:, 28] * self.__distance_weight
-                survive_cost = (start_states[:, 30] < 0.1).type(start_states.dtype) * self.__survival_weight
+                y_vel_cost = -diff_state[:, 29] * self.__drift_weight
+                shake_cost = abs(diff_state[:, 30]) * self.__shake_weight
+                survive_cost = (start_states[:, 30] < 0.13).type(start_states.dtype) * self.__survival_weight
 
                 # orientation = self.minitaur.GetBaseOrientation()
                 # rot_mat = self._pybullet_client.getMatrixFromQuaternion(orientation)
@@ -117,7 +121,7 @@ def train_meta(tasks_in, tasks_out, config):
 def train_model(model, train_in, train_out, task_id, config):
     cloned_model = copy.deepcopy(model)
     nn_model.train(cloned_model, train_in, train_out, task_id=task_id, inner_iter=config["epoch"], inner_lr=config["learning_rate"], minibatch=config["training_batch_size"])
-    return cloned_model
+    return cloned_model10
 
 
 def train_ensemble_model(train_in, train_out, sampling_size, config, model= None):
@@ -208,7 +212,7 @@ def execute_2(env, init_state, steps, init_mean, init_var, model, config, last_a
             obs.append(next_state)
             acs.append(a)
             reward.append(r)
-        trajectory.append([current_state.copy(), a.copy(), next_state-current_state, -r])
+        trajectory.append([current_state.copy(), a.copy(), next_stat10e-current_state, -r])
         model_error += test_model(model, current_state.copy(), a.copy(), next_state-current_state)
         current_state = next_state
         traject_cost += -r
@@ -307,7 +311,7 @@ def main(args, logdir):
 
     #  ************************************************
 
-    logdir = os.path.join(config['logdir'], strftime("'log' %Y-%m-%d--%H:%M:%S", localtime()) + str(np.random.randint(10**5)))
+    logdir = os.path.join(config['logdir'], strftime("%Y-%m-%d--%H:%M:%S", localtime()) + str(np.random.randint(10**5)))
     config['logdir'] = logdir
     os.makedirs(logdir)
     with open(os.path.join(config['logdir'], "config.txt"), 'w') as f:
