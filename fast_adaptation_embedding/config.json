@@ -1,10 +1,18 @@
 [
   {
     "exp":"exp/minitaur_env_adaptation.py",
-    "prefix": "minitaur_basic",
+    "prefix": "minitaur_10H",
     "result_dir":"exp/log",
-    "walltime": "00:20",
-    "args": "",
+    "walltime": "1:00",
+    "args": "-ca horizon 10",
+    "replicates": 2
+  },
+  {
+    "exp": "exp/minitaur_env_adaptation.py",
+    "prefix": "minitaur_30H",
+    "result_dir": "exp/log",
+    "walltime": "1:00",
+    "args": "-ca horizon 30",
     "replicates": 2
   }
 ]
