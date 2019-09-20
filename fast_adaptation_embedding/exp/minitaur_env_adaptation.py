@@ -122,13 +122,13 @@ def train_ensemble_model(train_in, train_out, sampling_size, config, model= None
 
 
 def process_data(data):
-    '''Assuming dada: an array containing [state, action, state_transition, cost] '''
+    # Assuming dada: an array containing [state, action, state_transition, cost]
     training_in = []
     training_out = []
     for d in data:
         s = d[0]
         a = d[1]
-        training_in.append(np.concatenate((s,a)))
+        training_in.append(np.concatenate((s, a)))
         training_out.append(d[2])
     return np.array(training_in), np.array(training_out), np.max(training_in, axis=0), np.min(training_in, axis=0)
 
@@ -232,7 +232,7 @@ config = {
     "action_dim": 8,
     "video_recording_frequency": 10,
     "logdir": 'log',
-    "load_data": '',
+    "load_data": 'random_data.pk',
 
     # Model_parameters
     "dim_in": 8+31,
@@ -265,7 +265,7 @@ config = {
     "ensemble_dropout": 0.0, 
     "n_ensembles": 1,
     "ensemble_batch_size": 64,
-    "ensemble_log_interval":500,
+    "ensemble_log_interval": 500,
 
     # Optimizer parameters
     "max_iters": 5, 
@@ -278,7 +278,7 @@ config = {
     "num_elites": 50,
     "cost_fn": None, 
     "alpha": 0.1,
-    "discount":1.
+    "discount": 1.
 }
 
 #  ************************************************
@@ -288,7 +288,6 @@ config['logdir'] = logdir
 os.makedirs(logdir)
 with open(os.path.join(config['logdir'], "config.txt"), 'w') as f:
     f.write(pprint.pformat(config))
-# mismatches = np.array([[1., 1., 1., 1., 1., 1., 1., 1.], [1., 0., 1., 1., 1., 1., 1., 1.], [1., 1., 0., 1., 1., 1., 1., 1.], [1., 1., 1., 0., 1., 1., 1., 1.], [1., 1., 1., 1., 0., 1., 1., 1.]])
 mismatches = np.array([[1., 1., 1., 1., 1., 1., 1., 1.]])
 n_task = len(mismatches)
 goal = [1000, 0]
