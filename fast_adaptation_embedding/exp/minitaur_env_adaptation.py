@@ -189,7 +189,7 @@ def execute_2(env, init_state, steps, init_mean, init_var, model, config, last_a
     mutation = np.random.rand(config["sol_dim"]) * 2. * 0.5 - 0.5
     rand = np.random.rand(config["sol_dim"])
     mutation *= np.array([1.0 if r > 0.25 else 0.0 for r in rand])
-
+    goal = None
     for i in tqdm(range(steps)):
         cost_object = Cost_ensemble(ensemble_model=model, init_state=current_state, horizon=config["horizon"],
                                     action_dim=env.action_space.shape[0], goal=goal, pred_high=pred_high,
@@ -206,8 +206,6 @@ def execute_2(env, init_state, steps, init_mean, init_var, model, config, last_a
             obs.append(next_state)
             acs.append(a)
             reward.append(r)
-            if env.is_fallen():
-                print('FALLEN', next_state[30:])
         trajectory.append([current_state.copy(), a.copy(), next_state-current_state, -r])
         model_error += test_model(model, current_state.copy(), a.copy(), next_state-current_state)
         current_state = next_state
