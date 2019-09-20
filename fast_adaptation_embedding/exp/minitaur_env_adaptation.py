@@ -19,12 +19,8 @@ from tqdm import tqdm
 from time import time, localtime, strftime
 import pprint
 from scipy.io import savemat
+import argparse
 
-distance_weight = 1.0
-energy_weight = 0.
-shake_weight = 0.
-drift_weight = 0.
-survival_weight = 0.
 
 class Cost_meta(object):
     def __init__(self, model, init_state, horizon, action_dim, goal, task_likelihoods):
@@ -57,7 +53,7 @@ class Cost_meta(object):
 
 
 class Cost_ensemble(object):
-    def __init__(self, ensemble_model, init_state, horizon, action_dim, goal, pred_high, pred_low):
+    def __init__(self, ensemble_model, init_state, horizon, action_dim, goal, pred_high, pred_low, config):
         self.__ensemble_model = ensemble_model
         self.__init_state = init_state
         self.__horizon = horizon
@@ -67,6 +63,9 @@ class Cost_ensemble(object):
         self.__pred_high = pred_high
         self.__pred_low = pred_low
         self.__obs_dim = len(init_state)
+        self.__energy_weight = config['energy_weight']
+        self.__distance_weight = config['distance_weight']
+        self.__survival_weight = config['survival_weight']
     
     def cost_fn(self, samples):
         action_samples = torch.FloatTensor(samples).cuda() if self.__ensemble_model.CUDA else torch.FloatTensor(samples)
@@ -92,9 +91,9 @@ class Cost_ensemble(object):
                 for dim in range(self.__obs_dim):
                     start_states[:, dim].clamp_(self.__pred_low[dim], self.__pred_high[dim])
 
-                action_cost = torch.sum(actions * actions, dim=1) * energy_weight
-                x_vel_cost = -diff_state[:, 28] * distance_weight
-                survive_cost = (start_states[:, 30] < 0.1).type(start_states.dtype) * survival_weight
+                action_cost = torch.sum(actions * actions, dim=1) * self.__energy_weight
+                x_vel_cost = -diff_state[:, 28] * self.__distance_weight
+                survive_cost = (start_states[:, 30] < 0.1).type(start_states.dtype) * self.__survival_weight
 
                 # orientation = self.minitaur.GetBaseOrientation()
                 # rot_mat = self._pybullet_client.getMatrixFromQuaternion(orientation)
@@ -194,7 +193,7 @@ def execute_2(env, init_state, steps, init_mean, init_var, model, config, last_a
     for i in tqdm(range(steps)):
         cost_object = Cost_ensemble(ensemble_model=model, init_state=current_state, horizon=config["horizon"],
                                     action_dim=env.action_space.shape[0], goal=goal, pred_high=pred_high,
-                                    pred_low=pred_low)
+                                    pred_low=pred_low, config=config)
         config["cost_fn"] = cost_object.cost_fn   
         optimizer = RS_opt(config)
         sol = optimizer.obtain_solution()
@@ -239,183 +238,199 @@ def extract_action_seq(data):
         actions += d[1].tolist()
     return np.array(actions)
 
+def main(args, logdir):
+    config = {
+        # exp parameters:
+        "horizon": 20,  # NOTE: "sol_dim" must be adjusted
+        "iterations": 300,
+        "random_iter": 100,
+        "episode_length": 1000,
+        "init_state": None,  # Must be updated before passing config as param
+        "action_dim": 8,
+        "video_recording_frequency": 10,
+        "logdir": logdir,
+        "load_data": 'random_data.pk',
+        "distance_weight": 1.0,
+        "energy_weight": 0.,
+        "shake_weight": 0.,
+        "drift_weight": 0.,
+        "survival_weight": 0.,
 
-config = {
-    # exp parameters:
-    "horizon": 20,  # NOTE: "sol_dim" must be adjusted
-    "iterations": 300,
-    "episode_length": 1000,
-    "init_state": None,  # Must be updated before passing config as param
-    "action_dim": 8,
-    "video_recording_frequency": 10,
-    "logdir": 'log',
-    "load_data": 'random_data.pk',
+        # Model_parameters
+        "dim_in": 8+31,
+        "dim_out": 31,
+        "hidden_layers": [128, 128],
+        "embedding_size": 5,
+        "cuda": False,
 
-    # Model_parameters
-    "dim_in": 8+31,
-    "dim_out": 31,
-    "hidden_layers": [128, 128],
-    "embedding_size": 5,
-    "cuda": False,
+        # Meta learning parameters
+        "meta_iter": 5000,
+        "meta_step": 0.1,
+        "inner_iter": 10,
+        "inner_step": 0.02,
 
-    # Meta learning parameters
-    "meta_iter": 5000,
-    "meta_step": 0.1,
-    "inner_iter": 10,
-    "inner_step": 0.02,
+        # Model learning parameters
+        "epoch": 1000,
+        "learning_rate": 1e-3,
+        "minibatch_size": 32,
 
-    # Model learning parameters
-    "epoch": 1000,
-    "learning_rate": 1e-3,
-    "minibatch_size": 32,
+        # Ensemble model params'log'
+        "ensemble_epoch": 5,
+        "ensemble_dim_in": 8+31,
+        "ensemble_dim_out": 31,
+        # "ensemble_hidden": [200, 200, 200],
+        "ensemble_hidden": [200, 200, 100],
+        "hidden_activation": "relu",
+        "ensemble_cuda": True,
+        "ensemble_seed": None,
+        "ensemble_output_limit": None,
+        "ensemble_dropout": 0.0,
+        "n_ensembles": 1,
+        "ensemble_batch_size": 64,
+        "ensemble_log_interval": 500,
 
-    # Ensemble model params
-    "ensemble_epoch": 5,
-    "ensemble_dim_in": 8+31,
-    "ensemble_dim_out": 31,
-    # "ensemble_hidden": [200, 200, 200],
-    "ensemble_hidden": [200, 200, 100],
-    "hidden_activation": "relu",
-    "ensemble_cuda": True,
-    "ensemble_seed": None, 
-    "ensemble_output_limit": None, 
-    "ensemble_dropout": 0.0, 
-    "n_ensembles": 1,
-    "ensemble_batch_size": 64,
-    "ensemble_log_interval": 500,
+        # Optimizer parameters
+        "max_iters": 5,
+        "epsilon": 0.0001,
 
-    # Optimizer parameters
-    "max_iters": 5, 
-    "epsilon": 0.0001,
+        "lb": -1.,
+        "ub": 1.,
+        "popsize": 500,
+        "sol_dim": 8*20,  # NOTE: Depends on Horizon
+        "num_elites": 50,
+        "cost_fn": None,
+        "alpha": 0.1,
+        "discount": 1.
+    }
+    for (key, val) in args:
+        config[key] = float(val)
 
-    "lb": -1., 
-    "ub": 1.,
-    "popsize": 500,
-    "sol_dim": 8*20,  # NOTE: Depends on Horizon
-    "num_elites": 50,
-    "cost_fn": None, 
-    "alpha": 0.1,
-    "discount": 1.
-}
+    #  ************************************************
 
-#  ************************************************
+    logdir = os.path.join(config['logdir'], strftime("'log' %Y-%m-%d--%H:%M:%S", localtime()) + str(np.random.randint(10**5)))
+    config['logdir'] = logdir
+    os.makedirs(logdir)
+    with open(os.path.join(config['logdir'], "config.txt"), 'w') as f:
+        f.write(pprint.pformat(config))
+    mismatches = np.array([[1., 1., 1., 1., 1., 1., 1., 1.]])
+    n_task = len(mismatches)
+    goal = [1000, 0]
+    render = False
+    envs = [gym.make("MinitaurBulletEnv_fastAdapt-v0", render=render, distance_weight=config['distance_weight'],
+                     energy_weight=config['energy_weight'], survival_weight=config['energy_weight']) for i in range(n_task)]
 
-logdir = os.path.join(config['logdir'], strftime("%Y-%m-%d--%H:%M:%S", localtime()) + str(np.random.randint(10**5)))
-config['logdir'] = logdir
-os.makedirs(logdir)
-with open(os.path.join(config['logdir'], "config.txt"), 'w') as f:
-    f.write(pprint.pformat(config))
-mismatches = np.array([[1., 1., 1., 1., 1., 1., 1., 1.]])
-n_task = len(mismatches)
-goal = [1000, 0]
-render = False
-envs = [gym.make("MinitaurBulletEnv_fastAdapt-v0", render=render, distance_weight=distance_weight,
-                 energy_weight=energy_weight, survival_weight=energy_weight) for i in range(n_task)]
+    data = n_task * [None]
+    models = n_task * [None]
+    best_action_seq = np.random.rand(config["sol_dim"])*2.0 - 1.0
+    best_cost = 10000
+    last_action_seq = None
+    all_action_seq = []
+    all_costs = []
 
-data = n_task * [None]
-models = n_task * [None]
-best_action_seq = np.random.rand(config["sol_dim"])*2.0 - 1.0
-best_cost = 10000 
-last_action_seq = None
-all_action_seq = []
-all_costs = []
+    for i in range(n_task):
+        with open(os.path.join(config['logdir'], "ant_costs_task_"+ str(i)+".txt"), "w+") as f:
+            f.write("")
 
-for i in range(n_task):
-    with open(os.path.join(config['logdir'], "ant_costs_task_"+ str(i)+".txt"), "w+") as f:
-        f.write("")
+    traj_obs, traj_acs, traj_rets, traj_rews = [], [], [], []
 
-traj_obs, traj_acs, traj_rets, traj_rews = [], [], [], []
+    for index_iter in range(config["iterations"]):
+        '''Pick a random environment'''
+        env_index = int(index_iter % n_task)
+        env = envs[env_index]
 
-for index_iter in range(config["iterations"]):
-    '''Pick a random environment'''
-    env_index = int(index_iter % n_task)
-    env = envs[env_index]
+        print("Episode: ", index_iter)
+        print("Env index: ", env_index)
+        c = None
 
-    print("Episode: ", index_iter)
-    print("Env index: ", env_index)
-    c = None
+        samples = {'acs': [], 'obs': [], 'reward': [], 'reward_sum': []}
+        try:
+            with open(config['load_data'], 'rb') as f:
+                data = pickle.load(f)
+            random_iter = 0
+        except:
+            random_iter = config['random_iter']
+        if data[env_index] is None or index_iter < random_iter * n_task:
+            print("Execution (Random actions)...")
+            trajectory, c = execute_random(env=env, steps=config["episode_length"],
+                                           init_state=config["init_state"], samples=samples)
+            if data[env_index] is None:
+                data[env_index] = trajectory
+            else:
+                data[env_index] = np.concatenate((data[env_index], trajectory), axis=0)
+            print("Cost : ", c)
 
-    samples = {'acs': [], 'obs': [], 'reward': [], 'reward_sum': []}
-    try:
-        with open(config['load_data'], 'rb') as f:
-            data = pickle.load(f)
-        n_random = 0
-    except:
-        n_random = 100
-    if data[env_index] is None or index_iter < n_random * n_task:
-        print("Execution (Random actions)...")
-        trajectory, c = execute_random(env=env, steps=config["episode_length"],
-                                       init_state=config["init_state"], samples=samples)
-        if data[env_index] is None:
-            data[env_index] = trajectory
+            if c < best_cost:
+                best_cost = c
+                best_action_seq = []
+                for d in trajectory:
+                    best_action_seq += d[1].tolist()
+                best_action_seq = np.array(best_action_seq)
+                last_action_seq = best_action_seq
+            all_action_seq.append(extract_action_seq(trajectory))
+            all_costs.append(c)
         else:
+            '''------------Update models------------'''
+            with open("random_data.pk", 'wb') as f:
+                pickle.dump(data, f)
+            x, y, high, low = process_data(data[env_index])
+            print("Learning model...")
+            models[env_index] = train_ensemble_model(train_in=x, train_out=y, sampling_size=-1, config=config, model=models[env_index])
+            print("Execution...")
+
+            trajectory, c = execute_2(env=env,
+                                    init_state=config["init_state"],
+                                    model=models[env_index],
+                                    steps=config["episode_length"],
+                                    init_mean=best_action_seq[0:config["sol_dim"]] ,
+                                    init_var=0.1 * np.ones(config["sol_dim"]),
+                                    config=config,
+                                    last_action_seq=best_action_seq,
+                                    pred_high= high,
+                                    pred_low=low,
+                                    index_iter=index_iter,
+                                    samples=samples)
             data[env_index] = np.concatenate((data[env_index], trajectory), axis=0)
-        print("Cost : ", c)
-        
-        if c < best_cost:
-            best_cost = c
-            best_action_seq = []
-            for d in trajectory:
-                best_action_seq += d[1].tolist()
-            best_action_seq = np.array(best_action_seq)
-            last_action_seq = best_action_seq
-        all_action_seq.append(extract_action_seq(trajectory))
-        all_costs.append(c)
-    else:    
-        '''------------Update models------------'''
-        with open("random_data.pk", 'wb') as f:
-            pickle.dump(data, f)
-        x, y, high, low = process_data(data[env_index])
-        print("Learning model...")
-        models[env_index] = train_ensemble_model(train_in=x, train_out=y, sampling_size=-1, config=config, model=models[env_index])
-        print("Execution...")
-        
-        trajectory, c = execute_2(env=env, 
-                                init_state=config["init_state"], 
-                                model=models[env_index],
-                                steps=config["episode_length"],
-                                init_mean=best_action_seq[0:config["sol_dim"]] , 
-                                init_var=0.1 * np.ones(config["sol_dim"]), 
-                                config=config,
-                                last_action_seq=best_action_seq,
-                                pred_high= high,
-                                pred_low=low,
-                                index_iter=index_iter,
-                                samples=samples)
-        data[env_index] = np.concatenate((data[env_index], trajectory), axis=0)
-        print("Cost : ", c)
+            print("Cost : ", c)
 
-        if c < best_cost:
-            best_cost = c
-            best_action_seq = []
-            for d in trajectory:
-                best_action_seq += d[1].tolist()
-            best_action_seq = np.array(best_action_seq)
-            last_action_seq = extract_action_seq(trajectory)
+            if c < best_cost:
+                best_cost = c
+                best_action_seq = []
+                for d in trajectory:
+                    best_action_seq += d[1].tolist()
+                best_action_seq = np.array(best_action_seq)
+                last_action_seq = extract_action_seq(trajectory)
 
-        all_action_seq.append(extract_action_seq(trajectory))
-        all_costs.append(c)
+            all_action_seq.append(extract_action_seq(trajectory))
+            all_costs.append(c)
 
-        print("Saving trajectories..")
-        # if index_iter % 10 == 0:
-        #     np.save(os.path.join(config['logdir'], "trajectories_ant.npy"), data)
-        np.save(os.path.join(config['logdir'], "best_cost_ant.npy"), best_cost)
-        np.save(os.path.join(config['logdir'], "best_action_seq_ant.npy"), best_action_seq)
-    with open(os.path.join(config['logdir'], "ant_costs_task_" + str(env_index)+".txt"), "a+") as f:
-        f.write(str(c)+"\n")
+            print("Saving trajectories..")
+            # if index_iter % 10 == 0:
+            #     np.save(os.path.join(config['logdir'], "trajectories_ant.npy"), data)
+            np.save(os.path.join(config['logdir'], "best_cost_ant.npy"), best_cost)
+            np.save(os.path.join(config['logdir'], "best_action_seq_ant.npy"), best_action_seq)
+        with open(os.path.join(config['logdir'], "ant_costs_task_" + str(env_index)+".txt"), "a+") as f:
+            f.write(str(c)+"\n")
 
-    traj_obs.extend(samples["obs"])
-    traj_acs.extend(samples["acs"])
-    traj_rets.extend(samples["reward_sum"])
-    traj_rews.extend(samples["reward"])
+        traj_obs.extend(samples["obs"])
+        traj_acs.extend(samples["acs"])
+        traj_rets.extend(samples["reward_sum"])
+        traj_rews.extend(samples["reward"])
 
-    savemat(
-        os.path.join(config['logdir'], "logs.mat"),
-        {
-            "observations": traj_obs,
-            "actions": traj_acs,
-            "reward_sum": traj_rets,
-            "rewards": traj_rews
-        }
-    )
-    print("-------------------------------\n")
+        savemat(
+            os.path.join(config['logdir'], "logs.mat"),
+            {
+                "observations": traj_obs,
+                "actions": traj_acs,
+                "reward_sum": traj_rets,
+                "rewards": traj_rews
+            }
+        )
+        print("-------------------------------\n")
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-c', '--config', action='append', nargs=2, default=[])
+    parser.add_argument('-logdir', type=str, default='log')
+    args = parser.parse_args()
+
+    main(args.config, args.logdir)
