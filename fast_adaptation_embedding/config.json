@@ -3,7 +3,7 @@
     "exp":"exp/minitaur_env_adaptation.py",
     "prefix": "minitaur_10H",
     "result_dir":"exp/log",
-    "walltime": "1:00",
+    "walltime": "12:00",
     "args": "-c horizon 10",
     "replicates": 3
   },
@@ -11,8 +11,32 @@
     "exp":"exp/minitaur_env_adaptation.py",
     "prefix": "minitaur_30H",
     "result_dir":"exp/log",
-    "walltime": "1:00",
+    "walltime": "12:00",
     "args": "-c horizon 30",
+    "replicates": 3
+  },
+    {
+    "exp":"exp/minitaur_env_adaptation.py",
+    "prefix": "minitaur_survival",
+    "result_dir":"exp/log",
+    "walltime": "12:00",
+    "args": "-c survival_weight 0.1",
+    "replicates": 3
+  },
+    {
+    "exp":"exp/minitaur_env_adaptation.py",
+    "prefix": "minitaur_energy",
+    "result_dir":"exp/log",
+    "walltime": "12:00",
+    "args": "-c energy_weight 0.001",
+    "replicates": 3
+  },
+      {
+    "exp":"exp/minitaur_env_adaptation.py",
+    "prefix": "minitaur_all",
+    "result_dir":"exp/log",
+    "walltime": "12:00",
+    "args": "-c energy_weight 0.001 -c shake_weight 0.1 -c survival_weight 1.",
     "replicates": 3
   }
 ]
