@@ -767,9 +767,9 @@ class MinitaurBulletEnv(gym.Env):
             self._pybullet_client.stepSimulation()
 
         self._env_step_counter += 1
-        reward, all_reward = self._reward()
+        reward = self._reward()
         done = self._termination()
-        return np.array(self._noisy_observation()), reward, done, {'all_reward': all_reward}
+        return np.array(self._noisy_observation()), reward, done, {}
 
     def render(self, mode="rgb_array", close=False):
         if mode != "rgb_array":
@@ -869,7 +869,7 @@ class MinitaurBulletEnv(gym.Env):
                   self._drift_weight * drift_reward + self._shake_weight * shake_reward +
                   self._survival_weight * survival_reward)
         self._objectives.append([forward_reward, energy_reward, drift_reward, shake_reward])
-        return reward, [forward_reward, drift_reward, shake_reward, survival_reward]
+        return reward
 
     def get_objectives(self):
         return self._objectives
