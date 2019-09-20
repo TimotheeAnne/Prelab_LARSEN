@@ -860,7 +860,7 @@ class MinitaurBulletEnv(gym.Env):
         forward_reward = current_base_position[0] - self._last_base_position[0]
         drift_reward = -abs(current_base_position[1] - self._last_base_position[1])
         shake_reward = -abs(current_base_position[2] - self._last_base_position[2])
-        survival_reward = -(current_base_position[2] < 0.1)
+        survival_reward = -(current_base_position[2] < 0.13)
         self._last_base_position = current_base_position
         energy_reward = np.abs(
             np.dot(self.minitaur.GetMotorTorques(),
