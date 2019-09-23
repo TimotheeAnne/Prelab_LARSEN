@@ -1,3 +1,8 @@
+import os, inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+os.sys.path.insert(0, parentdir)
+
 from learning_to_adapt.dynamics.meta_mlp_dynamics import MetaMLPDynamicsModel
 from learning_to_adapt.trainers.mb_trainer import Trainer
 from learning_to_adapt.policies.mpc_controller import MPCController
