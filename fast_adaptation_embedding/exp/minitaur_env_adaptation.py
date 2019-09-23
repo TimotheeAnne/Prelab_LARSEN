@@ -307,6 +307,8 @@ def main(args, logdir):
     for (key, val) in args:
         if key in ['horizon']:
             config[key] = int(val)
+        elif key in ['load_data']:
+            config[key] = val
         else:
             config[key] = float(val)
     config['sol_dim'] = config['horizon'] * config['action_dim']
