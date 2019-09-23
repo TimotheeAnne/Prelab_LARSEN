@@ -248,7 +248,7 @@ def main(args, logdir):
         "action_dim": 8,
         "video_recording_frequency": 10,
         "logdir": logdir,
-        "load_data": 'random_data.pk',
+        "load_data": None,
         "distance_weight": 1.0,
         "energy_weight": 0.,
         "shake_weight": 0.,
@@ -346,11 +346,11 @@ def main(args, logdir):
         c = None
 
         samples = {'acs': [], 'obs': [], 'reward': [], 'reward_sum': []}
-        try:
+        if not config['load_data'] is None:
             with open(config['load_data'], 'rb') as f:
                 data = pickle.load(f)
             random_iter = 0
-        except:
+        else:
             random_iter = config['random_iter']
         if data[env_index] is None or index_iter < random_iter * n_task:
             print("Execution (Random actions)...")
@@ -373,8 +373,8 @@ def main(args, logdir):
             all_costs.append(c)
         else:
             '''------------Update models------------'''
-            with open("random_data.pk", 'wb') as f:
-                pickle.dump(data, f)
+            # with open("random_data.pk", 'wb') as f:
+            #     pickle.dump(data, f)
             x, y, high, low = process_data(data[env_index])
             print("Learning model...")
             models[env_index] = train_ensemble_model(train_in=x, train_out=y, sampling_size=-1, config=config, model=models[env_index])
