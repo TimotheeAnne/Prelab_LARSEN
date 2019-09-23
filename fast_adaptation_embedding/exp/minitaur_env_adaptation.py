@@ -346,7 +346,7 @@ def main(args, logdir):
         c = None
 
         samples = {'acs': [], 'obs': [], 'reward': [], 'reward_sum': []}
-        if not config['load_data'] is None:
+        if (not config['load_data'] is None) and (data[env_index] is None):
             with open(config['load_data'], 'rb') as f:
                 data = pickle.load(f)
             random_iter = 0
