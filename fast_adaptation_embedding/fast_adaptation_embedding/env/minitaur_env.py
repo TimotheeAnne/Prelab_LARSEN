@@ -553,6 +553,7 @@ class MinitaurBulletEnv(gym.Env):
             shake_weight=0.0,
             drift_weight=0.0,
             survival_weight=0.,
+            action_weight=0.,
             distance_limit=float("inf"),
             observation_noise_stdev=0.0,
             self_collision_enabled=True,
@@ -621,6 +622,7 @@ class MinitaurBulletEnv(gym.Env):
         self._drift_weight = drift_weight
         self._shake_weight = shake_weight
         self._survival_weight = survival_weight
+        self._action_weight = action_weight
         self._distance_limit = distance_limit
         self._observation_noise_stdev = observation_noise_stdev
         self._action_bound = 1
@@ -767,7 +769,7 @@ class MinitaurBulletEnv(gym.Env):
             self._pybullet_client.stepSimulation()
 
         self._env_step_counter += 1
-        reward = self._reward()
+        reward = self._reward(action)
         done = self._termination()
         return np.array(self._noisy_observation()), reward, done, {}
 
@@ -855,20 +857,22 @@ class MinitaurBulletEnv(gym.Env):
         distance = math.sqrt(position[0] ** 2 + position[1] ** 2)
         return self.is_fallen() or distance > self._distance_limit
 
-    def _reward(self):
+    def _reward(self, action):
         current_base_position = self.minitaur.GetBasePosition()
         forward_reward = current_base_position[0] - self._last_base_position[0]
         drift_reward = -abs(current_base_position[1] - self._last_base_position[1])
         shake_reward = -abs(current_base_position[2] - self._last_base_position[2])
         survival_reward = -(current_base_position[2] < 0.13)
+        action_reward = np.dot(action, action)
         self._last_base_position = current_base_position
         energy_reward = np.abs(
             np.dot(self.minitaur.GetMotorTorques(),
                    self.minitaur.GetMotorVelocities())) * self._time_step
         reward = (self._distance_weight * forward_reward - self._energy_weight * energy_reward +
                   self._drift_weight * drift_reward + self._shake_weight * shake_reward +
-                  self._survival_weight * survival_reward)
+                  self._survival_weight * survival_reward - action_reward * self._action_weight)
         self._objectives.append([forward_reward, energy_reward, drift_reward, shake_reward])
+        print(self._time_step)
         return reward
 
     def get_objectives(self):
