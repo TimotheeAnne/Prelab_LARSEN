@@ -872,7 +872,6 @@ class MinitaurBulletEnv(gym.Env):
                   self._drift_weight * drift_reward + self._shake_weight * shake_reward +
                   self._survival_weight * survival_reward - action_reward * self._action_weight)
         self._objectives.append([forward_reward, energy_reward, drift_reward, shake_reward])
-        print(self._time_step)
         return reward
 
     def get_objectives(self):
