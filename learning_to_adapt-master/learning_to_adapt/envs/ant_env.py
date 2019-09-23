@@ -40,7 +40,7 @@ class AntEnv(MujocoEnv,  Serializable):
         if self.cripple_mask is not None:
             action = self.cripple_mask * action
         self.forward_dynamics(action)
-        print("banana")
+        print(self.cripple_mask)
         comvel = self.get_body_comvel("torso")
         forward_reward = comvel[0]
         # lb, ub = self.action_space.low, self.action_space.high
