@@ -328,7 +328,7 @@ def main(args, logdir):
                      energy_weight=config['energy_weight'], survival_weight=config['survival_weight'],
                      drift_weight=config['drift_weight'], shake_weight=config['shake_weight'],
                      action_weight=config['action_weight']) for i in range(n_task)]
-
+    random_iter = config['random_iter']
     data = n_task * [None]
     models = n_task * [None]
     best_action_seq = np.random.rand(config["sol_dim"])*2.0 - 1.0
@@ -357,8 +357,6 @@ def main(args, logdir):
             with open(config['load_data'], 'rb') as f:
                 data = pickle.load(f)
             random_iter = 0
-        else:
-            random_iter = config['random_iter']
         if data[env_index] is None or index_iter < random_iter * n_task:
             print("Execution (Random actions)...")
             trajectory, c = execute_random(env=env, steps=config["episode_length"],
