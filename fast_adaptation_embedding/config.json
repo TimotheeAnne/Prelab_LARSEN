@@ -14,5 +14,29 @@
     "walltime": "12:00",
     "args": "-c horizon 30",
     "replicates": 3
+  },
+    {
+    "exp":"exp/minitaur_env_adaptation.py",
+    "prefix": "minitaur_survival",
+    "result_dir":"exp/log",
+    "walltime": "12:00",
+    "args": "-c survival_weight 1",
+    "replicates": 3
+  },
+      {
+    "exp":"exp/minitaur_env_adaptation.py",
+    "prefix": "minitaur_energy",
+    "result_dir":"exp/log",
+    "walltime": "12:00",
+    "args": "-c energy_weight 0.0005",
+    "replicates": 3
+  },
+    {
+    "exp":"exp/minitaur_env_adaptation.py",
+    "prefix": "minitaur_all",
+    "result_dir":"exp/log",
+    "walltime": "12:00",
+    "args": "-c survival_weight 0.1 energy_weight 0.0005 shake_weight 0.1 drift_weight 0.1",
+    "replicates": 3
   }
 ]
