@@ -398,7 +398,6 @@ def main(args, logdir):
                                     index_iter=index_iter,
                                     samples=samples)
             data[env_index] = np.concatenate((data[env_index], trajectory), axis=0)
-            print("Data : ", np.shape(data))
             print("Cost : ", c)
 
             if c < best_cost:
