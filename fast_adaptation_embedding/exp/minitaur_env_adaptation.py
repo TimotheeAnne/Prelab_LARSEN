@@ -306,6 +306,7 @@ def main(args, logdir):
             config[key] = int(val)
         else:
             config[key] = float(val)
+    config['sol_dim'] = config['horizon'] * config['action_dim']
     #  ************************************************
 
     logdir = os.path.join(config['logdir'], strftime("%Y-%m-%d--%H:%M:%S", localtime()) + str(np.random.randint(10**5)))
