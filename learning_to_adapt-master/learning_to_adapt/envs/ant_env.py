@@ -24,7 +24,7 @@ class AntEnv(MujocoEnv,  Serializable):
         self.dt = self.model.opt.timestep
 
         assert task in [None, 'cripple']
-
+        print("\n \n \n", reset_every_episode, "\n \n \n")
         self.task = task
         self.crippled_leg = 0
 
