@@ -68,6 +68,7 @@ class Cost_ensemble(object):
         self.__survival_weight = config['survival_weight']
         self.__drift_weight = config['drift_weight']
         self.__shake_weight = config['shake_weight']
+        self.__action_weight = config['action_weight']
         self.__discount = config['discount']
 
     def cost_fn(self, samples):
@@ -94,10 +95,8 @@ class Cost_ensemble(object):
                 for dim in range(self.__obs_dim):
                     start_states[:, dim].clamp_(self.__pred_low[dim], self.__pred_high[dim])
 
-                action_cost = torch.sum(actions * actions, dim=1) * self.__energy_weight
-                energy_cost = abs(torch.sum(start_states[:, 16:24] * start_states[:, 8:16], dim=1))
-                print("action", action_cost)
-                print("energy", energy_cost)
+                action_cost = torch.sum(actions * actions, dim=1) * self.__action_weight
+                energy_cost = abs(torch.sum(start_states[:, 16:24] * start_states[:, 8:16], dim=1)) * 0.02 * self.__energy_weight
                 x_vel_cost = -diff_state[:, 28] * self.__distance_weight
                 y_vel_cost = abs(diff_state[:, 29]) * self.__drift_weight
                 shake_cost = abs(diff_state[:, 30]) * self.__shake_weight
@@ -106,7 +105,8 @@ class Cost_ensemble(object):
                                                      action_cost * self.__discount**h + \
                                                      survival_cost * self.__discount**h + \
                                                      y_vel_cost * self.__discount**h + \
-                                                     shake_cost * self.__discount**h
+                                                     shake_cost * self.__discount**h + \
+                                                     energy_cost * self.__discount**h
         return all_costs.cpu().detach().numpy()
 
 
@@ -257,6 +257,7 @@ def main(args, logdir):
         "shake_weight": 0.,
         "drift_weight": 0.,
         "survival_weight": 0.,
+        "action_weight": 0.,
 
         # Model_parameters
         "dim_in": 8+31,
@@ -325,7 +326,8 @@ def main(args, logdir):
     render = False
     envs = [gym.make("MinitaurBulletEnv_fastAdapt-v0", render=render, distance_weight=config['distance_weight'],
                      energy_weight=config['energy_weight'], survival_weight=config['survival_weight'],
-                     drift_weight=config['drift_weight'], shake_weight=config['shake_weight']) for i in range(n_task)]
+                     drift_weight=config['drift_weight'], shake_weight=config['shake_weight'],
+                     action_weight=config['action_weight']) for i in range(n_task)]
 
     data = n_task * [None]
     models = n_task * [None]
