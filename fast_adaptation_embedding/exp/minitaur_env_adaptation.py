@@ -95,7 +95,7 @@ class Cost_ensemble(object):
                     start_states[:, dim].clamp_(self.__pred_low[dim], self.__pred_high[dim])
 
                 action_cost = torch.sum(actions * actions, dim=1) * self.__energy_weight
-                energy_cost = np.abs(np.dot(start_states[:, 16:24], start_states[:, 8:16]))
+                energy_cost = abs(torch.dot(start_states[:, 16:24], start_states[:, 8:16]))
                 print("action", action_cost)
                 print("energy", energy_cost)
                 x_vel_cost = -diff_state[:, 28] * self.__distance_weight
