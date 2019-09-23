@@ -100,7 +100,7 @@ class AntEnv(MujocoEnv,  Serializable):
     '''
 
     def reset_task(self, value=None):
-
+        print(self.tesk)
         if self.task == 'cripple':
             # Pick which leg to remove (0 1 2 are train... 3 is test)
             self.crippled_leg = value if value is not None else np.random.randint(0, 3)
