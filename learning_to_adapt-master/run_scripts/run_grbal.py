@@ -78,8 +78,8 @@ if __name__ == '__main__':
 
     config = {
                 # Environment
-                'env': HalfCheetahEnv,
-                'max_path_length': 1000,
+                'env': AntEnv,
+                'max_path_length': 500,
                 'task': None,
                 'normalize': True,
                  'n_itr': 50,
@@ -87,7 +87,7 @@ if __name__ == '__main__':
 
                 # Policy
                 'n_candidates': 500,
-                'horizon': 10,
+                'horizon': 15,
                 'use_cem': False,
                 'num_cem_iters': 5,
 
