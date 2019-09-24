@@ -17,7 +17,7 @@ if __name__ == "__main__":
     parser.add_argument("param", type=str, help='Directory with the pkl and json file')
     parser.add_argument('--max_path_length', '-l', type=int, default=1000,
                         help='Max length of rollout')
-    parser.add_argument('--num_rollouts', '-n', type=int, default=10,
+    parser.add_argument('--num_rollouts', '-n', type=int, default=1,
                         help='Max length of rollout')
     parser.add_argument('--speedup', type=float, default=1,
                         help='Speedup')
@@ -37,8 +37,9 @@ if __name__ == "__main__":
         data = joblib.load(pkl_path)
         policy = data['policy']
         env = data['env']
-        for _ in range(args.num_rollouts):
+        for i in range(args.num_rollouts):
             path = rollout(env, policy, max_path_length=args.max_path_length,
                            animated=True, ignore_done=args.ignore_done,
-                           adapt_batch_size=json_params.get('adapt_batch_size', None))
-            # print(sum(path['rewards']))
+                           adapt_batch_size=json_params.get('adapt_batch_size', None),
+                           video_path=osp.join(args.param, 'video_'+str(i)+'.mp4'))
+            print(sum(path[0]['rewards']))
