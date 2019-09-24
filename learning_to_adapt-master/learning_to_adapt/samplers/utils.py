@@ -1,9 +1,12 @@
 import numpy as np
-from gym.wrappers.monitoring.video_recorder import VideoRecorder
+from gym.monitoring.video_recorder import VideoRecorder
+from tqdm import tqdm
+
 
 def rollout(env, policy, max_path_length=np.inf,
             animated=False, ignore_done=False,
-            num_rollouts=1, adapt_batch_size=None):
+            num_rollouts=1, adapt_batch_size=None,
+            video_path="."):
     ''' get wrapped env '''
     wrapped_env = env
     while hasattr(wrapped_env, '_wrapped_env'):
@@ -17,12 +20,12 @@ def rollout(env, policy, max_path_length=np.inf,
         rewards = []
         agent_infos = []
         env_infos = []
-
         o = env.reset()
         policy.reset()
         path_length = 0
-        recorder = VideoRecorder(env, "Test"+str(i)+".mp4")
-        while path_length < max_path_length:
+        recorder = VideoRecorder(env, video_path)
+        # env.reset_task(value=2)
+        for path_length in tqdm(range(max_path_length)):
             if a_bs is not None and len(observations) > a_bs + 1:
                 adapt_obs = observations[-a_bs - 1:-1]
                 adapt_act = actions[-a_bs - 1:-1]
