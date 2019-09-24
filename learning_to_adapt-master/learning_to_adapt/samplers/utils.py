@@ -1,5 +1,5 @@
 import numpy as np
-
+from gym.wrappers.monitoring.video_recorder import VideoRecorder
 
 def rollout(env, policy, max_path_length=np.inf,
             animated=False, ignore_done=False,
@@ -21,7 +21,7 @@ def rollout(env, policy, max_path_length=np.inf,
         o = env.reset()
         policy.reset()
         path_length = 0
-
+        recorder = VideoRecorder(env, "Test"+str(i)+".mp4")
         while path_length < max_path_length:
             if a_bs is not None and len(observations) > a_bs + 1:
                 adapt_obs = observations[-a_bs - 1:-1]
@@ -44,6 +44,8 @@ def rollout(env, policy, max_path_length=np.inf,
 
             if animated:
                 env.render()
+                recorder.capture_frame()
+        recorder.close()
 
         paths.append(dict(
             observations=observations,
