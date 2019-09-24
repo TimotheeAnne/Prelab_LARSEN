@@ -78,8 +78,8 @@ if __name__ == '__main__':
 
     config = {
                 # Environment
-                'env': AntEnv,
-                'max_path_length': 5000,
+                'env': HalfCheetahEnv,
+                'max_path_length': 1000,
                 'task': None,
                 'normalize': True,
                  'n_itr': 50,
