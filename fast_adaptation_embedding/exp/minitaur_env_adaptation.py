@@ -216,7 +216,10 @@ def execute_2(env, init_state, steps, init_mean, init_var, model, config, last_a
         traject_cost += -r
         sliding_mean[0:-len(a)] = sol[len(a)::]
     fallen = next_state[30] < 0.13
-    print("Fallen !" * fallen + "On leg"* (1-fallen))
+    if fallen:
+        print("Fallen !")
+    else:
+        print("On Legs")
     print("Model error: ", model_error)
     if recorder is not None:
         recorder.capture_frame()
