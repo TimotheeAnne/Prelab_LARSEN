@@ -20,7 +20,7 @@ from pybullet_envs.bullet import bullet_client
 from pybullet_envs.bullet import minitaur_env_randomizer
 from pybullet_envs.bullet import motor
 import copy
-
+from tqdm import tqdm
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(os.path.dirname(currentdir))
@@ -51,7 +51,7 @@ class Minitaur(object):
 
     def __init__(self,
                  pybullet_client,
-                 urdf_root=os.path.join(os.path.dirname(__file__), "../data"),
+                 urdf_root=os.path.join(currentdir, "assets/pybullet_data"),
                  time_step=0.01,
                  self_collision_enabled=False,
                  motor_velocity_limit=np.inf,
@@ -546,7 +546,7 @@ class MinitaurBulletEnv(gym.Env):
 
     def __init__(
             self,
-            urdf_root=pybullet_data.getDataPath(),
+            urdf_root=os.path.join(currentdir, "assets/pybullet_data"),
             action_repeat=1,
             distance_weight=.0,
             energy_weight=1.0,
@@ -903,24 +903,24 @@ if __name__ == "__main__":
     import fast_adaptation_embedding.env
     from gym.wrappers.monitoring.video_recorder import VideoRecorder
 
-    render = True
-    # render = False
-    system = gym.make("MinitaurBulletEnv_fastAdapt-v0", render=render)
+    # render = True
+    render = False
+    system = gym.make("MinitaurBulletEnv_fastAdapt-v0", render=render, motor_velocity_limit=150)
     recorder = None
     # recorder = VideoRecorder(system, "test.mp4")
     previous_obs = system.reset()
     rew = 0
     dist = 0
-    for i in range(200):
+    for i in range(500):
         if recorder is not None:
             recorder.capture_frame()
         a = np.random.random(8) * 2 - 1
+        # a = -np.array([1,1,1,1,1,1,1,1])
         obs, r, _, _ = system.step(a)
-        dist += obs[28]-previous_obs[28]
         previous_obs = np.copy(obs)
         rew += r
-        time.sleep(0.01)
+        # time.sleep(0.01)
     if recorder is not None:
         recorder.capture_frame()
         recorder.close()
-    print(rew, dist)
+    print(rew)
