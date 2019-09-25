@@ -6,6 +6,7 @@ import os
 
 
 class HalfCheetahEnv(MujocoEnv, Serializable):
+    metadata = {'render.modes': ['human', 'rgb_array']}
 
     def __init__(self, task='cripple', reset_every_episode=False):
         Serializable.quick_init(self, locals())

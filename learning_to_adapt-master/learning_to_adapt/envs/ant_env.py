@@ -6,6 +6,7 @@ import os
 
 
 class AntEnv(MujocoEnv,  Serializable):
+    metadata = {'render.modes': ['human', 'rgb_array']}
 
     def __init__(self, task='cripple', reset_every_episode=False):
         Serializable.quick_init(self, locals())
@@ -24,7 +25,6 @@ class AntEnv(MujocoEnv,  Serializable):
         self.dt = self.model.opt.timestep
 
         assert task in [None, 'cripple']
-        print("\n \n \n", reset_every_episode, "\n \n \n")
         self.task = task
         self.crippled_leg = 0
 
