@@ -14,12 +14,16 @@ from learning_to_adapt.samplers.model_sample_processor import ModelSampleProcess
 from learning_to_adapt.envs import *
 import json
 import os
+from time import time, localtime, strftime
+import numpy as np
 
-EXP_NAME = 'grbal'
+EXP_NAME = 'grbal_'
+
 
 
 def run_experiment(config):
-    exp_dir = os.getcwd() + '/data/' + EXP_NAME + '/' + config.get('exp_name', '')
+    exp_dir = os.getcwd() + '/data/' + EXP_NAME + strftime("%Y-%m-%d--%H:%M:%S", localtime()) +\
+              str(np.random.randint(10**5)) + '/' + config.get('exp_name', '')
     logger.configure(dir=exp_dir, format_strs=['stdout', 'log', 'csv'], snapshot_mode='last')
     json.dump(config, open(exp_dir + '/params.json', 'w'), indent=2, sort_keys=True, cls=ClassEncoder)
 
