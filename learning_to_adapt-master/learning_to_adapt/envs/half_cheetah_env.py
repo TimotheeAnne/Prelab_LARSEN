@@ -49,7 +49,8 @@ class HalfCheetahEnv(MujocoEnv, Serializable):
         action = self.cripple_mask * action
         self.forward_dynamics(action)
         next_obs = self.get_current_obs()
-        ctrl_cost = 1e-1 * 0.5 * np.sum(np.square(action))
+        # ctrl_cost = 1e-1 * 0.5 * np.sum(np.square(action))
+        ctrl_cost = 0
         forward_reward = self.get_body_comvel("torso")[0]
         reward = forward_reward - ctrl_cost
         done = False
