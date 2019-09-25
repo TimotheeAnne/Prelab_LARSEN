@@ -61,7 +61,8 @@ class HalfCheetahEnv(MujocoEnv, Serializable):
         assert obs.ndim == 2
         assert obs.shape == next_obs.shape
         assert obs.shape[0] == action.shape[0]
-        ctrl_cost = 1e-1 * 0.5 * np.sum(np.square(action), axis=1)
+        # ctrl_cost = 1e-1 * 0.5 * np.sum(np.square(action), axis=1)
+        ctrl_cost = 0
         forward_reward = (next_obs[:, -3] - obs[:, -3])/self.dt
         reward = forward_reward - ctrl_cost
         return reward
