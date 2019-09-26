@@ -356,6 +356,9 @@ class Minitaur(object):
             current_motor_angle = self.GetMotorAngles()
             motor_commands_max = (current_motor_angle + self.time_step * self._motor_velocity_limit)
             motor_commands_min = (current_motor_angle - self.time_step * self._motor_velocity_limit)
+            alpha = 0.33
+            motor_commands_max = np.pi*(1+alpha)
+            motor_commands_min = np.pi*(1-alpha)
             motor_commands = np.clip(motor_commands, motor_commands_min, motor_commands_max)
 
         if self._accurate_motor_model_enabled or self._pd_control_enabled:
@@ -567,7 +570,7 @@ class MinitaurBulletEnv(gym.Env):
             torque_control_enabled=False,
             motor_overheat_protection=True,
             hard_reset=True,
-            on_rack=False,
+            on_rack=True,
             render=False,
             kd_for_pd_controllers=0.3,
             env_randomizer=minitaur_env_randomizer.MinitaurEnvRandomizer()):
@@ -903,23 +906,25 @@ if __name__ == "__main__":
     import fast_adaptation_embedding.env
     from gym.wrappers.monitoring.video_recorder import VideoRecorder
 
-    # render = True
-    render = False
-    system = gym.make("MinitaurBulletEnv_fastAdapt-v0", render=render, motor_velocity_limit=150)
+    render = True
+    # render = False
+    system = gym.make("MinitaurBulletEnv_fastAdapt-v0", render=render, motor_velocity_limit=300)
     recorder = None
     # recorder = VideoRecorder(system, "test.mp4")
     previous_obs = system.reset()
     rew = 0
     dist = 0
-    for i in range(500):
+    for i in range(1000):
         if recorder is not None:
             recorder.capture_frame()
-        a = np.random.random(8) * 2 - 1
-        # a = -np.array([1,1,1,1,1,1,1,1])
+        # a = np.random.random(8) * 2 - 1
+        alpha = i/1000.
+        # a = np.array([1,0,0,0,1,0,0,0])
+        a = np.random.random(8) *2 -1
         obs, r, _, _ = system.step(a)
         previous_obs = np.copy(obs)
         rew += r
-        # time.sleep(0.01)
+        time.sleep(0.01)
     if recorder is not None:
         recorder.capture_frame()
         recorder.close()
