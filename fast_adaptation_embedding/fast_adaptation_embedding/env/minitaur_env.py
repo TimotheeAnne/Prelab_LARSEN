@@ -572,7 +572,7 @@ class MinitaurBulletEnv(gym.Env):
             torque_control_enabled=False,
             motor_overheat_protection=True,
             hard_reset=True,
-            on_rack=True,
+            on_rack=False,
             render=False,
             kd_for_pd_controllers=0.3,
             env_randomizer=minitaur_env_randomizer.MinitaurEnvRandomizer()):
