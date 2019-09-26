@@ -63,7 +63,7 @@ class Minitaur(object):
                  motor_overheat_protection=False,
                  on_rack=False,
                  kd_for_pd_controllers=0.3,
-                 alpha=1):
+                 angle_limit=1):
         """Constructs a minitaur and reset it to the initial states.
 
     Args:
@@ -87,7 +87,7 @@ class Minitaur(object):
         the walking gait. In this mode, the minitaur's base is hanged midair so
         that its walking gait is clearer to visualize.
       kd_for_pd_controllers: kd value for the pd controllers of the motors.
-      alpha: angle limit for the morors ([pi(1-alpha), pi[1+alpha)])
+      angle_limit: angle limit for the motors ([pi(1-angle_limit), pi[1+angle_limit)])
     """
         self.num_motors = 8
         self.num_legs = int(self.num_motors / 2)
@@ -104,7 +104,7 @@ class Minitaur(object):
         self._torque_control_enabled = torque_control_enabled
         self._motor_overheat_protection = motor_overheat_protection
         self._on_rack = on_rack
-        self._alpha = alpha
+        self._angle_limit = angle_limit
         if self._accurate_motor_model_enabled:
             self._kp = motor_kp
             self._kd = motor_kd
@@ -360,7 +360,7 @@ class Minitaur(object):
             motor_commands_max = (current_motor_angle + self.time_step * self._motor_velocity_limit)
             motor_commands_min = (current_motor_angle - self.time_step * self._motor_velocity_limit)
             motor_commands = np.clip(motor_commands, motor_commands_min, motor_commands_max)
-            motor_commands = np.clip(motor_commands, np.pi*(1-self._alpha), np.max(np.pi*(1+self._alpha)))
+            motor_commands = np.clip(motor_commands, np.pi*(1-self._angle_limit), np.max(np.pi*(1+self._angle_limit)))
 
         if self._accurate_motor_model_enabled or self._pd_control_enabled:
             q = self.GetMotorAngles()
@@ -558,7 +558,7 @@ class MinitaurBulletEnv(gym.Env):
             drift_weight=0.0,
             survival_weight=0.,
             action_weight=0.,
-            alpha=1,
+            angle_limit=1,
             distance_limit=float("inf"),
             observation_noise_stdev=0.0,
             self_collision_enabled=True,
@@ -645,7 +645,7 @@ class MinitaurBulletEnv(gym.Env):
         self._hard_reset = True
         self._kd_for_pd_controllers = kd_for_pd_controllers
         self._last_frame_time = 0.0
-        self._alpha = alpha
+        self._angle_limit = angle_limit
         print("urdf_root=" + self._urdf_root)
         self._env_randomizer = env_randomizer
         # PD control needs smaller time step for stability.
@@ -702,7 +702,7 @@ class MinitaurBulletEnv(gym.Env):
                                                motor_overheat_protection=motor_protect,
                                                on_rack=self._on_rack,
                                                kd_for_pd_controllers=self._kd_for_pd_controllers,
-                                               alpha=self._alpha))
+                                               angle_limit=self._angle_limit))
         else:
             self.minitaur.Reset(reload_urdf=False)
 
@@ -827,8 +827,8 @@ class MinitaurBulletEnv(gym.Env):
 
     def get_minitaur_motor_torques(self):
         """Get the minitaur's motor torques.
-            motor_commands_max = np.min(np.pi*(1+self._alpha), motor_commands_max)
-            motor_commands_min = np.max(np.pi*(1-self._alpha), motor_commands_min)
+            motor_commands_max = np.min(np.pi*(1+self._angle_limit), motor_commands_max)
+            motor_commands_min = np.max(np.pi*(1-self._angle_limit), motor_commands_min)
 
     Returns:
       A numpy array of motor torques.
@@ -914,7 +914,7 @@ if __name__ == "__main__":
 
     render = True
     # render = False
-    system = gym.make("MinitaurBulletEnv_fastAdapt-v0", render=render, motor_velocity_limit=150, alpha=1)
+    system = gym.make("MinitaurBulletEnv_fastAdapt-v0", render=render, motor_velocity_limit=150, angle_limit=1)
     recorder = None
     # recorder = VideoRecorder(system, "test.mp4")
     previous_obs = system.reset()
