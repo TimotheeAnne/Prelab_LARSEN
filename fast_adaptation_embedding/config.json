@@ -1,34 +1,42 @@
 [
   {
     "exp":"exp/minitaur_env_adaptation.py",
-    "prefix": "minitaur_100MVL",
+    "prefix": "minitaur_125MVL",
     "result_dir":"exp/log",
-    "walltime": "12:00",
-    "args": "-c horizon 20 -c survival_weight 10 -c motor_velocity_limit 100",
+    "walltime": "6:00",
+    "args": "-c horizon 20 -c survival_weight 10 -c motor_velocity_limit 125",
     "replicates": 3
   },
   {
     "exp":"exp/minitaur_env_adaptation.py",
-    "prefix": "minitaur_150MVL",
+    "prefix": "minitaur_175MVL",
     "result_dir":"exp/log",
-    "walltime": "12:00",
-    "args": "-c horizon 20 -c survival_weight 10 -c motor_velocity_limit 150",
+    "walltime": "6:00",
+    "args": "-c horizon 20 -c survival_weight 10 -c motor_velocity_limit 175",
     "replicates": 3
   },
     {
     "exp":"exp/minitaur_env_adaptation.py",
-    "prefix": "minitaur_200MVL",
+    "prefix": "minitaur_150MVL_xonly",
     "result_dir":"exp/log",
-    "walltime": "12:00",
-    "args": "-c horizon 20 -c survival_weight 10 -c motor_velocity_limit 200",
+    "walltime": "6:00",
+    "args": "-c horizon 20 -c -c motor_velocity_limit 150",
     "replicates": 3
   },
   {
     "exp":"exp/minitaur_env_adaptation.py",
-    "prefix": "minitaur_300MVL",
+    "prefix": "minitaur_150MVL_H10",
+    "result_dir":"exp/log",
+    "walltime": "6:00",
+    "args": "-c horizon 10 -c survival_weight 10 -c motor_velocity_limit 150",
+    "replicates": 3
+  },
+    {
+    "exp":"exp/minitaur_env_adaptation.py",
+    "prefix": "minitaur_150MVL_H30",
     "result_dir":"exp/log",
     "walltime": "12:00",
-    "args": "-c horizon 20 -c survival_weight 10 -c motor_velocity_limit 300",
+    "args": "-c horizon 30 -c survival_weight 10 -c motor_velocity_limit 150",
     "replicates": 3
   }
 ]
