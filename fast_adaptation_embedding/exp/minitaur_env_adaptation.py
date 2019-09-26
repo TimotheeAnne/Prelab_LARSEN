@@ -249,12 +249,12 @@ def main(args, logdir):
     config = {
         # exp parameters:
         "horizon": 20,  # NOTE: "sol_dim" must be adjusted
-        "iterations": 300,
+        "iterations": 200,
         "random_iter": 100,
         "episode_length": 1000,
         "init_state": None,  # Must be updated before passing config as param
         "action_dim": 8,
-        "video_recording_frequency": 10,
+        "video_recording_frequency": 100,
         "logdir": logdir,
         "load_data": None,
         "distance_weight": 1.0,
