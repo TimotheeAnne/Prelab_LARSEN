@@ -264,6 +264,7 @@ def main(args, logdir):
         "survival_weight": 0.,
         "action_weight": 0.,
         "motor_velocity_limit": np.inf,
+        "alpha": 1,
 
         # Model_parameters
         "dim_in": 8+31,
@@ -333,7 +334,8 @@ def main(args, logdir):
     envs = [gym.make("MinitaurBulletEnv_fastAdapt-v0", render=render, distance_weight=config['distance_weight'],
                      energy_weight=config['energy_weight'], survival_weight=config['survival_weight'],
                      drift_weight=config['drift_weight'], shake_weight=config['shake_weight'],
-                     action_weight=config['action_weight'], motor_velocity_limit=config['motor_velocity_limit'])
+                     action_weight=config['action_weight'], motor_velocity_limit=config['motor_velocity_limit'],
+                     alpha=config['alpha'])
             for i in range(n_task)]
     random_iter = config['random_iter']
     data = n_task * [None]
