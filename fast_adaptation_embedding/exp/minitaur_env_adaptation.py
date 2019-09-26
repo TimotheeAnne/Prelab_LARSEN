@@ -119,7 +119,7 @@ def train_meta(tasks_in, tasks_out, config):
 def train_model(model, train_in, train_out, task_id, config):
     cloned_model = copy.deepcopy(model)
     nn_model.train(cloned_model, train_in, train_out, task_id=task_id, inner_iter=config["epoch"], inner_lr=config["learning_rate"], minibatch=config["training_batch_size"])
-    return cloned_model10
+    return cloned_model
 
 
 def train_ensemble_model(train_in, train_out, sampling_size, config, model= None):
@@ -150,7 +150,7 @@ def process_data(data):
     return np.array(training_in), np.array(training_out), np.max(training_in, axis=0), np.min(training_in, axis=0)
 
 
-def execute_random(env, steps, init_state, samples):
+def execute_random(env, steps, init_state, samples, K):
     current_state = env.reset()
     obs = [current_state]
     acs = []
@@ -160,7 +160,7 @@ def execute_random(env, steps, init_state, samples):
     for i in tqdm(range(steps)):
         a = env.action_space.sample()
         next_state, r = 0, 0
-        for k in range(1):
+        for k in range(K):
             next_state, r, _, _ = env.step(a)
             obs.append(next_state)
             acs.append(a)
@@ -205,7 +205,7 @@ def execute_2(env, init_state, steps, init_mean, init_var, model, config, last_a
         next_state, r = 0, 0
         if recorder is not None:
             recorder.capture_frame()
-        for k in range(1):
+        for k in range(config["K"]):
             next_state, r, _, _ = env.step(a)
             obs.append(next_state)
             acs.append(a)
@@ -265,6 +265,7 @@ def main(args, logdir):
         "action_weight": 0.,
         "motor_velocity_limit": np.inf,
         "alpha": 1,
+        "K": 1,
 
         # Model_parameters
         "dim_in": 8+31,
@@ -369,7 +370,7 @@ def main(args, logdir):
         if data[env_index] is None or index_iter < random_iter * n_task:
             print("Execution (Random actions)...")
             trajectory, c = execute_random(env=env, steps=config["episode_length"],
-                                           init_state=config["init_state"], samples=samples)
+                                           init_state=config["init_state"], samples=samples, K=config["K"])
             if data[env_index] is None:
                 data[env_index] = trajectory
             else:
