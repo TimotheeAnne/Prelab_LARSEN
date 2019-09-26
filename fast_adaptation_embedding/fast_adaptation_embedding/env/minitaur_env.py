@@ -914,7 +914,7 @@ if __name__ == "__main__":
 
     render = True
     # render = False
-    system = gym.make("MinitaurBulletEnv_fastAdapt-v0", render=render, motor_velocity_limit=150, alpha=0.5)
+    system = gym.make("MinitaurBulletEnv_fastAdapt-v0", render=render, motor_velocity_limit=150, alpha=1)
     recorder = None
     # recorder = VideoRecorder(system, "test.mp4")
     previous_obs = system.reset()
