@@ -317,7 +317,7 @@ def main(args, logdir):
         "discount": 1.
     }
     for (key, val) in args:
-        if key in ['horizon', 'K', 'popsize']:
+        if key in ['horizon', 'K', 'popsize', 'iterations']:
             config[key] = int(val)
         elif key in ['load_data']:
             config[key] = val
