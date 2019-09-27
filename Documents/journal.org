@@ -28,38 +28,60 @@ Env: action space x H : frequency on GPU (CPU) : portable on GPU (CPU)
 * To remember
 ** Handful of trials, PETS, Chua et al.
 Comme ils évaluent en plottant la plus grande réwarsd trouvée so far, il ne font pas vraiment du mpc controller mais du RL/planning qui ne consiste quand trouvé une bonne séquence d'action. 
-* Septembre
-** 04/09/2019
-*** installation pybullet
-**** with pybullet-gym
+* Papers
+** General
+*** Ensemble Model Patching: A parameter-efficient Variational Bayesian Neurla Network
+[[https://arxiv.org/pdf/1905.09453.pdf][pdf]] 
+do a mix between droppout and explicit ensemble to have an estimation of the confidence, comapre to explicit ensemble it does not multiply the number of parameters 
+and compare to droppout it does not interfere woth batch normalization and does not have much more parameters. 
+-> more important for Huge NN
+*** new paper by levin inplicit MAML (méta-learning)
+- they use explicit L2 regularisation for the inner-loop optimisation
+- they reduce the memory complexity by using an implicite outer-gradient approximation isntead of differentiate through the inner-loop gradient step.
+*** [[https://arxiv.org/pdf/1905.12588.pdf][Meta-Learning Representations for Continual Learning]] 
+they cut the model in two:
+- the first part learn the representation and is only updated in the outer (meta) loop which encourage the weights to move to a good representation to avoid interference and encourage generalization
+- the second part is train both in the inner and outer loop for eahc task (this part is similar to MAML)
+*** [[https://openreview.net/pdf?id=H1exf64KwH][EXPLORING MODEL-BASED PLANNING WITH POLICY NETWORKS]]
+use eitheir a policy network to generate the first generation of the CEM or improve the parameter of the policy network to select the action sequence to perform 
+*** Deep Dynamics Models for Learning  Dexterous Manipulation
+[[https://sites.google.com/view/pddm/][site]] [[https://arxiv.org/pdf/1909.11652.pdf][pdf]]
+** Minitaur
+*** [[https://arxiv.org/pdf/1804.10332.pdf][Sim-to-Real: Learning Agile Locomotion For Quadruped Robots]] 
+*** [[https://hal.inria.fr/hal-02084619/document][Learning and adapting quadruped gaits with the ”Intelligent Trial & Error” algorithm]] 
+*** [[https://bair.berkeley.edu/blog/2018/12/14/sac/][Soft Actor Critic—Deep Reinforcement Learning with Real-World Robots]] 
+
+* 2019
+** Septembre
+*** 04/09/2019
+**** installation pybullet
+***** with pybullet-gym
 il n'y a pas de rendu
-**** with robotschool
+***** with robotschool
 il y a du rendu 
 *Warning* j'ai du installé une librairie manquante
 sudo apt-get install libpcre16-3 
-** 05/09/2019
-*** connection par ssh avec partage de dossier (hors console) 
+*** 05/09/2019
+**** connection par ssh avec partage de dossier (hors console) 
  nautilus sftp://tanne@k2so
 ssh tanne-local@k2so  (pour se co sur la machine) 
 ssh -X tanne-local@k2so (pour se co en permettant le server X et donc les rendues)
-*** activer coànda
+**** activer coànda
 exec bash
 
-
-
-** 06/09/2019
-*** PETS with 5-dof arm
+*** 06/09/2019
+**** PETS with 5-dof arm
 params: 500 population, 50 episode length, 5 planning horizon
 It works with different goals and the same initial state
 
-** 09/09/2019
-*** HC
+*** 09/09/2019
+**** HC
 roboschool donne un example de controller performant, la période de marche est d'environ 25-30 steps (d'où le 30 steps d'horizon).
-**** RPY
+***** RPY
 Roll, tourner autour de son axe longitudinale
 Pitch, picker ou monté du nez
 Yaw, tanguer a gauche ou à droite
-**** observation space
+***** observation space
  (x_t - x_t-1)/ dt
 z
 y *seems to be constantly null* 
@@ -68,95 +90,90 @@ vx
 vz
 vy
 joints_velocities (6)
-**** changes in the files
-***** gym_mujoco_walkers
+***** changes in the files
+****** gym_mujoco_walkers
 I changed the obs dim from 26 to 16
 I add in the step return as info the triple (x,y,z) from self.robot_body_pose().xyz() in gym_forward_walker
-** 11/09/2019
-*** rendering with pybullet 
+*** 11/09/2019
+**** rendering with pybullet 
 put the rendering before the reset
-*** new paper by levin inplicit MAML (méta-learning)
-- they use xplicit L2 regularisation for the inner-loop optimisation
-- they reduce the memory complexity by using an implicite outer-gradient approximation isntead of differentiate through the inner-loop gradient step.
-** 12/09/2019
-*** PETS params
+*** 12/09/2019
+**** PETS params
 marche:
 python mbexp.py -ca opt-type Random -o ctrl_cfg.prop_cfg.model_pretrained True 
 [[file:///home/timothee/Videos/HCworking_100.mp4][video]] 100 steps, [[file:///home/timothee/Videos/HCworking_1000.mp4][video]] 1000 steps
-*** gym video recording for the recent version
+**** gym video recording for the recent version
 change 
 from gym.monitoring import VideoRecorder
 into
 from gym.wrappers.monitoring.video_recorder import VideoRecorder
-** 13/09/2019
-*** Rendering with pybullet
+*** 13/09/2019
+**** Rendering with pybullet
 to have the camera following the agent, I looked at the rendering function of pybulletgym 
 (pybullet-gym/pybulletgym/envs/mujoco/envs/env_baseswhich is in the installer fodler and not in the installed folder) and the camera is 
 translated follwing the robot.body_xyz which was always 0,0,0 so i added in my robot class
 *self.body_xyz = [qpos.flat[0], qpos.flat[2], qpos.flat[1]]* in the cals_state
-**** camera adjust
+***** camera adjust
 As the camera move_and_look_at needed the _p (pybullet env) when you call video_recorder.camera_adjust(), I give it in _reset 
-*** dt
+**** dt
 in mujoco it's dt=0.05s (20fps), in pybullet dt=0.0165 (64fps), I change the timestep and framskip from (0.004125, 4) to (0.005, 10) 
 in WalkerBaseMijocoEnv.create_single_player_scene
-*** deprecated registration in gym env for Mujoco HC
+**** deprecated registration in gym env for Mujoco HC
 lib/python3.6/site-packages/gym/envs/registration.py
 I changed load(false) into resolve()
 
-** 16/09/2019
-*** Grid500
+*** 16/09/2019
+**** Grid500
 ssh tanne@access.grid5000.fr (mdp work)
 ssh nancy
 exec bash
-**** SSH
+***** SSH
 I had to create a new ssh key that i have added on github
 *Warning* mdp inria work
-*** Half cheetah
+**** Half cheetah
 I abandoned the use of the environment on pybullet, to much work to make it work
-*** Ant 
+**** Ant 
 I used the Ant environment, it works first run (>1100 reward) 
 The replaying is not identicall due to float precision in the action replayed
  
-
-
-** 17/09/2019
-*** ssh passphrase reasking on git for grid5000
+*** 17/09/2019
+**** ssh passphrase reasking on git for grid5000
 in .ssh:
 eval `ssh-agent -s`
 then:
 ssh-add id_rsa
 
-*** using the conda env after connecting to node in ionteractive mode
+**** using the conda env after connecting to node in ionteractive mode
 export PATH=/home/tanne/miniconda3/ens/chua/bin:$PATH
 exec bash
 conda activate chua
 
-*** connect to graffiti 
+**** connect to graffiti 
 oarsub -q production -p "cluster='graffiti'" -l gpu=1 -I
 
 
-*** know jobs
+**** know jobs
 oarstat -u tanne
 
-*** example from resibots wiki 
+**** example from resibots wiki 
 [[https://gitlab.inria.fr/resibots/docs/wikis/reference/Cluster][example]] 
 
-*** create conda env for graffiti tensorflow-gpu
+**** create conda env for graffiti tensorflow-gpu
 conda create -n ENVNAME [[./conda_env_graffiti.txt][lib version]]
 
-*** tmux
+**** tmux
 ctrl + b suivi de d pour detacher
 tmux a -t SessionName
 
-*** Expé
+**** Expé
 j'ai lancé PETS sur Ant (150ep) avec (D,cem), (DE,cem), (PE,random), (D,random)
 avec la commande (une fois sur la machine)
 ./my_script.sh graffiti mbexp.py -ca model-typ D -ca prop-type E -ca opt-type Random
-** 18/09/2019
-*** g5k configuration
-**** ssh
+*** 18/09/2019
+**** g5k configuration
+***** ssh
 I follow the quick configuration steps [[https://www.grid5000.fr/w/SSH#The_Grid.275000_case][g5k ssh]]
-*** what works for now
+**** what works for now
 #in my local script folder;
 ./g5k_script.sh reservation *N_node* *Walltime*
 #now connected in nancy.g5k
@@ -166,4 +183,109 @@ cd Path/To/Script
 ./g5k_script.sh run *conda env* *path to python file*
 #example:
 ./g5k_script.sh run graffiti ./Documents/Prelab_LARSEN/handful-of-trials/scripts/mbexp.py 
+**** what works better (thanks to Raj)
+ssh nancy.g5k
+# for git pull with ssh
+ eval `ssh-agent -s`
+ ssh-add .ssh/id_rsa
+cd Documents/Prelab_LARSEN/handful-of-trials/scripts/
+python python_oarcall.py
+# for convenience
+watch oarstat -u tanne
+*** 19/09/2019
+**** Minitaur
+***** rendering
+put render=True in the gym.make()
+***** observation
+****** noise
+the default noise is zero
+****** position
+I have added the xyz position at the end of the observation
+***** reward
+the reward is the step distance in the x axis, i also added a survival cost to avoid the minotaur to flip over et move with the wheel of the motor
+**** Python path
+# put this at the satrt of each file
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(os.path.dirname(currentdir))
+os.sys.path.insert(0, parentdir)
 
+**** PETS HC 
+only work for PE-CEM, no significative difference between D, DE, CEM/Random, sampling/full 
+*** 20/09/2019
+**** Minitaur
+it can learn to move forward or backwar
+it often fall over and start moving using the wheels
+the actions are the desired motor angles
+*** 23/09/2019
+**** my exps
+I had to modify the config gile because the sol_dim was not dynamically link to the horizon
+**** learning to adapt
+***** installation
+conda create -n adapt tensorflow-gpu==1.13.1bre
+pip install -r requirement.txt #I created the requirment.txt from the yml file
+#install on laptop give mpi error
+brew isntall mpich #still an error
+sudo apt install libopenmpi-dev #worked 
+
+***** code error
+the first env is initialized with reset_every_episode=True but for the env created for the vectoriel parallelisation of the envs, th edep copy creates envs with reset_every_episode=False
+*** 24/09/2019
+**** Minitaur
+***** Horizon
+12h is not enough for 30H/1000steps/300episodes (260/300)
+H=10 seemes significally better and H=30 significally worst
+***** Energy
+0.0005 successfully reduce the action norm (compare to random and basic) but it also reduce the x reward (compare to basic but is still better than random)
+***** Survival
+No significative difference, seems to fall less with energy cost, average of 60%. 
+**** Meta-learning
+***** Raj:
+****** 1- train a handful-of-trial model from each environment to collect data
+****** 2- train a meta-learner from all the collected data -> one theta*  
+****** 3- face to a new environment, it collect an episode using theta* and update theta* on this data and repeat at each episode 
+***** Adapt
+****** 1- collect data using the current theta with one gradient step on the previous M steps
+****** 2- update theta using all/sample from the (t-M:t-1,t:t+K) chunk of trajectories
+****** 3- face to a testing environment, at eahc timestep it will update from theta* with one or few gradient step to selec the actio
+*** 25/09/2019
+**** Minitaur
+***** Horizon 
+*Warning* H=15 false parameter in truce H=5
+H<=15: went farther away but fall in 80% of the case
+H>=20: went closer away but fall in 60 of the case
+if I nullify the reward if it has fallen, 20 and 30 are equivalent even if 30 fall a bit less
+***** Reward function  
+slightly better with survival weight of 10
+***** Action
+the dynamic must be too difficult for the model to learn it, solutions:
+-repeat actions to simplify the duynmaic
+*** 26/09/2019
+**** Minitaur
+***** Horizon
+15 seems the best for the farther to fall, but 30 fall less
+***** Survival cost
+does not change much
+***** Max velocity limit
+- 100 does nto move and does nto fall < 2% [[file:///home/timothee/Documents/Prelab_LARSEN/fast_adaptation_embedding/exp/log/Saved/Minitaur/2019-09-25--17:01:5611535/iter_289.mp4][video]]
+- 150 move enough, same last step reward et fall <10% [[file:///home/timothee/Documents/Prelab_LARSEN/fast_adaptation_embedding/exp/log/Saved/Minitaur/2019-09-25--17:53:3030845/iter_299.mp4][video]] 
+- 200 fall >30% 
+- 300 = inf, fall >60% [[file:///home/timothee/Documents/Prelab_LARSEN/fast_adaptation_embedding/exp/log/Saved/Minitaur/2019-09-25--20:19:0345732/iter_299.mp4][video]] 
+
+*** 27/09/2019
+**** Motor velocity limit
+150 does not fall much 5%
+175 fall 20% but fo farther
+**** MVL150 with different Horizon
+***** Fall
+H10 > H20 > H30
+***** last step
+H10 > H20 > H30
+**** MVL 150, angle limit 
+***** fall
+50 still fall the same (5%), 33% does not fall [[file:///home/timothee/Documents/Prelab_LARSEN/fast_adaptation_embedding/exp/log/Saved/Minitaur/2019-09-26--16:57:5792342/iter_199.mp4][33%]] [[file:///home/timothee/Documents/Prelab_LARSEN/fast_adaptation_embedding/exp/log/Saved/Minitaur/2019-09-26--16:57:5793716/iter_199.mp4][50%]]
+***** last step 
+50% et 33% better than no limit 
+**** MVL 150, K
+K>1 = 100% fall [[file:///home/timothee/Documents/Prelab_LARSEN/fast_adaptation_embedding/exp/log/Saved/Minitaur/2019-09-26--16:57:4587438/iter_179.mp4][K5]] 
+**** Random shooting
+the population of 500 does not use all of the gpu but increasing the population to 2000 does not increase the usage of the GPU but increase proportionnaly the time needed to select the action
