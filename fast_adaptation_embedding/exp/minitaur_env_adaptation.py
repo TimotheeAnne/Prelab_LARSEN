@@ -118,23 +118,26 @@ def train_meta(tasks_in, tasks_out, config):
 
 def train_model(model, train_in, train_out, task_id, config):
     cloned_model = copy.deepcopy(model)
-    nn_model.train(cloned_model, train_in, train_out, task_id=task_id, inner_iter=config["epoch"], inner_lr=config["learning_rate"], minibatch=config["training_batch_size"])
+    nn_model.train(cloned_model, train_in, train_out, task_id=task_id, inner_iter=config["epoch"],
+                   inner_lr=config["learning_rate"], minibatch=config["training_batch_size"])
     return cloned_model
 
 
-def train_ensemble_model(train_in, train_out, sampling_size, config, model= None):
+def train_ensemble_model(train_in, train_out, sampling_size, config, model=None):
     network = model
     if network is None:
         network = FFNN_Ensemble_Model(dim_in=config["ensemble_dim_in"],
-                                    hidden=config["ensemble_hidden"],
-                                    hidden_activation=config["hidden_activation"],
-                                    dim_out=config["ensemble_dim_out"],
-                                    CUDA=config["ensemble_cuda"],
-                                    SEED=config["ensemble_seed"],
-                                    output_limit=config["ensemble_output_limit"],
-                                    dropout=config["ensemble_dropout"],
-                                    n_ensembles=config["n_ensembles"])
-    network.train(epochs=config["ensemble_epoch"], training_inputs=train_in, training_targets=train_out, batch_size=config["ensemble_batch_size"], logInterval=config["ensemble_log_interval"], sampling_size=sampling_size)
+                                      hidden=config["ensemble_hidden"],
+                                      hidden_activation=config["hidden_activation"],
+                                      dim_out=config["ensemble_dim_out"],
+                                      CUDA=config["ensemble_cuda"],
+                                      SEED=config["ensemble_seed"],
+                                      output_limit=config["ensemble_output_limit"],
+                                      dropout=config["ensemble_dropout"],
+                                      n_ensembles=config["n_ensembles"])
+    network.train(epochs=config["ensemble_epoch"], training_inputs=train_in, training_targets=train_out,
+                  batch_size=config["ensemble_batch_size"], logInterval=config["ensemble_log_interval"],
+                  sampling_size=sampling_size)
     return copy.deepcopy(network)
 
 
@@ -189,7 +192,7 @@ def execute_2(env, init_state, steps, init_mean, init_var, model, config, last_a
     traject_cost = 0
     model_error = 0
     sliding_mean = np.zeros(config["sol_dim"])
-    random = np.random.rand()
+    # random = np.random.rand()
     mutation = np.random.rand(config["sol_dim"]) * 2. * 0.5 - 0.5
     rand = np.random.rand(config["sol_dim"])
     mutation *= np.array([1.0 if r > 0.25 else 0.0 for r in rand])
@@ -228,22 +231,23 @@ def execute_2(env, init_state, steps, init_mean, init_var, model, config, last_a
     samples['obs'].append(np.copy(obs))
     samples['reward'].append(np.copy(reward))
     samples['reward_sum'].append(-traject_cost)
+    samples['model_error'].append(model_error/steps)
     return np.array(trajectory), traject_cost
+
 
 def test_model(ensemble_model, init_state, action, state_diff):
     x = np.concatenate(([init_state], [action]), axis=1)
-    y = state_diff.reshape(1,-1)
+    y = state_diff.reshape(1, -1)
     y_pred = ensemble_model.get_models()[0].predict(x)
-    # print("True: ", y.flatten())
-    # print("pred: ", y_pred.flatten())
-    # input()
-    return np.power(y-y_pred,2).sum()
+    return np.linalg.norm(y-y_pred)/np.linalg.norm(y)
+
 
 def extract_action_seq(data):
     actions = []
     for d in data:
         actions += d[1].tolist()
     return np.array(actions)
+
 
 def main(args, logdir):
     config = {
@@ -289,7 +293,6 @@ def main(args, logdir):
         "ensemble_epoch": 5,
         "ensemble_dim_in": 8+31,
         "ensemble_dim_out": 31,
-        # "ensemble_hidden": [200, 200, 200],
         "ensemble_hidden": [200, 200, 100],
         "hidden_activation": "relu",
         "ensemble_cuda": True,
@@ -314,10 +317,12 @@ def main(args, logdir):
         "discount": 1.
     }
     for (key, val) in args:
-        if key in ['horizon', 'K']:
+        if key in ['horizon', 'K', 'popsize']:
             config[key] = int(val)
         elif key in ['load_data']:
             config[key] = val
+        elif key in ['ensemble_hidden']:
+            config[key] = [int(val), int(val), int(val)]
         else:
             config[key] = float(val)
     config['sol_dim'] = config['horizon'] * config['action_dim']
@@ -351,7 +356,7 @@ def main(args, logdir):
         with open(os.path.join(config['logdir'], "ant_costs_task_"+ str(i)+".txt"), "w+") as f:
             f.write("")
 
-    traj_obs, traj_acs, traj_rets, traj_rews = [], [], [], []
+    traj_obs, traj_acs, traj_rets, traj_rews, traj_error = [], [], [], [], []
 
     for index_iter in range(config["iterations"]):
         '''Pick a random environment'''
@@ -362,7 +367,7 @@ def main(args, logdir):
         print("Env index: ", env_index)
         c = None
 
-        samples = {'acs': [], 'obs': [], 'reward': [], 'reward_sum': []}
+        samples = {'acs': [], 'obs': [], 'reward': [], 'reward_sum': [], 'model_error': []}
         if (not config['load_data'] is None) and (data[env_index] is None):
             with open(config['load_data'], 'rb') as f:
                 data = pickle.load(f)
@@ -433,6 +438,7 @@ def main(args, logdir):
         traj_acs.extend(samples["acs"])
         traj_rets.extend(samples["reward_sum"])
         traj_rews.extend(samples["reward"])
+        traj_error.extend(samples["model_error"])
 
         savemat(
             os.path.join(config['logdir'], "logs.mat"),
@@ -440,7 +446,8 @@ def main(args, logdir):
                 "observations": traj_obs,
                 "actions": traj_acs,
                 "reward_sum": traj_rets,
-                "rewards": traj_rews
+                "rewards": traj_rews,
+                "model_error": traj_error
             }
         )
         print("-------------------------------\n")
