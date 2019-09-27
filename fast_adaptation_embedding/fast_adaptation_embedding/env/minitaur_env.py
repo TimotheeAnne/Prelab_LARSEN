@@ -25,7 +25,7 @@ from tqdm import tqdm
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(os.path.dirname(currentdir))
 os.sys.path.insert(0, parentdir)
-print(currentdir, parentdir)
+
 INIT_POSITION = [0, 0, .2]
 INIT_ORIENTATION = [0, 0, 0, 1]
 KNEE_CONSTRAINT_POINT_RIGHT = [0, 0.005, 0.2]
@@ -914,7 +914,7 @@ if __name__ == "__main__":
 
     render = True
     # render = False
-    system = gym.make("MinitaurBulletEnv_fastAdapt-v0", render=render, motor_velocity_limit=150, angle_limit=1)
+    system = gym.make("MinitaurBulletEnv_fastAdapt-v0", render=render, motor_velocity_limit=150, angle_limit=0.5)
     recorder = None
     # recorder = VideoRecorder(system, "test.mp4")
     previous_obs = system.reset()
@@ -925,7 +925,7 @@ if __name__ == "__main__":
             recorder.capture_frame()
         # a = np.random.random(8) * 2 - 1
         alpha = i/1000.
-        # a = np.array([1,0,0,0,1,0,0,0])
+        # a = np.array([0,0,0,0,0,0,0,0])
         a = np.random.random(8) * 2 - 1
         obs, r, _, _ = system.step(a)
         previous_obs = np.copy(obs)
