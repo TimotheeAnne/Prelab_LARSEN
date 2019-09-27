@@ -223,7 +223,7 @@ def execute_2(env, init_state, steps, init_mean, init_var, model, config, last_a
         print("Fallen !")
     else:
         print("On Legs")
-    print("Model error: ", model_error)
+    print("Model error: ", model_error/steps)
     if recorder is not None:
         recorder.capture_frame()
         recorder.close()
@@ -276,7 +276,7 @@ def main(args, logdir):
         "dim_out": 31,
         "hidden_layers": [128, 128],
         "embedding_size": 5,
-        "cuda": False,
+        "cuda": True,
 
         # Meta learning parameters
         "meta_iter": 5000,
