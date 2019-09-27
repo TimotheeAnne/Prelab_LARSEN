@@ -27,8 +27,8 @@
     "exp":"exp/minitaur_env_adaptation.py",
     "prefix": "minitaur_LS400_H50",
     "result_dir":"exp/log",
-    "walltime": "12:00",
-    "args": "-c horizon 50 -c motor_velocity_limit 150 -c angle_limit 0.5 -c -c ensemble_hidden 400",
+    "walltime": "72:00",
+    "args": "-c horizon 50 -c popsize 2000 -c iterations 500 -c survival_weight 10 -c motor_velocity_limit 150 -c angle_limit 0.5 -c ensemble_hidden 400",
     "replicates": 3
   }
 ]
