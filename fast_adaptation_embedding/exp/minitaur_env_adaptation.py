@@ -88,7 +88,7 @@ class Cost_ensemble(object):
             start_states = init_states[start_index:end_index]
             dyn_model = self.__models[np.random.randint(0, len(self.__models))]
             for h in range(self.__horizon):
-                actions = action_batch[:,h*self.__action_dim : h*self.__action_dim + self.__action_dim]
+                actions = action_batch[:, h*self.__action_dim: h*self.__action_dim + self.__action_dim]
                 model_input = torch.cat((start_states, actions), dim=1)
                 diff_state = dyn_model.predict_tensor(model_input)
                 start_states += diff_state
@@ -304,7 +304,7 @@ def main(args, logdir):
         "ensemble_log_interval": 500,
 
         # Optimizer parameters
-        "max_iters": 5,
+        "max_iters": 1,
         "epsilon": 0.0001,
 
         "lb": -1.,
