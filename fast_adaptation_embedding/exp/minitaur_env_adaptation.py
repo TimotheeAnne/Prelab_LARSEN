@@ -271,18 +271,18 @@ def main(args, logdir):
         "angle_limit": 1,
         "K": 1,
 
-        # Model_parameters
-        "dim_in": 8+31,
-        "dim_out": 31,
-        "hidden_layers": [128, 128],
-        "embedding_size": 5,
-        "cuda": True,
+        # # Model_parameters
+        # "dim_in": 8+31,
+        # "dim_out": 31,
+        # "hidden_layers": [128, 128],
+        # "embedding_size": 5,
+        # "cuda": True,
 
-        # Meta learning parameters
-        "meta_iter": 5000,
-        "meta_step": 0.1,
-        "inner_iter": 10,
-        "inner_step": 0.02,
+        # # Meta learning parameters
+        # "meta_iter": 5000,
+        # "meta_step": 0.1,
+        # "inner_iter": 10,
+        # "inner_step": 0.02,
 
         # Model learning parameters
         "epoch": 1000,
@@ -310,7 +310,7 @@ def main(args, logdir):
         "lb": -1.,
         "ub": 1.,
         "popsize": 500,
-        "pop_batch": 4096,
+        "pop_batch": 16384,
         "sol_dim": 8*20,  # NOTE: Depends on Horizon
         "num_elites": 50,
         "cost_fn": None,
