@@ -70,6 +70,7 @@ class Cost_ensemble(object):
         self.__shake_weight = config['shake_weight']
         self.__action_weight = config['action_weight']
         self.__discount = config['discount']
+        self.__pop_batch = config['pop_batch']
 
     def cost_fn(self, samples):
         action_samples = torch.FloatTensor(samples).cuda() if self.__ensemble_model.CUDA else torch.FloatTensor(samples)
@@ -77,8 +78,7 @@ class Cost_ensemble(object):
         all_costs = torch.FloatTensor(np.zeros(len(samples))).cuda() if self.__ensemble_model.CUDA else torch.FloatTensor(np.zeros(len(samples)))
 
         n_model = len(self.__models)
-        # n_batch = min(n_model, int(len(samples)/1024))
-        n_batch = max(1, int(len(samples)/1024))
+        n_batch = max(1, int(len(samples)/self.__pop_batch))
         per_batch = len(samples)/n_batch
 
         for i in range(n_batch):
@@ -310,6 +310,7 @@ def main(args, logdir):
         "lb": -1.,
         "ub": 1.,
         "popsize": 500,
+        "pop_batch": 4096,
         "sol_dim": 8*20,  # NOTE: Depends on Horizon
         "num_elites": 50,
         "cost_fn": None,
