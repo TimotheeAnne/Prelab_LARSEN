@@ -307,8 +307,8 @@ def main(args, logdir):
         "max_iters": 1,
         "epsilon": 0.0001,
 
-        "lb": -1.,
-        "ub": 1.,
+        "lb": -0.5,
+        "ub": 0.5,
         "popsize": 500,
         "pop_batch": 16384,
         "sol_dim": 8*20,  # NOTE: Depends on Horizon
