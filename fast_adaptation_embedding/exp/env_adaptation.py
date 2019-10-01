@@ -277,8 +277,8 @@ def main(args, logdir):
         "max_iters": 1,
         "epsilon": 0.0001,
 
-        "lb": -0.5,
-        "ub": 0.5,
+        "lb": -1.,
+        "ub": 1.,
         "popsize": 500,
         "pop_batch": 16384,
         "sol_dim": 8*20,  # NOTE: Depends on Horizon
@@ -308,7 +308,7 @@ def main(args, logdir):
     n_task = len(mismatches)
     goal = [1000, 0]
     render = False
-    envs = [Arm_env(goal=tuple(config["goal"]), joint_mismatch=mismatches) for i in range(n_task)]
+    envs = [Arm_env(goal=tuple(config["goal"]), joint_mismatch=mismatches[0]) for i in range(n_task)]
     random_iter = config['random_iter']
     data = n_task * [None]
     models = n_task * [None]
