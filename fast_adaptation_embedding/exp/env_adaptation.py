@@ -21,6 +21,7 @@ import pprint
 from scipy.io import savemat
 import argparse
 from fast_adaptation_embedding.env.kinematic_arm import Arm_env
+import cma
 
 # class Cost_meta(object):
 #     def __init__(self, model, init_state, horizon, action_dim, goal, task_likelihoods):
@@ -183,9 +184,15 @@ def execute_2(env, init_state, steps, init_mean, init_var, model, config, last_a
         cost_object = Cost_ensemble(ensemble_model=model, init_state=current_state, horizon=config["horizon"],
                                     action_dim=env.action_space.shape[0], goal=config["goal"])
         config["cost_fn"] = cost_object.cost_fn
-        # optimizer = RS_opt(config)
-        optimizer = CEM_opt(config)
-        sol = optimizer.obtain_solution(sliding_mean, init_var)
+        if config['opt'] == "RS":
+            optimizer = RS_opt(config)
+            sol =  optimizer.obtain_solution()
+        elif config['opt'] == "CEM":
+            optimizer = CEM_opt(config)
+            sol = optimizer.obtain_solution(sliding_mean, init_var)
+        elif config['opt'] == "CMA-ES":
+            xopt, es = cma.fmin2(None, np.zeros(config["sol_dim"]), 0.5, parallel_objective=config["cost_fn"])
+            sol = xopt
         a = sol[0:env.action_space.shape[0]]
         next_state, r = 0, 0
         if recorder is not None:
@@ -231,7 +238,7 @@ def main(args, logdir):
         # exp parameters:
         "horizon": 20,  # NOTE: "sol_dim" must be adjusted
         "iterations": 200,
-        "random_iter": 100,
+        "random_iter": 1,
         "episode_length": 1000,
         "init_state": None,  # Must be updated before passing config as param
         "action_dim": 5,
@@ -278,7 +285,7 @@ def main(args, logdir):
         # Optimizer parameters
         "max_iters": 1,
         "epsilon": 0.0001,
-
+        "opt": "CMA-ES",
         "lb": -1.,
         "ub": 1.,
         "popsize": 500,
@@ -292,7 +299,7 @@ def main(args, logdir):
     for (key, val) in args:
         if key in ['horizon', 'K', 'popsize', 'iterations']:
             config[key] = int(val)
-        elif key in ['load_data']:
+        elif key in ['load_data', 'opt']:
             config[key] = val
         elif key in ['ensemble_hidden']:
             config[key] = [int(val), int(val), int(val)]
