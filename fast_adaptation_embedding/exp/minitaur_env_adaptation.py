@@ -66,6 +66,7 @@ if __name__ == "__main__":
 
     config = {
         # exp parameters:
+        "env": 'MinitaurBulletEnv_fastAdapt-v0',
         "horizon": 20,  # NOTE: "sol_dim" must be adjusted
         "iterations": 200,
         "random_iter": 100,
