@@ -191,7 +191,7 @@ def execute_2(env, init_state, steps, init_mean, init_var, model, config, last_a
             optimizer = CEM_opt(config)
             sol = optimizer.obtain_solution(sliding_mean, init_var)
         elif config['opt'] == "CMA-ES":
-            xopt, es = cma.fmin2(None, np.zeros(config["sol_dim"]), 0.5, parallel_objective=config["cost_fn"])
+            xopt, es = cma.fmin2(None, np.zeros(config["sol_dim"]), 0.5, parallel_objective=lambda x: list(config["cost_fn"](x)))
             sol = xopt
         a = sol[0:env.action_space.shape[0]]
         next_state, r = 0, 0
