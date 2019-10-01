@@ -164,8 +164,9 @@ def execute_2(env, init_state, steps, init_mean, init_var, model, config, last_a
     current_state = env.reset()
     f_rec = config['video_recording_frequency']
     recorder = None
-    if f_rec and index_iter % f_rec == (f_rec - 1):
+    if 1: #f_rec and index_iter % f_rec == (f_rec - 1):
         recorder = VideoRecorder(env, os.path.join(config['logdir'], "iter_" + str(index_iter) + ".mp4"))
+        env.render(mode='human')
     obs = [current_state]
     acs = []
     trajectory = []
