@@ -187,8 +187,8 @@ def extract_action_seq(data):
 config = {
     #exp parameters:
     "horizon": 20, #NOTE: "sol_dim" must be adjusted
-    "iterations": 5000,
-    "episode_length":1000,
+    "iterations": 100,
+    "episode_length": 1000,
     "init_state": None, #Must be updated before passing config as param
     "action_dim":8,
 
@@ -285,7 +285,7 @@ for index_iter in range(config["iterations"]):
     print("Env index: ", env_index)
     c = None
 
-    if data[env_index] is None or index_iter<100*n_task:
+    if data[env_index] is None or index_iter < 1*n_task:
         print("Execution (Random actions)...")
         trajectory, c = execute_random(env=env, steps= config["episode_length"], init_state= config["init_state"])
         if data[env_index] is None:
