@@ -382,7 +382,7 @@ if __name__ == "__main__":
         # Optimizer parameters
         "max_iters": 1,
         "epsilon": 0.0001,
-
+        "opt": "RS",
         "lb": -0.5,
         "ub": 0.5,
         "popsize": 500,
