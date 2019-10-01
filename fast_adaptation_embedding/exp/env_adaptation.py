@@ -161,11 +161,7 @@ def main(config):
         f.write(pprint.pformat(config))
     n_task = 1
     render = False
-    envs = [gym.make("MinitaurBulletEnv_fastAdapt-v0", render=render, distance_weight=config['distance_weight'],
-                     energy_weight=config['energy_weight'], survival_weight=config['survival_weight'],
-                     drift_weight=config['drift_weight'], shake_weight=config['shake_weight'],
-                     action_weight=config['action_weight'], motor_velocity_limit=config['motor_velocity_limit'],
-                     angle_limit=config['angle_limit'])
+    envs = [gym.make(config['env'], **config['env_args'])
             for i in range(n_task)]
     random_iter = config['random_iter']
     data = n_task * [None]
