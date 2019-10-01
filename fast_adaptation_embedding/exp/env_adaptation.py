@@ -183,7 +183,8 @@ def execute_2(env, init_state, steps, init_mean, init_var, model, config, last_a
         cost_object = Cost_ensemble(ensemble_model=model, init_state=current_state, horizon=config["horizon"],
                                     action_dim=env.action_space.shape[0], goal=config["goal"])
         config["cost_fn"] = cost_object.cost_fn
-        optimizer = RS_opt(config)
+        # optimizer = RS_opt(config)
+        optimizer = CEM_opt(config)
         sol = optimizer.obtain_solution()
         a = sol[0:env.action_space.shape[0]]
         next_state, r = 0, 0
