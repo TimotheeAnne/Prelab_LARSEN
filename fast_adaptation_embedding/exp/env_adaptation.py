@@ -49,7 +49,7 @@ class Evaluation_ensemble(object):
         self.__pred_low = pred_low
         self.__obs_dim = config['ensemble_dim_out']
 
-    def evaluation_fn(self, actions, init_states, observations):
+    def eval(self, actions, init_states, observations):
         action_batch = torch.FloatTensor(actions).cuda() \
             if self.__ensemble_model.CUDA \
             else torch.FloatTensor(actions)
