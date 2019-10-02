@@ -48,7 +48,7 @@ class Evaluation_ensemble(object):
         self.__pred_high = pred_high
         self.__pred_low = pred_low
         self.__obs_dim = config['ensemble_dim_out']
-        self.__episode_length = config['iterations"']
+        self.__episode_length = config['episode_length']
 
     def preprocess_data(self, traj_obs, traj_acs):
         N = len(traj_acs)
@@ -223,7 +223,7 @@ def main(config):
         with open(os.path.join(config['logdir'], "ant_costs_task_" + str(i)+".txt"), "w+") as f:
             f.write("")
 
-    traj_obs, traj_acs, traj_rets, traj_rews, traj_error = [], [], [], [], []
+    traj_obs, traj_acs, traj_rets, traj_rews, traj_error, traj_eval = [], [], [], [], [], []
 
     for index_iter in range(config["iterations"]):
         '''Pick a random environment'''
@@ -267,7 +267,8 @@ def main(config):
             evaluator = Evaluation_ensemble(ensemble_model=models[env_index], pred_high=high, pred_low=low, config=config)
             actions, init_observations, observations = evaluator.preprocess_data(traj_obs, traj_acs)
             evaluations[env_index] = evaluator.eval(actions, init_observations, observations)
-            print(evaluations)
+            print("Evaluation of the models:", np.mean(evaluations[env_index]))
+            traj_eval.extend(np.mean(evaluations[env_index]))
             print("Execution...")
 
             trajectory, c = execute_2(env=env,
@@ -317,7 +318,8 @@ def main(config):
                 "actions": traj_acs,
                 "reward_sum": traj_rets,
                 "rewards": traj_rews,
-                "model_error": traj_error
+                "model_error": traj_error,
+                "model_eval": traj_eval
             }
         )
         print("-------------------------------\n")
