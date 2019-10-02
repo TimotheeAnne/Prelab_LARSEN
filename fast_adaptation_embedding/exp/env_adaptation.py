@@ -48,6 +48,18 @@ class Evaluation_ensemble(object):
         self.__pred_high = pred_high
         self.__pred_low = pred_low
         self.__obs_dim = config['ensemble_dim_out']
+        self.__episode_length = config['iterations"']
+
+    def preprocess_data(self, traj_obs, traj_acs):
+        N = len(traj_acs)
+
+        actions, init_observations, observations = [], [], []
+        for i in range(N):
+            for t in range(0, self.__episode_length, self.__horizon):
+                actions.append(traj_acs[i][t:t + self.__horizon].flatten())
+                init_observations.append(traj_obs[i][t])
+                observations.append(traj_obs[i][t + 1:t + 1 + self.__horizon].flatten())
+        return np.array(actions), np.array(init_observations), np.array(observations)
 
     def eval(self, actions, init_states, observations):
         action_batch = torch.FloatTensor(actions).cuda() \
@@ -71,8 +83,8 @@ class Evaluation_ensemble(object):
             start_states += diff_state
             for dim in range(self.__obs_dim):
                 start_states[:, dim].clamp_(self.__pred_low[dim], self.__pred_high[dim])
-            pred_error = torch.sqrt(start_states - traj_states[:, h * self.__obs_dim: h * self.__obs_dim + self.__obs_dim]).pow(2).sum(1)
-            state_norm = torch.sqrt(traj_states[:, h * self.__obs_dim: h * self.__obs_dim + self.__obs_dim]).pow(2)
+            pred_error = torch.sqrt((start_states - traj_states[:, h * self.__obs_dim: h * self.__obs_dim + self.__obs_dim]).pow(2).sum(1))
+            state_norm = torch.sqrt((traj_states[:, h * self.__obs_dim: h * self.__obs_dim + self.__obs_dim]).pow(2).sum(1))
             error += (pred_error / state_norm)/self.__horizon
         return error.cpu().detach().numpy()
 
@@ -253,10 +265,7 @@ def main(config):
             models[env_index] = train_ensemble_model(train_in=x, train_out=y, sampling_size=-1, config=config, model=models[env_index])
             print("Evaluate model...")
             evaluator = Evaluation_ensemble(ensemble_model=models[env_index], pred_high=high, pred_low=low, config=config)
-
-            actions = np.random.random((4, 8 * 20))
-            init_observations = np.random.random((4, 27))
-            observations = np.random.random((4, 27 * 20))
+            actions, init_observations, observations = evaluator.preprocess_data(traj_obs, traj_acs)
             evaluations[env_index] = evaluator.eval(actions, init_observations, observations)
             print(evaluations)
             print("Execution...")
