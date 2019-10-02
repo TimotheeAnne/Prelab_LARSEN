@@ -39,6 +39,43 @@ def train_ensemble_model(train_in, train_out, sampling_size, config, model=None)
     return copy.deepcopy(network)
 
 
+class Evaluation_ensemble(object):
+    def __init__(self, ensemble_model, pred_high, pred_low, config):
+        self.__ensemble_model = ensemble_model
+        self.__horizon = config['horizon']
+        self.__action_dim = config['action_dim']
+        self.__models = self.__ensemble_model.get_models()
+        self.__pred_high = pred_high
+        self.__pred_low = pred_low
+        self.__obs_dim = config['ensemble_dim_out']
+
+    def evaluation_fn(self, actions, init_states, observations):
+        action_batch = torch.FloatTensor(actions).cuda() \
+            if self.__ensemble_model.CUDA \
+            else torch.FloatTensor(actions)
+        start_states = torch.FloatTensor(init_states).cuda() \
+            if self.__ensemble_model.CUDA \
+            else torch.FloatTensor(init_states)
+        traj_states = torch.FloatTensor(observations).cuda() \
+            if self.__ensemble_model.CUDA \
+            else torch.FloatTensor(observations)
+        error = torch.FloatTensor(np.zeros(len(actions))).cuda() \
+            if self.__ensemble_model.CUDA \
+            else torch.FloatTensor(np.zeros(len(actions)))
+
+        dyn_model = self.__models[0]
+        for h in range(self.__horizon):
+            actions = action_batch[:, h * self.__action_dim: h * self.__action_dim + self.__action_dim]
+            model_input = torch.cat((start_states, actions), dim=1)
+            diff_state = dyn_model.predict_tensor(model_input)
+            start_states += diff_state
+            for dim in range(self.__obs_dim):
+                start_states[:, dim].clamp_(self.__pred_low[dim], self.__pred_high[dim])
+            pred_error = torch.sqrt(start_states - traj_states[:, h * self.__obs_dim: h * self.__obs_dim + self.__obs_dim]).pow(2).sum(1)
+            state_norm = torch.sqrt(traj_states[:, h * self.__obs_dim: h * self.__obs_dim + self.__obs_dim]).pow(2)
+            error += (pred_error / state_norm)/self.__horizon
+        return error.cpu().detach().numpy()
+
 def process_data(data):
     # Assuming dada: an array containing [state, action, state_transition, cost]
     training_in = []
@@ -90,7 +127,6 @@ def execute_2(env, init_state, steps, init_mean, init_var, model, config, last_a
     traject_cost = 0
     model_error = 0
     sliding_mean = np.zeros(config["sol_dim"])
-    # random = np.random.rand()
     mutation = np.random.rand(config["sol_dim"]) * 2. * 0.5 - 0.5
     rand = np.random.rand(config["sol_dim"])
     mutation *= np.array([1.0 if r > 0.25 else 0.0 for r in rand])
@@ -112,7 +148,6 @@ def execute_2(env, init_state, steps, init_mean, init_var, model, config, last_a
                                  options={'maxfevals': config['max_iters'] * config['popsize'],
                                           'popsize': config['popsize']})
             sol = xopt
-        sol = optimizer.obtain_solution()
         a = sol[0:env.action_space.shape[0]]
         next_state, r = 0, 0
         if recorder is not None:
@@ -161,11 +196,11 @@ def main(config):
         f.write(pprint.pformat(config))
     n_task = 1
     render = False
-    envs = [gym.make(config['env'], **config['env_args'])
-            for i in range(n_task)]
+    envs = [gym.make(config['env'], **config['env_args']) for i in range(n_task)]
     random_iter = config['random_iter']
     data = n_task * [None]
     models = n_task * [None]
+    evaluations = n_task * [None]
     best_action_seq = np.random.rand(config["sol_dim"])*2.0 - 1.0
     best_cost = 10000
     last_action_seq = None
@@ -216,6 +251,14 @@ def main(config):
             x, y, high, low = process_data(data[env_index])
             print("Learning model...")
             models[env_index] = train_ensemble_model(train_in=x, train_out=y, sampling_size=-1, config=config, model=models[env_index])
+            print("Evaluate model...")
+            evaluator = Evaluation_ensemble(ensemble_model=models, pred_high=high, pred_low=low, config=config)
+
+            actions = np.random.random((4, 8 * 20))
+            init_observations = np.random.random((4, 39))
+            observations = np.random.random((4, 39 * 20))
+            evaluations[env_index] = evaluator.eval(actions, init_observations, observations)
+            print(evaluations)
             print("Execution...")
 
             trajectory, c = execute_2(env=env,
