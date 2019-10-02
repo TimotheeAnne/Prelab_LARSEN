@@ -26,16 +26,14 @@ if __name__ == "__main__":
             self.__pred_high = pred_high
             self.__pred_low = pred_low
             self.__obs_dim = len(init_state)
+            self.__discount = config['discount']
 
         def cost_fn(self, samples):
-            action_samples = torch.FloatTensor(samples).cuda() if self.__ensemble_model.CUDA else torch.FloatTensor(
-                samples)
+            action_samples = torch.FloatTensor(samples).cuda() if self.__ensemble_model.CUDA else torch.FloatTensor(samples)
             init_states = torch.FloatTensor(np.repeat([self.__init_state], len(samples),
                                                       axis=0)).cuda() if self.__ensemble_model.CUDA else torch.FloatTensor(
                 np.repeat([self.__init_state], len(samples), axis=0))
-            all_costs = torch.FloatTensor(
-                np.zeros(len(samples))).cuda() if self.__ensemble_model.CUDA else torch.FloatTensor(
-                np.zeros(len(samples)))
+            all_costs = torch.FloatTensor(np.zeros(len(samples))).cuda() if self.__ensemble_model.CUDA else torch.FloatTensor(np.zeros(len(samples)))
 
             n_model = len(self.__models)
             # n_batch = min(n_model, int(len(samples)/1024))
@@ -59,8 +57,9 @@ if __name__ == "__main__":
                     action_cost = torch.sum(actions * actions, dim=1) * 0.0
                     x_vel_cost = -start_states[:, 13]
                     survive_cost = (start_states[:, 0] < 0.26).type(start_states.dtype) * 2.0
-                    all_costs[start_index: end_index] += x_vel_cost * config["discount"] ** h + action_cost * config[
-                        "discount"] ** h + survive_cost * config["discount"] ** h
+                    all_costs[start_index: end_index] += x_vel_cost * self.__discount ** h +\
+                                                         action_cost * self.__discount ** h +\
+                                                         survive_cost * self.__discount ** h
             return all_costs.cpu().detach().numpy()
 
     config = {
