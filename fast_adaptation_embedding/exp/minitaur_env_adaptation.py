@@ -94,7 +94,7 @@ if __name__ == "__main__":
         "iterations": 200,
         "random_iter": 1,
         "episode_length": 1000,
-        "init_state": None,  # Must be updated before passing config as param
+        "init_state": None,
         "action_dim": 8,
         "video_recording_frequency": 20,
         "logdir": logdir,
