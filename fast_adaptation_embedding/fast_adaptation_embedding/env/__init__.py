@@ -19,5 +19,12 @@ register(
 	id='MinitaurBulletEnv_fastAdapt-v0',
 	entry_point='fast_adaptation_embedding.env.minitaur_env:MinitaurBulletEnv',
 	max_episode_steps=1000,
-	reward_threshold=2500.0
+	reward_threshold=5.0
+)
+
+register(
+	id='MinitaurGymEnv_fastAdapt-v0',
+	entry_point='fast_adaptation_embedding.env.minitaur_gym_env:MinitaurGymEnv',
+	max_episode_steps=1000,
+	reward_threshold=5.0
 )
