@@ -69,7 +69,7 @@ class FFNN(nn.Module):
         if self.output_limit is None:
             return self.fcout(outputs[-1]).detach()
         else:
-            return  (self.Tanh(self.fcout(outputs[-1])) * self.output_limit).detach()
+            return (self.Tanh(self.fcout(outputs[-1])) * self.output_limit).detach()
     
     def loss_function(self, y, y_pred):
         MSE = (y - y_pred).pow(2).sum()
@@ -101,9 +101,9 @@ class FFNN_Model():
         descriptors_data : Descriptor input for the training data points. It's the condition input for the network. 
         """
         self.data_mean_input = torch.FloatTensor(np.mean(training_inputs, axis=0)).cuda() if self.CUDA else torch.FloatTensor(np.mean(training_inputs, axis=0))
-        self.data_std_input = torch.FloatTensor(np.std(training_inputs, axis=0)).cuda() if self.CUDA else torch.FloatTensor(np.std(training_inputs, axis=0))
+        self.data_std_input = torch.FloatTensor(np.std(training_inputs, axis=0)+1e-10).cuda() if self.CUDA else torch.FloatTensor(np.std(training_inputs, axis=0)+1e-10)
         self.data_mean_output = torch.FloatTensor(np.mean(training_targets, axis=0)).cuda() if self.CUDA else torch.FloatTensor(np.mean(training_targets, axis=0))
-        self.data_std_output = torch.FloatTensor(np.std(training_targets, axis=0)).cuda() if self.CUDA else torch.FloatTensor(np.std(training_targets, axis=0))
+        self.data_std_output = torch.FloatTensor(np.std(training_targets, axis=0)+1e-10).cuda() if self.CUDA else torch.FloatTensor(np.std(training_targets, axis=0)+1e-10)
 
         training_inputs_tensor = torch.FloatTensor(training_inputs).cuda() if self.CUDA else torch.FloatTensor(training_inputs)
         training_targets_tensor = torch.FloatTensor(training_targets).cuda() if self.CUDA else torch.FloatTensor(training_targets)
