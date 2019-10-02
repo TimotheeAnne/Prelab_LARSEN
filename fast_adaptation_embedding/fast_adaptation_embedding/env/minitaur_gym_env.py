@@ -497,6 +497,7 @@ class MinitaurGymEnv(gym.Env):
     observation.extend(self.minitaur.GetMotorVelocities().tolist())
     observation.extend(self.minitaur.GetMotorTorques().tolist())
     observation.extend(list(self.minitaur.GetBaseOrientation()))
+    observation.extend(list(self.minitaur.GetBasePosition()))
     self._observation = observation
     return self._observation
 
