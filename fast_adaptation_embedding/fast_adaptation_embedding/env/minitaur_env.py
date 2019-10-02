@@ -914,7 +914,8 @@ if __name__ == "__main__":
 
     render = True
     # render = False
-    system = gym.make("MinitaurBulletEnv_fastAdapt-v0", render=render, motor_velocity_limit=150, angle_limit=0.5)
+    # system = gym.make("MinitaurBulletEnv_fastAdapt-v0", render=render, motor_velocity_limit=150, angle_limit=0.5)
+    system = gym.make("MinitaurReactiveEnv-v0", render=render)
     recorder = None
     # recorder = VideoRecorder(system, "test.mp4")
     previous_obs = system.reset()
@@ -926,7 +927,7 @@ if __name__ == "__main__":
         # a = np.random.random(8) * 2 - 1
         alpha = i/1000.
         # a = np.array([0,0,0,0,0,0,0,0])
-        a = np.random.random(8) * 2 - 1
+        a = np.random.random(8) * 1 - 0.5
         obs, r, _, _ = system.step(a)
         previous_obs = np.copy(obs)
         rew += r
