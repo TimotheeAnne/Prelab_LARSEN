@@ -252,7 +252,7 @@ def main(config):
             print("Learning model...")
             models[env_index] = train_ensemble_model(train_in=x, train_out=y, sampling_size=-1, config=config, model=models[env_index])
             print("Evaluate model...")
-            evaluator = Evaluation_ensemble(ensemble_model=models, pred_high=high, pred_low=low, config=config)
+            evaluator = Evaluation_ensemble(ensemble_model=models[env_index], pred_high=high, pred_low=low, config=config)
 
             actions = np.random.random((4, 8 * 20))
             init_observations = np.random.random((4, 39))
