@@ -65,6 +65,7 @@ if __name__ == "__main__":
 
     config = {
         # exp parameters:
+        "env": "AntMuJoCoEnv_fastAdapt-v0",
         "horizon": 20,  # NOTE: "sol_dim" must be adjusted
         "iterations": 100,
         "random_iter": 1,
