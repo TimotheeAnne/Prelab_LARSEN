@@ -16,7 +16,7 @@ if __name__ == "__main__":
 
 
     class Cost_ensemble(object):
-        def __init__(self, ensemble_model, init_state, horizon, action_dim, goal, pred_high, pred_low):
+        def __init__(self, ensemble_model, init_state, horizon, action_dim, goal, pred_high, pred_low, config):
             self.__ensemble_model = ensemble_model
             self.__init_state = init_state
             self.__horizon = horizon
@@ -26,6 +26,14 @@ if __name__ == "__main__":
             self.__pred_high = pred_high
             self.__pred_low = pred_low
             self.__obs_dim = len(init_state)
+            self.__energy_weight = config['energy_weight']
+            self.__distance_weight = config['distance_weight']
+            self.__survival_weight = config['survival_weight']
+            self.__drift_weight = config['drift_weight']
+            self.__shake_weight = config['shake_weight']
+            self.__action_weight = config['action_weight']
+            self.__discount = config['discount']
+            self.__pop_batch = config['pop_batch']
 
         def cost_fn(self, samples):
             action_samples = torch.FloatTensor(samples).cuda() if self.__ensemble_model.CUDA else torch.FloatTensor(
@@ -38,8 +46,7 @@ if __name__ == "__main__":
                 np.zeros(len(samples)))
 
             n_model = len(self.__models)
-            # n_batch = min(n_model, int(len(samples)/1024))
-            n_batch = max(1, int(len(samples) / 16384))
+            n_batch = max(1, int(len(samples) / self.__pop_batch))
             per_batch = len(samples) / n_batch
 
             for i in range(n_batch):
@@ -56,11 +63,19 @@ if __name__ == "__main__":
                     for dim in range(self.__obs_dim):
                         start_states[:, dim].clamp_(self.__pred_low[dim], self.__pred_high[dim])
 
-                    action_cost = torch.sum(actions * actions, dim=1) * 0.0
-                    x_vel_cost = -start_states[:, 13]
-                    survive_cost = (start_states[:, 0] < 0.26).type(start_states.dtype) * 2.0
-                    all_costs[start_index: end_index] += x_vel_cost * config["discount"] ** h + action_cost * config[
-                        "discount"] ** h + survive_cost * config["discount"] ** h
+                    action_cost = torch.sum(actions * actions, dim=1) * self.__action_weight
+                    energy_cost = abs(
+                        torch.sum(start_states[:, 16:24] * start_states[:, 8:16], dim=1)) * 0.02 * self.__energy_weight
+                    x_vel_cost = -diff_state[:, 28] * self.__distance_weight
+                    y_vel_cost = abs(diff_state[:, 29]) * self.__drift_weight
+                    shake_cost = abs(diff_state[:, 30]) * self.__shake_weight
+                    survival_cost = (start_states[:, 30] < 0.13).type(start_states.dtype) * self.__survival_weight
+                    all_costs[start_index: end_index] += x_vel_cost * self.__discount ** h + \
+                                                         action_cost * self.__discount ** h + \
+                                                         survival_cost * self.__discount ** h + \
+                                                         y_vel_cost * self.__discount ** h + \
+                                                         shake_cost * self.__discount ** h + \
+                                                         energy_cost * self.__discount ** h
             return all_costs.cpu().detach().numpy()
 
 
