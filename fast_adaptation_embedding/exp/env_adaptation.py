@@ -185,6 +185,71 @@ def execute_2(env, init_state, steps, init_mean, init_var, model, config, last_a
     samples['model_error'].append(model_error/steps)
     return np.array(trajectory), traject_cost
 
+def execute_3(env, init_state, steps, init_mean, init_var, model, config, last_action_seq,
+              pred_high, pred_low, index_iter, samples):
+    current_state = env.reset()
+    controller = config["controller"]
+    f_rec = config['video_recording_frequency']
+    recorder = None
+    if f_rec and index_iter % f_rec == (f_rec - 1):
+        recorder = VideoRecorder(env, os.path.join(config['logdir'], "iter_" + str(index_iter) + ".mp4"))
+    obs = [current_state]
+    acs = []
+    trajectory = []
+    reward = []
+    traject_cost = 0
+    model_error = 0
+    sliding_mean = np.zeros(config["sol_dim"])
+    mutation = np.random.rand(config["sol_dim"]) * 2. * 0.5 - 0.5
+    rand = np.random.rand(config["sol_dim"])
+    mutation *= np.array([1.0 if r > 0.25 else 0.0 for r in rand])
+    goal = None
+    omega = config['omega']
+    for i in tqdm(range(steps)):
+        if i % config["horizon"] == 0:
+            cost_object = config['Cost_ensemble'](ensemble_model=model, init_state=current_state, horizon=config["horizon"],
+                                        action_dim=env.action_space.shape[0], goal=goal, pred_high=pred_high,
+                                        pred_low=pred_low, config=config)
+            config["cost_fn"] = cost_object.cost_fn
+            if config['opt'] == "RS":
+                optimizer = RS_opt(config)
+                sol = optimizer.obtain_solution()
+            elif config['opt'] == "CEM":
+                optimizer = CEM_opt(config)
+                sol = optimizer.obtain_solution(sliding_mean, init_var)
+            elif config['opt'] == "CMA-ES":
+                xopt, es = cma.fmin2(None, np.zeros(config["sol_dim"]), 0.5,
+                                     parallel_objective=lambda x: list(config["cost_fn"](x)),
+                                     options={'maxfevals': config['max_iters'] * config['popsize'],
+                                              'popsize': config['popsize']})
+                sol = xopt
+
+        t = env.minitaur.GetTimeSinceReset()
+        a = controller(t, omega, sol)
+        next_state, r = 0, 0
+        if recorder is not None:
+            recorder.capture_frame()
+        for k in range(config["K"]):
+            next_state, r, _, _ = env.step(a)
+            obs.append(next_state)
+            acs.append(a)
+            reward.append(r)
+        trajectory.append([current_state.copy(), a.copy(), next_state-current_state, -r])
+        model_error += test_model(model, current_state.copy(), a.copy(), next_state-current_state)
+        current_state = next_state
+        traject_cost += -r
+        sliding_mean[0:-len(a)] = sol[len(a)::]
+    print("Model error: ", model_error/steps)
+    if recorder is not None:
+        recorder.capture_frame()
+        recorder.close()
+    samples['acs'].append(np.copy(acs))
+    samples['obs'].append(np.copy(obs))
+    samples['reward'].append(np.copy(reward))
+    samples['reward_sum'].append(-traject_cost)
+    samples['model_error'].append(model_error/steps)
+    return np.array(trajectory), traject_cost
+
 
 def test_model(ensemble_model, init_state, action, state_diff):
     x = np.concatenate(([init_state], [action]), axis=1)
@@ -271,7 +336,7 @@ def main(config):
             traj_eval.append(np.mean(evaluations[env_index]))
             print("Execution...")
 
-            trajectory, c = execute_2(env=env,
+            trajectory, c = execute_3(env=env,
                                     init_state=config["init_state"],
                                     model=models[env_index],
                                     steps=config["episode_length"],

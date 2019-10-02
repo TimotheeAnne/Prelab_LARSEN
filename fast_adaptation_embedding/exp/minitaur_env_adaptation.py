@@ -79,13 +79,20 @@ if __name__ == "__main__":
             return all_costs.cpu().detach().numpy()
 
 
+    def controller(t, w, params):
+        a = np.zeros(8)
+        for i in range(4):
+            a[i] = params[i] * np.sin(w * t + params[8*i])
+            a[4 + i] = params[4+i] * np.sin(w * t + params[12*i])
+        return a
+
     config = {
         # exp parameters:
         # "env": 'MinitaurBulletEnv_fastAdapt-v0',
         "env": 'MinitaurGymEnv_fastAdapt-v0',
         "horizon": 20,  # NOTE: "sol_dim" must be adjusted
         "iterations": 200,
-        "random_iter": 100,
+        "random_iter": 1,
         "episode_length": 1000,
         "init_state": None,  # Must be updated before passing config as param
         "action_dim": 8,
@@ -101,6 +108,8 @@ if __name__ == "__main__":
         "motor_velocity_limit": np.inf,
         "angle_limit": 1,
         "K": 1,
+        "controller": controller,
+        "omega": 2*np.pi,
 
         # Model learning parameters
         "epoch": 1000,
@@ -146,7 +155,7 @@ if __name__ == "__main__":
         else:
             config[key] = float(val)
     config['sol_dim'] = config['horizon'] * config['action_dim']
-    env_args = {'render': False,
+    env_args = {'render': False, 'control_time_step':0.025,
                 # 'distance_weight': config['distance_weight'],
                 #      'energy_weight': config['energy_weight'], 'survival_weight':config['survival_weight'],
                 #      'drift_weight': config['drift_weight'], 'shake_weight':config['shake_weight'],
@@ -154,5 +163,9 @@ if __name__ == "__main__":
                 #      'angle_limit': config['angle_limit']
     }
     config['env_args'] = env_args
-
+    if config['controller'] is not None:
+        lb = [-1] * 8 + [-np.pi] * 8
+        ub = [1] * 8 + [np.pi] * 8
+        config['lb'] = lb
+        config['ub'] = ub
     main(config)
