@@ -255,8 +255,8 @@ def main(config):
             evaluator = Evaluation_ensemble(ensemble_model=models[env_index], pred_high=high, pred_low=low, config=config)
 
             actions = np.random.random((4, 8 * 20))
-            init_observations = np.random.random((4, 39))
-            observations = np.random.random((4, 39 * 20))
+            init_observations = np.random.random((4, 27))
+            observations = np.random.random((4, 27 * 20))
             evaluations[env_index] = evaluator.eval(actions, init_observations, observations)
             print(evaluations)
             print("Execution...")
