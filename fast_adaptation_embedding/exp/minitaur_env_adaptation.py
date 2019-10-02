@@ -168,4 +168,5 @@ if __name__ == "__main__":
         ub = [1] * 8 + [np.pi] * 8
         config['lb'] = lb
         config['ub'] = ub
+        config['sol_dim'] = 16
     main(config)
