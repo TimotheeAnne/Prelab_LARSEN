@@ -62,7 +62,7 @@ class MinitaurGymEnv(gym.Env):
   expenditure.
 
   """
-  metadata = {"render.modes": ["human", "rgb_array"], "video.frames_per_second": 100}
+  metadata = {"render.modes": ["human", "rgb_array"], "video.frames_per_second": 25}
 
   def __init__(self,
                urdf_root=pybullet_data.getDataPath(),
@@ -592,6 +592,15 @@ class MinitaurGymEnv(gym.Env):
   def env_step_counter(self):
     return self._env_step_counter
 
+
+def controller(t, params):
+    a = np.zeros(8)
+    for i in range(4):
+      a[i] = params[i] * np.sin(params[-1]*t+params[4+i])
+      a[4+i] = params[i] * np.sin(params[-1]*t+params[4+i])
+    return a
+
+
 if __name__ == "__main__":
     import gym
     import time
@@ -600,7 +609,7 @@ if __name__ == "__main__":
 
     render = True
     # render = False
-    system = gym.make("MinitaurGymEnv_fastAdapt-v0", render=render)
+    system = gym.make("MinitaurGymEnv_fastAdapt-v0", render=render, control_time_step=0.025)
     recorder = None
     # recorder = VideoRecorder(system, "test.mp4")
     previous_obs = system.reset()
@@ -609,16 +618,18 @@ if __name__ == "__main__":
     for i in range(1000):
         if recorder is not None:
             recorder.capture_frame()
-        # a = np.random.random(8) * 2 - 1
-        alpha = i/1000.
-        # a = np.array([0,0,0,0,0,0,0,0])
-        a = np.random.random(8) * 1 - 0.5
+        t = system.minitaur.GetTimeSinceReset()
+        w = 2 * np.pi
+
+        params = [0.3, 0.3, 0.3, 0.3, w/2, 0, 0, w/2, w]
+        a = controller(t, params)
         obs, r, _, _ = system.step(a)
         previous_obs = np.copy(obs)
         rew += r
-        time.sleep(0.01)
+        # time.sleep(0.04)
     if recorder is not None:
         recorder.capture_frame()
         recorder.close()
     print(rew)
+
 
