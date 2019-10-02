@@ -268,7 +268,7 @@ def main(config):
             actions, init_observations, observations = evaluator.preprocess_data(traj_obs, traj_acs)
             evaluations[env_index] = evaluator.eval(actions, init_observations, observations)
             print("Evaluation of the models:", np.mean(evaluations[env_index]))
-            traj_eval.extend(np.mean(evaluations[env_index]))
+            traj_eval.append(np.mean(evaluations[env_index]))
             print("Execution...")
 
             trajectory, c = execute_2(env=env,
