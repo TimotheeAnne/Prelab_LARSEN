@@ -146,11 +146,12 @@ if __name__ == "__main__":
         else:
             config[key] = float(val)
     config['sol_dim'] = config['horizon'] * config['action_dim']
-    env_args = {'render': False, 'distance_weight': config['distance_weight'],
-                     'energy_weight': config['energy_weight'], 'survival_weight':config['survival_weight'],
-                     'drift_weight': config['drift_weight'], 'shake_weight':config['shake_weight'],
-                     'action_weight': config['action_weight'], 'motor_velocity_limit': config['motor_velocity_limit'],
-                     'angle_limit': config['angle_limit']
+    env_args = {'render': False,
+                # 'distance_weight': config['distance_weight'],
+                #      'energy_weight': config['energy_weight'], 'survival_weight':config['survival_weight'],
+                #      'drift_weight': config['drift_weight'], 'shake_weight':config['shake_weight'],
+                #      'action_weight': config['action_weight'], 'motor_velocity_limit': config['motor_velocity_limit'],
+                #      'angle_limit': config['angle_limit']
     }
     config['env_args'] = env_args
 
