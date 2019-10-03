@@ -80,10 +80,15 @@ if __name__ == "__main__":
 
 
     def controller(t, w, params):
-        a = np.zeros(8)
-        for i in range(4):
-            a[i] = params[i] * np.sin(w * t + params[8+i])
-            a[4 + i] = params[4+i] * np.sin(w * t + params[12+i])
+        a = [params[0] * np.sin(w * t + params[8]),
+             params[1] * np.sin(w * t + params[9]),
+             params[2] * np.sin(w * t + params[10]),
+             params[3] * np.sin(w * t + params[11]),
+             params[4] * np.sin(w * t + params[12]),
+             params[5] * np.sin(w * t + params[13]),
+             params[6] * np.sin(w * t + params[14]),
+             params[7] * np.sin(w * t + params[15])
+             ]
         return a
 
     config = {
