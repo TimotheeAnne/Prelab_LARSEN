@@ -62,7 +62,7 @@ class MinitaurGymEnv(gym.Env):
   expenditure.
 
   """
-  metadata = {"render.modes": ["human", "rgb_array"], "video.frames_per_second": 25}
+  metadata = {"render.modes": ["human", "rgb_array"], "video.frames_per_second": 50}
 
   def __init__(self,
                urdf_root=pybullet_data.getDataPath(),
