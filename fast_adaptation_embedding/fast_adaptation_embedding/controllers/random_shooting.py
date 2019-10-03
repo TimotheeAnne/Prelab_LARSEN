@@ -15,6 +15,7 @@ class RS_opt(object):
         self.horizon = config['horizon']
         self.omega = config["omega"]
         self.dt = config["control_time_step"]
+        self.controller = config["controller"]
 
     def obtain_solution(self, init_mean=None, init_var=None, t0=0):
         """Optimizes the cost function using the provided initial candidate distribution
