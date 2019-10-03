@@ -210,7 +210,7 @@ def execute_3(env, init_state, steps, init_mean, init_var, model, config, last_a
             config["cost_fn"] = cost_object.cost_fn
             if config['opt'] == "RS":
                 optimizer = RS_opt(config)
-                sol = optimizer.obtain_solution()
+                sol = optimizer.obtain_solution(init_mean=sliding_mean, init_var=np.ones(config['sol_dim'])*0.1)
             elif config['opt'] == "CEM":
                 optimizer = CEM_opt(config)
                 sol = optimizer.obtain_solution(sliding_mean, init_var)
