@@ -333,11 +333,6 @@ def main(config):
                                     samples=samples)
             data[env_index] = np.concatenate((data[env_index], trajectory), axis=0)
             print("Cost : ", c)
-            print("Saving trajectories..")
-            # if index_iter % 10 == 0:
-            #     np.save(os.path.join(config['logdir'], "trajectories_ant.npy"), data)
-            np.save(os.path.join(config['logdir'], "best_cost_ant.npy"), best_cost)
-            np.save(os.path.join(config['logdir'], "best_action_seq_ant.npy"), best_action_seq)
         with open(os.path.join(config['logdir'], "ant_costs_task_" + str(env_index)+".txt"), "a+") as f:
             f.write(str(c)+"\n")
 
