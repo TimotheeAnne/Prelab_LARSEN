@@ -93,10 +93,10 @@ if __name__ == "__main__":
         "horizon": 25,  # NOTE: "sol_dim" must be adjusted
         "iterations": 200,
         "random_iter": 1,
-        "episode_length": 1000,
+        "episode_length": 250,
         "init_state": None,
         "action_dim": 8,
-        "video_recording_frequency": 20,
+        "video_recording_frequency": 50,
         "logdir": logdir,
         "load_data": None,
         "distance_weight": 1.0,
@@ -156,9 +156,9 @@ if __name__ == "__main__":
             config[key] = float(val)
     config['sol_dim'] = config['horizon'] * config['action_dim']
     env_args = {'render': False, 'control_time_step': 0.02,
-                # 'distance_weight': config['distance_weight'],
-                #      'energy_weight': config['energy_weight'], 'survival_weight':config['survival_weight'],
-                #      'drift_weight': config['drift_weight'], 'shake_weight':config['shake_weight'],
+                'distance_weight': config['distance_weight'],
+                'energy_weight': config['energy_weight'], 'survival_weight': config['survival_weight'],
+                'drift_weight': config['drift_weight'], 'shake_weight': config['shake_weight'],
                 #      'action_weight': config['action_weight'], 'motor_velocity_limit': config['motor_velocity_limit'],
                 #      'angle_limit': config['angle_limit']
     }
