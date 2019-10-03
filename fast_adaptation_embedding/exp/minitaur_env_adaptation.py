@@ -145,7 +145,8 @@ if __name__ == "__main__":
         "alpha": 0.1,
         "discount": 1.,
         "Cost_ensemble": Cost_ensemble,
-        "optimizer_frequency": 1
+        "optimizer_frequency": 1,
+        "initial_boost": 25
     }
     for (key, val) in args.config:
         if key in ['horizon', 'K', 'popsize', 'iterations']:
