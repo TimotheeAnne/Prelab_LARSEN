@@ -110,6 +110,7 @@ if __name__ == "__main__":
         "K": 1,
         "controller": controller,
         "omega": 4*np.pi,
+        "control_time_step": 0.02,
 
         # Model learning parameters
         "epoch": 1000,
@@ -143,7 +144,8 @@ if __name__ == "__main__":
         "cost_fn": None,
         "alpha": 0.1,
         "discount": 1.,
-        "Cost_ensemble": Cost_ensemble
+        "Cost_ensemble": Cost_ensemble,
+        "optimizer_frequency": 1
     }
     for (key, val) in args.config:
         if key in ['horizon', 'K', 'popsize', 'iterations']:
@@ -155,7 +157,7 @@ if __name__ == "__main__":
         else:
             config[key] = float(val)
     config['sol_dim'] = config['horizon'] * config['action_dim']
-    env_args = {'render': False, 'control_time_step': 0.02,
+    env_args = {'render': False, 'control_time_step': config['control_time_step'],
                 'distance_weight': config['distance_weight'],
                 'energy_weight': config['energy_weight'], 'survival_weight': config['survival_weight'],
                 'drift_weight': config['drift_weight'], 'shake_weight': config['shake_weight'],

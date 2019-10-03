@@ -203,14 +203,18 @@ def execute_3(env, init_state, steps, init_mean, init_var, model, config, last_a
     goal = None
     omega = config['omega']
     for i in tqdm(range(steps)):
-        if i % config["horizon"] == 0:
+        t = env.minitaur.GetTimeSinceReset()
+        if i % config["optimizer_frequency"] == 0:
             cost_object = config['Cost_ensemble'](ensemble_model=model, init_state=current_state, horizon=config["horizon"],
                                         action_dim=env.action_space.shape[0], goal=goal, pred_high=pred_high,
                                         pred_low=pred_low, config=config)
             config["cost_fn"] = cost_object.cost_fn
             if config['opt'] == "RS":
                 optimizer = RS_opt(config)
-                sol = optimizer.obtain_solution(init_mean=sliding_mean, init_var=np.ones(config['sol_dim'])*0.02)
+                if i==0:
+                    sol = optimizer.obtain_solution(t0=t)
+                else:
+                    sol = optimizer.obtain_solution(init_mean=sliding_mean, init_var=np.ones(config['sol_dim'])*0.05, t0=t)
             elif config['opt'] == "CEM":
                 optimizer = CEM_opt(config)
                 sol = optimizer.obtain_solution(sliding_mean, init_var)
@@ -220,14 +224,12 @@ def execute_3(env, init_state, steps, init_mean, init_var, model, config, last_a
                                      options={'maxfevals': config['max_iters'] * config['popsize'],
                                               'popsize': config['popsize']})
                 sol = xopt
-
-        t = env.minitaur.GetTimeSinceReset()
         a = controller(t, omega, sol)
         next_state, r = 0, 0
         if recorder is not None:
             recorder.capture_frame()
         for k in range(config["K"]):
-            next_state, r, _, _ = env.step(a)
+            next_state, r, done, _ = env.step(a)
             obs.append(next_state)
             acs.append(a)
             reward.append(r)
