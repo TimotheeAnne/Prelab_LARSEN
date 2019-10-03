@@ -142,6 +142,7 @@ if __name__ == "__main__":
         "opt": "RS",
         "lb": -0.5,
         "ub": 0.5,
+        "init_var": 0.05,
         "popsize": 500,
         "pop_batch": 16384,
         "sol_dim": 8*20,  # NOTE: Depends on Horizon

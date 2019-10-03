@@ -126,8 +126,7 @@ def execute_random(env, steps, init_state, samples, K):
     return np.array(trajectory), traject_cost
 
 
-def execute_2(env, init_state, steps, init_mean, init_var, model, config, last_action_seq,
-              pred_high, pred_low, index_iter, samples):
+def execute_2(env, steps, init_var, model, config, pred_high, pred_low, index_iter, samples):
     current_state = env.reset()
     f_rec = config['video_recording_frequency']
     recorder = None
@@ -186,8 +185,7 @@ def execute_2(env, init_state, steps, init_mean, init_var, model, config, last_a
     samples['model_error'].append(model_error/steps)
     return np.array(trajectory), traject_cost
 
-def execute_3(env, init_state, steps, init_mean, init_var, model, config, last_action_seq,
-              pred_high, pred_low, index_iter, samples):
+def execute_3(env, steps, init_var, model, config, pred_high, pred_low, index_iter, samples):
     current_state = env.reset()
     controller = config["controller"]
     f_rec = config['video_recording_frequency']
@@ -215,7 +213,7 @@ def execute_3(env, init_state, steps, init_mean, init_var, model, config, last_a
                 if i==0:
                     sol = optimizer.obtain_solution(t0=t)
                 else:
-                    sol = optimizer.obtain_solution(init_mean=sliding_mean, init_var=np.ones(config['sol_dim'])*0.05, t0=t)
+                    sol = optimizer.obtain_solution(init_mean=sliding_mean, init_var=init_var, t0=t)
             elif config['opt'] == "CEM":
                 optimizer = CEM_opt(config)
                 sol = optimizer.obtain_solution(sliding_mean, init_var)
@@ -280,14 +278,9 @@ def main(config):
     data = n_task * [None]
     models = n_task * [None]
     evaluations = n_task * [None]
-    best_action_seq = np.random.rand(config["sol_dim"])*2.0 - 1.0
-    best_cost = 10000
-    last_action_seq = None
-    all_action_seq = []
-    all_costs = []
 
     for i in range(n_task):
-        with open(os.path.join(config['logdir'], "ant_costs_task_" + str(i)+".txt"), "w+") as f:
+        with open(os.path.join(config['logdir'], "env_costs_task_" + str(i)+".txt"), "w+") as f:
             f.write("")
 
     traj_obs, traj_acs, traj_rets, traj_rews, traj_error, traj_eval = [], [], [], [], [], []
@@ -315,16 +308,6 @@ def main(config):
             else:
                 data[env_index] = np.concatenate((data[env_index], trajectory), axis=0)
             print("Cost : ", c)
-
-            if c < best_cost:
-                best_cost = c
-                best_action_seq = []
-                for d in trajectory:
-                    best_action_seq += d[1].tolist()
-                best_action_seq = np.array(best_action_seq)
-                last_action_seq = best_action_seq
-            all_action_seq.append(extract_action_seq(trajectory))
-            all_costs.append(c)
         else:
             '''------------Update models------------'''
             x, y, high, low = process_data(data[env_index])
@@ -335,36 +318,22 @@ def main(config):
             actions, init_observations, observations = evaluator.preprocess_data(traj_obs, traj_acs)
             if len(actions) > 0:
                 evaluations[env_index] = evaluator.eval(actions, init_observations, observations)
-            print("Evaluation of the models:", np.mean(evaluations[env_index]))
-            traj_eval.append(np.mean(evaluations[env_index]))
+                print("Evaluation of the models:", np.mean(evaluations[env_index]))
+                traj_eval.append(np.mean(evaluations[env_index]))
             print("Execution...")
 
             trajectory, c = execute_3(env=env,
                                     init_state=config["init_state"],
                                     model=models[env_index],
                                     steps=config["episode_length"],
-                                    init_mean=best_action_seq[0:config["sol_dim"]] ,
-                                    init_var=0.1 * np.ones(config["sol_dim"]),
+                                    init_var=config["init_var"] * np.ones(config["sol_dim"]),
                                     config=config,
-                                    last_action_seq=best_action_seq,
                                     pred_high= high,
                                     pred_low=low,
                                     index_iter=index_iter,
                                     samples=samples)
             data[env_index] = np.concatenate((data[env_index], trajectory), axis=0)
             print("Cost : ", c)
-
-            if c < best_cost:
-                best_cost = c
-                best_action_seq = []
-                for d in trajectory:
-                    best_action_seq += d[1].tolist()
-                best_action_seq = np.array(best_action_seq)
-                last_action_seq = extract_action_seq(trajectory)
-
-            all_action_seq.append(extract_action_seq(trajectory))
-            all_costs.append(c)
-
             print("Saving trajectories..")
             # if index_iter % 10 == 0:
             #     np.save(os.path.join(config['logdir'], "trajectories_ant.npy"), data)
