@@ -26,7 +26,7 @@ class RS_opt(object):
             samples = np.random.uniform(self.lb, self.ub, size=(self.initial_boost*self.popsize, self.sol_dim))
         else:
             assert init_mean is not None and init_var is not None, "init mean and var must be provided"
-            samples = np.random.normal(init_mean, init_var, size=(self.max_iters*self.popsize, self.sol_dim))
+            samples = np.random.normal(init_mean, init_var, size=(self.popsize, self.sol_dim))
             samples = np.clip(samples, self.lb, self.ub)
         if self.controller is not None:
             actions = np.concatenate([samples[:, 0:8] * np.sin(self.omega * (t0 + t * self.dt) + samples[:, 8:16])
