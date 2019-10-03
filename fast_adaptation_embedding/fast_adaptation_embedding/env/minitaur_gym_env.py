@@ -436,11 +436,11 @@ class MinitaurGymEnv(gym.Env):
     Returns:
       Boolean value that indicates whether the minitaur has fallen.
     """
-    orientation = self.minitaur.GetBaseOrientation()
-    rot_mat = self._pybullet_client.getMatrixFromQuaternion(orientation)
-    local_up = rot_mat[6:]
+    # orientation = self.minitaur.GetBaseOrientation()
+    # rot_mat = self._pybullet_client.getMatrixFromQuaternion(orientation)
+    # local_up = rot_mat[6:]
     pos = self.minitaur.GetBasePosition()
-    return (np.dot(np.asarray([0, 0, 1]), np.asarray(local_up)) < 0.85 or pos[2] < 0.13)
+    return (pos[2] < 0.13)
 
   def _termination(self):
     position = self.minitaur.GetBasePosition()
@@ -598,8 +598,8 @@ class MinitaurGymEnv(gym.Env):
 def controller(t, params):
     a = np.zeros(8)
     for i in range(4):
-      a[i] = params[i] * np.sin(params[-1]*t+params[4+i])
-      a[4+i] = params[i] * np.sin(params[-1]*t+params[4+i])
+      a[i] = params[i] * np.sin(params[-1]*t+params[8+i])
+      a[4+i] = params[4+i] * np.sin(params[-1]*t+params[12+i])
     return a
 
 
@@ -621,11 +621,12 @@ if __name__ == "__main__":
         if recorder is not None:
             recorder.capture_frame()
         t = system.minitaur.GetTimeSinceReset()
-        w = 2 * np.pi
+        w = 4 * np.pi
 
-        params = [0.3, 0.3, 0.3, 0.3, w/2, 0, 0, w/2, w]
+        params = [0.3]*4+[0.2]*4+[0,np.pi,np.pi,0]*2+[w]
         a = controller(t, params)
-        obs, r, _, _ = system.step(a)
+        obs, r, done, _ = system.step(a)
+        print(done)
         previous_obs = np.copy(obs)
         rew += r
         # time.sleep(0.04)
