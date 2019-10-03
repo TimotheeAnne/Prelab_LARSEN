@@ -7,7 +7,7 @@ import numpy as np
 
 class RS_opt(object):
     def __init__(self, config):
-        self.max_iters = config["max_iters"]#1
+        self.initial_boost = config["initial_boost"]#1
         self.lb, self.ub = config["lb"], config["ub"]#-1, 1
         self.popsize = config["popsize"] #500
         self.sol_dim = config["sol_dim"] #8*20 #action dim*horizon
@@ -24,7 +24,7 @@ class RS_opt(object):
             init_var (np.ndarray): The variance of the initial candidate distribution.
         """
         if init_mean is None or init_var is None:
-            samples = np.random.uniform(self.lb, self.ub, size=(self.max_iters*self.popsize, self.sol_dim))
+            samples = np.random.uniform(self.lb, self.ub, size=(self.initial_boost*self.popsize, self.sol_dim))
         else:
             assert init_mean is not None and init_var is not None, "init mean and var must be provided"
             samples = np.random.normal(init_mean, init_var, size=(self.max_iters*self.popsize, self.sol_dim))
