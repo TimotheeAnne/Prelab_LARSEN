@@ -90,7 +90,7 @@ if __name__ == "__main__":
         # exp parameters:
         # "env": 'MinitaurBulletEnv_fastAdapt-v0',
         "env": 'MinitaurGymEnv_fastAdapt-v0',
-        "horizon": 20,  # NOTE: "sol_dim" must be adjusted
+        "horizon": 25,  # NOTE: "sol_dim" must be adjusted
         "iterations": 200,
         "random_iter": 1,
         "episode_length": 1000,
@@ -109,7 +109,7 @@ if __name__ == "__main__":
         "angle_limit": 1,
         "K": 1,
         "controller": controller,
-        "omega": 2*np.pi,
+        "omega": 4*np.pi,
 
         # Model learning parameters
         "epoch": 1000,
@@ -155,7 +155,7 @@ if __name__ == "__main__":
         else:
             config[key] = float(val)
     config['sol_dim'] = config['horizon'] * config['action_dim']
-    env_args = {'render': False, 'control_time_step':0.025,
+    env_args = {'render': False, 'control_time_step': 0.02,
                 # 'distance_weight': config['distance_weight'],
                 #      'energy_weight': config['energy_weight'], 'survival_weight':config['survival_weight'],
                 #      'drift_weight': config['drift_weight'], 'shake_weight':config['shake_weight'],
