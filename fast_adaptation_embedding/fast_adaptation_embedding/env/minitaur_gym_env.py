@@ -71,6 +71,7 @@ class MinitaurGymEnv(gym.Env):
                energy_weight=0.005,
                shake_weight=0.0,
                drift_weight=0.0,
+               survival_weight=0.0,
                distance_limit=float("inf"),
                observation_noise_stdev=SENSOR_NOISE_STDDEV,
                self_collision_enabled=True,
@@ -186,7 +187,7 @@ class MinitaurGymEnv(gym.Env):
     self._observation = []
     self._true_observation = []
     self._objectives = []
-    self._objective_weights = [distance_weight, energy_weight, drift_weight, shake_weight]
+    self._objective_weights = [distance_weight, energy_weight, drift_weight, shake_weight, survival_weight]
     self._env_step_counter = 0
     self._num_steps_to_log = num_steps_to_log
     self._is_render = render
@@ -458,10 +459,11 @@ class MinitaurGymEnv(gym.Env):
     rot_matrix = pybullet.getMatrixFromQuaternion(orientation)
     local_up_vec = rot_matrix[6:]
     shake_reward = -abs(np.dot(np.asarray([1, 1, 0]), np.asarray(local_up_vec)))
+    survival_reward = -(current_base_position[2] < 0.13)
     energy_reward = -np.abs(
         np.dot(self.minitaur.GetMotorTorques(),
                self.minitaur.GetMotorVelocities())) * self._time_step
-    objectives = [forward_reward, energy_reward, drift_reward, shake_reward]
+    objectives = [forward_reward, energy_reward, drift_reward, shake_reward, survival_reward]
     weighted_objectives = [o * w for o, w in zip(objectives, self._objective_weights)]
     reward = sum(weighted_objectives)
     self._objectives.append(objectives)
