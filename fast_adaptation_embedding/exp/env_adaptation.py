@@ -111,13 +111,15 @@ def execute_random(env, steps, init_state, samples, K):
         a = env.action_space.sample()
         next_state, r = 0, 0
         for k in range(K):
-            next_state, r, _, _ = env.step(a)
+            next_state, r, done, _ = env.step(a)
             obs.append(next_state)
             acs.append(a)
             reward.append(r)
         trajectory.append([current_state.copy(), a.copy(), next_state-current_state, -r])
         current_state = next_state
         traject_cost += -r
+        if done:
+            break
     samples['acs'].append(np.copy(acs))
     samples['obs'].append(np.copy(obs))
     samples['reward'].append(np.copy(reward))
@@ -238,7 +240,9 @@ def execute_3(env, init_state, steps, init_mean, init_var, model, config, last_a
         current_state = next_state
         traject_cost += -r
         sliding_mean = sol
-    print("Model error: ", model_error/steps)
+        if done:
+            break
+    print("Model error: ", model_error/(i+1))
     if recorder is not None:
         recorder.capture_frame()
         recorder.close()
@@ -246,7 +250,7 @@ def execute_3(env, init_state, steps, init_mean, init_var, model, config, last_a
     samples['obs'].append(np.copy(obs))
     samples['reward'].append(np.copy(reward))
     samples['reward_sum'].append(-traject_cost)
-    samples['model_error'].append(model_error/steps)
+    samples['model_error'].append(model_error/(i+1))
     return np.array(trajectory), traject_cost
 
 
