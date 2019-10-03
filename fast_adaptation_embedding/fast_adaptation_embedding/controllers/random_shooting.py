@@ -15,8 +15,9 @@ class RS_opt(object):
         self.horizon = config['horizon']
         self.controller = config["controller"]
         self.omega = config["omega"]
+        self.dt = config["control_time_step"]
 
-    def obtain_solution(self, init_mean=None, init_var=None):
+    def obtain_solution(self, init_mean=None, init_var=None, t0=0):
         """Optimizes the cost function using the provided initial candidate distribution
         Arguments:
             init_mean (np.ndarray): The mean of the initial candidate distribution.
@@ -33,7 +34,7 @@ class RS_opt(object):
             for i in range(len(samples)):
                 action_sequence = []
                 for j in range(self.horizon):
-                    t = j / self.horizon
+                    t = t0 + j * self.dt
                     action_sequence.extend(self.controller(t, self.omega, samples[i]))
                 actions.append(action_sequence)
             costs = self.cost_function(np.array(actions))
