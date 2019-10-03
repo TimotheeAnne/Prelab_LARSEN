@@ -36,8 +36,9 @@ class RS_opt(object):
                     t = j / self.horizon
                     action_sequence.extend(self.controller(t, self.omega, samples[i]))
                 actions.append(action_sequence)
-            samples = np.array(actions)
-        costs = self.cost_function(samples)
+            costs = self.cost_function(np.array(actions))
+        else:
+            costs = self.cost_function(samples)
         return samples[np.argmin(costs)]
 
 
@@ -68,14 +69,14 @@ if __name__ == '__main__':
         return costs
 
     config = {
-                "max_iters": 20, 
-                "epsilon": 0.01, 
-                "lb": -1, 
+                "max_iters": 20,
+                "epsilon": 0.01,
+                "lb": -1,
                 "ub": 1,
                 "popsize": 200,
-                "sol_dim": action_dim*horizon, 
+                "sol_dim": action_dim*horizon,
                 "num_elites": 50,
-                "cost_fn": cost_fn, 
+                "cost_fn": cost_fn,
                 "alpha": 0.01
     }
 
@@ -83,7 +84,7 @@ if __name__ == '__main__':
     opt = RS_opt(config)
     for i in range(100):
         sol = opt.obtain_solution(init_mean, init_var)
-        init_mean, init_var = np.zeros(config["sol_dim"]) , np.ones(config["sol_dim"])* 0.5 
+        init_mean, init_var = np.zeros(config["sol_dim"]) , np.ones(config["sol_dim"])* 0.5
         a = sol[0:2]
         _ , _, _, _ = env.step(a)
         env.render()
