@@ -52,10 +52,9 @@ class Evaluation_ensemble(object):
 
     def preprocess_data(self, traj_obs, traj_acs):
         N = len(traj_acs)
-
         actions, init_observations, observations = [], [], []
         for i in range(N):
-            for t in range(0, self.__episode_length, self.__horizon):
+            for t in range(0, len(traj_acs[i])-self.__horizon, self.__horizon):
                 actions.append(traj_acs[i][t:t + self.__horizon].flatten())
                 init_observations.append(traj_obs[i][t])
                 observations.append(traj_obs[i][t + 1:t + 1 + self.__horizon].flatten())
@@ -334,7 +333,8 @@ def main(config):
             print("Evaluate model...")
             evaluator = Evaluation_ensemble(ensemble_model=models[env_index], pred_high=high, pred_low=low, config=config)
             actions, init_observations, observations = evaluator.preprocess_data(traj_obs, traj_acs)
-            evaluations[env_index] = evaluator.eval(actions, init_observations, observations)
+            if len(actions) > 0:
+                evaluations[env_index] = evaluator.eval(actions, init_observations, observations)
             print("Evaluation of the models:", np.mean(evaluations[env_index]))
             traj_eval.append(np.mean(evaluations[env_index]))
             print("Execution...")
