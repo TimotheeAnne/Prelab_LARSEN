@@ -200,9 +200,6 @@ def execute_3(env, init_state, steps, init_mean, init_var, model, config, last_a
     traject_cost = 0
     model_error = 0
     sliding_mean = np.zeros(config["sol_dim"])
-    mutation = np.random.rand(config["sol_dim"]) * 2. * 0.5 - 0.5
-    rand = np.random.rand(config["sol_dim"])
-    mutation *= np.array([1.0 if r > 0.25 else 0.0 for r in rand])
     goal = None
     omega = config['omega']
     for i in tqdm(range(steps)):
@@ -238,7 +235,7 @@ def execute_3(env, init_state, steps, init_mean, init_var, model, config, last_a
         model_error += test_model(model, current_state.copy(), a.copy(), next_state-current_state)
         current_state = next_state
         traject_cost += -r
-        sliding_mean[0:-len(a)] = sol[len(a)::]
+        sliding_mean = sol
     print("Model error: ", model_error/steps)
     if recorder is not None:
         recorder.capture_frame()
