@@ -323,7 +323,6 @@ def main(config):
             print("Execution...")
 
             trajectory, c = execute_3(env=env,
-                                    init_state=config["init_state"],
                                     model=models[env_index],
                                     steps=config["episode_length"],
                                     init_var=config["init_var"] * np.ones(config["sol_dim"]),
