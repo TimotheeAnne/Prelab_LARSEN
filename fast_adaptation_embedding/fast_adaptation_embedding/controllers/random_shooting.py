@@ -30,13 +30,8 @@ class RS_opt(object):
             samples = np.random.normal(init_mean, init_var, size=(self.max_iters*self.popsize, self.sol_dim))
             samples = np.clip(samples, self.lb, self.ub)
         if self.controller is not None:
-            actions = []
-            for i in range(len(samples)):
-                action_sequence = []
-                for j in range(self.horizon):
-                    t = t0 + j * self.dt
-                    action_sequence.extend(self.controller(t, self.omega, samples[i]))
-                actions.append(action_sequence)
+            actions = np.concatenate([samples[:, 0:8] * np.sin(self.omega * (t0 + t * self.dt) + samples[:, 8:16])
+                                      for t in range(self.horizon)], axis=1)
             costs = self.cost_function(np.array(actions))
         else:
             costs = self.cost_function(samples)
