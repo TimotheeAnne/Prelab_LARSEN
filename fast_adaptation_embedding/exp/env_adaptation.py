@@ -330,7 +330,7 @@ def main(config):
             actions, init_observations, observations = evaluator.preprocess_data(traj_obs, traj_acs)
             if len(actions) > 0:
                 evaluations[env_index] = evaluator.eval(actions, init_observations, observations)
-                print("Evaluation of the models:", np.mean(evaluations[env_index]))
+                print("Evaluation of the models:", np.mean(evaluations[env_index], axis=1))
                 traj_eval.append(np.mean(evaluations[env_index]))
             print("Execution...")
 
