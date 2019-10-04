@@ -323,15 +323,18 @@ def main(config):
         else:
             '''------------Update models------------'''
             x, y, high, low = process_data(data[env_index])
-            print("Learning model...")
-            models[env_index] = train_ensemble_model(train_in=x, train_out=y, sampling_size=-1, config=config, model=models[env_index])
-            print("Evaluate model...")
-            evaluator = Evaluation_ensemble(ensemble_model=models[env_index], pred_high=high, pred_low=low, config=config)
-            actions, init_observations, observations = evaluator.preprocess_data(traj_obs, traj_acs)
-            if len(actions) > 0:
-                evaluations[env_index] = evaluator.eval(actions, init_observations, observations)
-                print("Evaluation of the models:", np.mean(evaluations[env_index], axis=1))
-                traj_eval.append(np.mean(evaluations[env_index], axis=1))
+            if index_iter < config['stop_training']:
+                print("Learning model...")
+                models[env_index] = train_ensemble_model(train_in=x, train_out=y, sampling_size=-1, config=config, model=models[env_index])
+                print("Evaluate model...")
+                evaluator = Evaluation_ensemble(ensemble_model=models[env_index], pred_high=high, pred_low=low, config=config)
+                actions, init_observations, observations = evaluator.preprocess_data(traj_obs, traj_acs)
+                if len(actions) > 0:
+                    evaluations[env_index] = evaluator.eval(actions, init_observations, observations)
+                    print("Evaluation of the models:", np.mean(evaluations[env_index], axis=1))
+                    traj_eval.append(np.mean(evaluations[env_index], axis=1))
+            elif index_iter % 50 == 0:
+                config['popsize'] = config['popsize'] * 10
             print("Execution...")
 
             trajectory, c = execute_3(env=env,

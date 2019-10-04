@@ -96,7 +96,7 @@ if __name__ == "__main__":
         # "env": 'MinitaurBulletEnv_fastAdapt-v0',
         "env": 'MinitaurGymEnv_fastAdapt-v0',
         "horizon": 25,  # NOTE: "sol_dim" must be adjusted
-        "iterations": 300,
+        "iterations": 500,
         "random_iter": 1,
         "episode_length": 250,
         "init_state": None,
@@ -116,6 +116,7 @@ if __name__ == "__main__":
         "controller": controller,
         "omega": 4*2*np.pi,
         "control_time_step": 0.01,
+        "stop_training": 300,
 
         # Model learning parameters
         "epoch": 1000,
