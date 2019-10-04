@@ -116,7 +116,7 @@ if __name__ == "__main__":
         "controller": controller,
         "omega": 4*2*np.pi,
         "control_time_step": 0.01,
-        "stop_training": 300,
+        "stop_training": 200,
 
         # Model learning parameters
         "epoch": 1000,
