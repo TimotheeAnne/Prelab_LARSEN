@@ -179,4 +179,5 @@ if __name__ == "__main__":
         config['lb'] = lb
         config['ub'] = ub
         config['sol_dim'] = 16
+        config['init_var'] = np.array([config['init_var']]*8+[config['init_var']*2*np.pi]*8)
     main(config)
