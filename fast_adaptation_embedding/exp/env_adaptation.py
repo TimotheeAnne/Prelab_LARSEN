@@ -73,8 +73,11 @@ class Evaluation_ensemble(object):
         error = torch.FloatTensor(np.zeros(len(actions))).cuda() \
             if self.__ensemble_model.CUDA \
             else torch.FloatTensor(np.zeros(len(actions)))
-
+        one_step_error = torch.FloatTensor(np.zeros(len(actions))).cuda() \
+            if self.__ensemble_model.CUDA \
+            else torch.FloatTensor(np.zeros(len(actions)))
         dyn_model = self.__models[0]
+
         for h in range(self.__horizon):
             actions = action_batch[:, h * self.__action_dim: h * self.__action_dim + self.__action_dim]
             model_input = torch.cat((start_states, actions), dim=1)
@@ -85,7 +88,9 @@ class Evaluation_ensemble(object):
             pred_error = torch.sqrt((start_states - traj_states[:, h * self.__obs_dim: h * self.__obs_dim + self.__obs_dim]).pow(2).sum(1))
             state_norm = torch.sqrt((traj_states[:, h * self.__obs_dim: h * self.__obs_dim + self.__obs_dim]).pow(2).sum(1))
             error += (pred_error / state_norm)/self.__horizon
-        return error.cpu().detach().numpy()
+            if h == 0:
+                one_step_error = (pred_error / state_norm)
+        return error.cpu().detach().numpy(), one_step_error.cpu().detach().numpy()
 
 def process_data(data):
     # Assuming dada: an array containing [state, action, state_transition, cost]
@@ -200,6 +205,7 @@ def execute_3(env, steps, init_var, model, config, pred_high, pred_low, index_it
     acs = []
     trajectory = []
     reward = []
+    control_sol = []
     traject_cost = 0
     model_error = 0
     sliding_mean = np.zeros(config["sol_dim"])
@@ -214,7 +220,7 @@ def execute_3(env, steps, init_var, model, config, pred_high, pred_low, index_it
             config["cost_fn"] = cost_object.cost_fn
             if config['opt'] == "RS":
                 optimizer = RS_opt(config)
-                if i==0:
+                if i == 0:
                     sol = optimizer.obtain_solution(t0=t)
                 else:
                     sol = optimizer.obtain_solution(init_mean=sliding_mean, init_var=init_var, t0=t)
@@ -236,6 +242,7 @@ def execute_3(env, steps, init_var, model, config, pred_high, pred_low, index_it
             obs.append(next_state)
             acs.append(a)
             reward.append(r)
+            control_sol.append(np.copy(sol))
         trajectory.append([current_state.copy(), a.copy(), next_state-current_state, -r])
         model_error += test_model(model, current_state.copy(), a.copy(), next_state-current_state)
         current_state = next_state
@@ -252,6 +259,7 @@ def execute_3(env, steps, init_var, model, config, pred_high, pred_low, index_it
     samples['reward'].append(np.copy(reward))
     samples['reward_sum'].append(-traject_cost)
     samples['model_error'].append(model_error/(i+1))
+    samples['controller'].append(np.copy(sol))
     return np.array(trajectory), traject_cost
 
 
@@ -287,7 +295,7 @@ def main(config):
         with open(os.path.join(config['logdir'], "env_costs_task_" + str(i)+".txt"), "w+") as f:
             f.write("")
 
-    traj_obs, traj_acs, traj_rets, traj_rews, traj_error, traj_eval = [], [], [], [], [], []
+    traj_obs, traj_acs, traj_rets, traj_rews, traj_error, traj_eval, traj_sol = [], [], [], [], [], [], []
 
     for index_iter in range(config["iterations"]):
         '''Pick a random environment'''
@@ -298,7 +306,7 @@ def main(config):
         print("Env index: ", env_index)
         c = None
 
-        samples = {'acs': [], 'obs': [], 'reward': [], 'reward_sum': [], 'model_error': []}
+        samples = {'acs': [], 'obs': [], 'reward': [], 'reward_sum': [], 'model_error': [], "controller_sol": []}
         if (not config['load_data'] is None) and (data[env_index] is None):
             with open(config['load_data'], 'rb') as f:
                 data = pickle.load(f)
@@ -345,6 +353,7 @@ def main(config):
         traj_rets.extend(samples["reward_sum"])
         traj_rews.extend(samples["reward"])
         traj_error.extend(samples["model_error"])
+        traj_sol.extend(samples["controller_sol"])
 
         savemat(
             os.path.join(config['logdir'], "logs.mat"),
@@ -354,7 +363,8 @@ def main(config):
                 "reward_sum": traj_rets,
                 "rewards": traj_rews,
                 "model_error": traj_error,
-                "model_eval": traj_eval
+                "model_eval": traj_eval,
+                "controller_sol": traj_sol
             }
         )
         print("-------------------------------\n")
