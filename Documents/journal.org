@@ -46,11 +46,64 @@ they cut the model in two:
 use eitheir a policy network to generate the first generation of the CEM or improve the parameter of the policy network to select the action sequence to perform 
 *** Deep Dynamics Models for Learning  Dexterous Manipulation
 [[https://sites.google.com/view/pddm/][site]] [[https://arxiv.org/pdf/1909.11652.pdf][pdf]]
+**** bootstrap sampling
+thay say thant in handful of trials, they say that you do not need to do bootsrap sampling to train the ensemble but using different initialization and different batch is enough.
+**** MPC
+They use filtering and reward-Weighed Refinement which smooth the action candidates
+*** TODO Deep Evidential Regression
+[[https://openreview.net/pdf?id=S1eSoeSYwr][pdf]] 
+*** TODO The Differentiable Cross-entropy Method
+[[https://arxiv.org/pdf/1909.12830.pdf][pdf]] 
+*** TODO ADVANTAGE-WEIGHTED REGRESSION: SIMPLE AND SCALABLE OFF-POLICY REINFORCEMENT LEARNING
+[[https://xbpeng.github.io/projects/AWR/2019_AWR.pdf][pdf]]
+*** TODO Model Predictive Path Integral Control using Covariance Variable Importance Sampling
+[[https://arxiv.org/pdf/1509.01149.pdf][pdf]]
+
 ** Minitaur
 *** [[https://arxiv.org/pdf/1804.10332.pdf][Sim-to-Real: Learning Agile Locomotion For Quadruped Robots]] 
-*** [[https://hal.inria.fr/hal-02084619/document][Learning and adapting quadruped gaits with the ”Intelligent Trial & Error” algorithm]] 
-*** [[https://bair.berkeley.edu/blog/2018/12/14/sac/][Soft Actor Critic—Deep Reinforcement Learning with Real-World Robots]] 
-
+**** observation space
+roll, pitch and angular velocities along these two axes + 8 motor angles, to much noise in the others and compact is better
+**** action space
+for each leg a=(s,e) swing and extension map to (e+s,e-s) in motor space, better than the 8 angles because it can covert most part of the accessible space in a rectangle
+***** first locomotion task
+s in [-0.5, 0.5] and e in [pi/2-0.5,pi/2 +0.5]
+***** galopping 
+****** a(t)
+s(t) = 0.3sin(4pit) 
+e(t) = 0.35sint(4pit) + 2 
+****** pi(o)
+s in [-0.25, 0.25] and e in [pi/2-0.25,pi/2 + 0.25]
+**** reward
+velocity (pos_t-pos_t-1)-w*dt*|torque*velocities|
+the episode ends after 1000steps or when the robot loss balance, it tilts more than 0.5 radians 
+**** reality gap
+better urdf file
+better actuator model
+simulate latency in the simulation
+dynamics randomization (such as friction)
+random force apply to the base every 200 steps to force the model to learn how to keep balance
+***** compact observation space
+they reduce to a size of 4 to reduce the gap (the expected return in simulation drop but, the real life one increase).
+If the observation space is too large the learn representation as more chance to be sparse and the real observation have less chance to be apart form it
+*** TODO [[https://hal.inria.fr/hal-02084619/document][Learning and adapting quadruped gaits with the ”Intelligent Trial & Error” algorithm]] 
+*** [[https://bair.berkeley.edu/blog/2018/12/14/sac/][Soft Actor Critic—Deep Reinforcement Learning with Real-World Robots 
+]][[https://arxiv.org/pdf/1812.11103.pdf][pdf]] 
+they use the model-free RL Soft-Actor Critic (SAC) 
+on simulation (from a fined tune one) they have a reward of maximum 200 in 0.3M samples and 80 in 0.15M in real world
+**** reward 
+(x_t-x_t-1) - 0.05*|joint accelerations| - 0.5*|roll angle of the base| + penalty when the front legs are folded under the robot 
+*** Learning Fast Adaptation with Meta Strategy Optimization
+[[https://arxiv.org/pdf/1909.12995.pdf][pdf]] 
+They use Meta Strategy Optimisation of a policy taking as inputs the "physical context", the alternate the optimisation of the physical context and the policy parameters theta.
+15 episodes are enough to adapt effectivly
+They also use randomize parameter: mass, friction, intertia, motor sthrenght, latency, battery votlage, contact friction, joint friction
+rewatd are between 1 and 4.
+**** params
+50Hz - dt=0.02
+use PD (P gain 0.5, D gain 0.005)
+Obs = (motor angles, roll, pitch, vroll, vpitch) 
+r = clip((p_t-p_t-1)/dt,-1,1)
+episode length 250steps = 5s
 * 2019
 ** Septembre
 *** 04/09/2019
@@ -289,3 +342,43 @@ H10 > H20 > H30
 K>1 = 100% fall [[file:///home/timothee/Documents/Prelab_LARSEN/fast_adaptation_embedding/exp/log/Saved/Minitaur/2019-09-26--16:57:4587438/iter_179.mp4][K5]] 
 **** Random shooting
 the population of 500 does not use all of the gpu but increasing the population to 2000 does not increase the usage of the GPU but increase proportionnaly the time needed to select the action
+*** 30/09/2019
+**** exp
+***** Horizon 50
+error:  
+  File "exp/minitaur_env_adaptation.py", line 461, in <module>
+    main(args.config, args.logdir)
+  File "exp/minitaur_env_adaptation.py", line 414, in main
+    samples=samples)
+  File "exp/minitaur_env_adaptation.py", line 210, in execute_2
+    recorder.capture_frame()
+  File "/home/tanne/Documents/Prelab_LARSEN/gym/gym/wrappers/monitoring/video_recorder.py", line 116, in capture_frame
+    self._encode_image_frame(frame)
+  File "/home/tanne/Documents/Prelab_LARSEN/gym/gym/wrappers/monitoring/video_recorder.py", line 166, in _encode_image_frame
+    self.encoder.capture_frame(frame)
+  File "/home/tanne/Documents/Prelab_LARSEN/gym/gym/wrappers/monitoring/video_recorder.py", line 303, in capture_frame
+    self.proc.stdin.write(frame.tobytes())
+BrokenPipeError: [Errno 32] Broken pipe
+***** Horizon comparison with angle 50%
+****** Fall 
+30 seems better
+***** Layer size (100,200,800)
+no significative differences
+***** Model_error
+[[file:///home/timothee/Documents/Prelab_LARSEN/Documents/Figures/Minitaur/first%20expe%20on%20simulation/comparison_LS_model_error.png][png]] in 20 episodes the error does no progress
+** October
+*** 01/10/2019
+**** comparions Popsize in random shooting (1k,4k,8k,16k) with movement velocity 150 and action between -0.5,0.5
+no differences, fall < 2% bu reward = 1
+time: 3h40 - 4h10 - 4h40 - 5h30
+[[file:///home/timothee/Documents/Prelab_LARSEN/fast_adaptation_embedding/exp/log/Saved/Minitaur/2019-09-30--16:40:582204/iter_199.mp4][1k]] [[file:///home/timothee/Documents/Prelab_LARSEN/fast_adaptation_embedding/exp/log/Saved/Minitaur/2019-09-30--16:39:1612337/iter_199.mp4][16k]] 
+**** CMA-ES
+pip install cma
+xopt, es = cma.fmin2(None, np.zeros(config["sol_dim"]), 0.5,
+                     parallel_objective=lambda x: list(config["cost_fn"](x)),
+                     options={'maxfevals': config['max_iters']*config['popsize'], 'popsize': config['popsize']}
+                    )
+sol = xopt
+*** 02/10/2019
+**** gym minitaur env
+it needs tensorflow for logging
