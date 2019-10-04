@@ -101,7 +101,7 @@ if __name__ == "__main__":
         "episode_length": 250,
         "init_state": None,
         "action_dim": 8,
-        "video_recording_frequency": 100,
+        "video_recording_frequency": 50,
         "logdir": logdir,
         "load_data": None,
         "distance_weight": 1.0,
