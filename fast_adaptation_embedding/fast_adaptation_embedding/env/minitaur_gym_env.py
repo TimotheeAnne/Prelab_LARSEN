@@ -62,7 +62,7 @@ class MinitaurGymEnv(gym.Env):
   expenditure.
 
   """
-  metadata = {"render.modes": ["human", "rgb_array"], "video.frames_per_second": 50}
+  metadata = {"render.modes": ["human", "rgb_array"], "video.frames_per_second": 100}
 
   def __init__(self,
                urdf_root=pybullet_data.getDataPath(),
@@ -611,7 +611,8 @@ if __name__ == "__main__":
 
     render = True
     # render = False
-    system = gym.make("MinitaurGymEnv_fastAdapt-v0", render=render, control_time_step=0.025)
+    system = gym.make("MinitaurGymEnv_fastAdapt-v0", render=render,
+                      control_time_step=0.01, accurate_motor_model_enabled=1)
     recorder = None
     # recorder = VideoRecorder(system, "test.mp4")
     previous_obs = system.reset()
@@ -623,8 +624,9 @@ if __name__ == "__main__":
         t = system.minitaur.GetTimeSinceReset()
         w = 4 * np.pi
 
-        params = [0.3]*4+[0.2]*4+[0,np.pi,np.pi,0]*2+[w]
+        params = [0.3]*4+[0.2]*4+[0, np.pi, np.pi, 0]*2+[w]
         a = controller(t, params)
+        a[1] += 0.3
         obs, r, done, _ = system.step(a)
         print(done)
         previous_obs = np.copy(obs)
