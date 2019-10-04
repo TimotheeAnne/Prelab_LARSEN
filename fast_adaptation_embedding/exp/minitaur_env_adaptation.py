@@ -168,6 +168,7 @@ if __name__ == "__main__":
                 'distance_weight': config['distance_weight'],
                 'energy_weight': config['energy_weight'], 'survival_weight': config['survival_weight'],
                 'drift_weight': config['drift_weight'], 'shake_weight': config['shake_weight'],
+                'accurate_motor_model_enabled': True,
                 #      'action_weight': config['action_weight'], 'motor_velocity_limit': config['motor_velocity_limit'],
                 #      'angle_limit': config['angle_limit']
     }
