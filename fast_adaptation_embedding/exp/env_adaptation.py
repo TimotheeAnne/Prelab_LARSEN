@@ -99,7 +99,7 @@ def process_data(data):
     return np.array(training_in), np.array(training_out), np.max(training_in, axis=0), np.min(training_in, axis=0)
 
 
-def execute_random(env, steps, init_state, samples, K):
+def execute_random(env, steps, samples, K, config):
     current_state = env.reset()
     obs = [current_state]
     acs = []
@@ -107,7 +107,11 @@ def execute_random(env, steps, init_state, samples, K):
     reward = []
     traject_cost = 0
     for i in tqdm(range(steps)):
-        a = env.action_space.sample()
+        if config["controller"] is not None:
+            t = env.minitaur.GetTimeSinceReset()
+            a = config["controller"](t, config['omega'], np.random.uniform(config['lb'], config['ub']))
+        else:
+            a = env.action_space.sample()
         next_state, r = 0, 0
         for k in range(K):
             next_state, r, done, _ = env.step(a)
@@ -301,8 +305,8 @@ def main(config):
             random_iter = 0
         if data[env_index] is None or index_iter < random_iter * n_task:
             print("Execution (Random actions)...")
-            trajectory, c = execute_random(env=env, steps=config["episode_length"],
-                                           init_state=config["init_state"], samples=samples, K=config["K"])
+            trajectory, c = execute_random(env=env, steps=config["episode_length"], samples=samples,
+                                           K=config["K"], config=config)
             if data[env_index] is None:
                 data[env_index] = trajectory
             else:
