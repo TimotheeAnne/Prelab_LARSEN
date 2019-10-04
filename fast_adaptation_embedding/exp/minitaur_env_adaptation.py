@@ -101,7 +101,7 @@ if __name__ == "__main__":
         "episode_length": 250,
         "init_state": None,
         "action_dim": 8,
-        "video_recording_frequency": 50,
+        "video_recording_frequency": 100,
         "logdir": logdir,
         "load_data": None,
         "distance_weight": 1.0,
@@ -114,8 +114,8 @@ if __name__ == "__main__":
         "angle_limit": 1,
         "K": 1,
         "controller": controller,
-        "omega": 4*np.pi,
-        "control_time_step": 0.02,
+        "omega": 4*2*np.pi,
+        "control_time_step": 0.01,
 
         # Model learning parameters
         "epoch": 1000,
