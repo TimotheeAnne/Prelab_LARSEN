@@ -199,7 +199,7 @@ def execute_3(env, steps, init_var, model, config, pred_high, pred_low, index_it
     controller = config["controller"]
     f_rec = config['video_recording_frequency']
     recorder = None
-    if f_rec and index_iter % f_rec == (f_rec - 1):
+    if f_rec and  (index_iter ==1 or index_iter % f_rec == (f_rec - 1)):
         recorder = VideoRecorder(env, os.path.join(config['logdir'], "iter_" + str(index_iter) + ".mp4"))
     obs = [current_state]
     acs = []
