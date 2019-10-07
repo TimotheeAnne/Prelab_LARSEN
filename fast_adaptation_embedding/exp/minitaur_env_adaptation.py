@@ -54,28 +54,29 @@ if __name__ == "__main__":
                 end_index = len(samples) if i == n_batch - 1 else int(i * per_batch + per_batch)
                 action_batch = action_samples[start_index:end_index]
                 start_states = init_states[start_index:end_index]
-                dyn_model = self.__models[np.random.randint(0, len(self.__models))]
-                for h in range(self.__horizon):
-                    actions = action_batch[:, h * self.__action_dim: h * self.__action_dim + self.__action_dim]
-                    model_input = torch.cat((start_states, actions), dim=1)
-                    diff_state = dyn_model.predict_tensor(model_input)
-                    start_states += diff_state
-                    for dim in range(self.__obs_dim):
-                        start_states[:, dim].clamp_(self.__pred_low[dim], self.__pred_high[dim])
+                for model_index in range(len(self.__models)):
+                    dyn_model = self.__models[model_index]
+                    for h in range(self.__horizon):
+                        actions = action_batch[:, h * self.__action_dim: h * self.__action_dim + self.__action_dim]
+                        model_input = torch.cat((start_states, actions), dim=1)
+                        diff_state = dyn_model.predict_tensor(model_input)
+                        start_states += diff_state
+                        for dim in range(self.__obs_dim):
+                            start_states[:, dim].clamp_(self.__pred_low[dim], self.__pred_high[dim])
 
-                    action_cost = torch.sum(actions * actions, dim=1) * self.__action_weight
-                    energy_cost = abs(
-                        torch.sum(start_states[:, 16:24] * start_states[:, 8:16], dim=1)) * 0.02 * self.__energy_weight
-                    x_vel_cost = -diff_state[:, 28] * self.__distance_weight
-                    y_vel_cost = abs(diff_state[:, 29]) * self.__drift_weight
-                    shake_cost = abs(diff_state[:, 30]) * self.__shake_weight
-                    survival_cost = (start_states[:, 30] < 0.13).type(start_states.dtype) * self.__survival_weight
-                    all_costs[start_index: end_index] += x_vel_cost * self.__discount ** h + \
-                                                         action_cost * self.__discount ** h + \
-                                                         survival_cost * self.__discount ** h + \
-                                                         y_vel_cost * self.__discount ** h + \
-                                                         shake_cost * self.__discount ** h + \
-                                                         energy_cost * self.__discount ** h
+                        action_cost = torch.sum(actions * actions, dim=1) * self.__action_weight
+                        energy_cost = abs(
+                            torch.sum(start_states[:, 16:24] * start_states[:, 8:16], dim=1)) * 0.02 * self.__energy_weight
+                        x_vel_cost = -diff_state[:, 28] * self.__distance_weight
+                        y_vel_cost = abs(diff_state[:, 29]) * self.__drift_weight
+                        shake_cost = abs(diff_state[:, 30]) * self.__shake_weight
+                        survival_cost = (start_states[:, 30] < 0.13).type(start_states.dtype) * self.__survival_weight
+                        all_costs[start_index: end_index] += (x_vel_cost * self.__discount ** h + \
+                                                             action_cost * self.__discount ** h + \
+                                                             survival_cost * self.__discount ** h + \
+                                                             y_vel_cost * self.__discount ** h + \
+                                                             shake_cost * self.__discount ** h + \
+                                                             energy_cost * self.__discount ** h)/len(self.__models)
             return all_costs.cpu().detach().numpy()
 
 
@@ -98,7 +99,7 @@ if __name__ == "__main__":
         "horizon": 25,  # NOTE: "sol_dim" must be adjusted
         "iterations": 200,
         "random_iter": 1,
-        "episode_length": 500,
+        "episode_length": 250,
         "init_state": None,
         "action_dim": 8,
         "video_recording_frequency": 50,
@@ -133,7 +134,7 @@ if __name__ == "__main__":
         "ensemble_seed": None,
         "ensemble_output_limit": None,
         "ensemble_dropout": 0.0,
-        "n_ensembles": 1,
+        "n_ensembles": 5,
         "ensemble_batch_size": 64,
         "ensemble_log_interval": 500,
 
