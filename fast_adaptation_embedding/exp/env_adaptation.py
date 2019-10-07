@@ -70,26 +70,27 @@ class Evaluation_ensemble(object):
         traj_states = torch.FloatTensor(observations).cuda() \
             if self.__ensemble_model.CUDA \
             else torch.FloatTensor(observations)
-        error = torch.FloatTensor(np.zeros(len(actions))).cuda() \
+        error = torch.FloatTensor(np.zeros((len(self.models), len(actions)))).cuda() \
             if self.__ensemble_model.CUDA \
-            else torch.FloatTensor(np.zeros(len(actions)))
-        one_step_error = torch.FloatTensor(np.zeros(len(actions))).cuda() \
+            else torch.FloatTensor(np.zeros((len(self.models), len(actions))))
+        one_step_error = torch.FloatTensor(np.zeros(len(self.models), len(actions))).cuda() \
             if self.__ensemble_model.CUDA \
-            else torch.FloatTensor(np.zeros(len(actions)))
-        dyn_model = self.__models[0]
+            else torch.FloatTensor(np.zeros((len(self.models), len(actions))))
 
-        for h in range(self.__horizon):
-            actions = action_batch[:, h * self.__action_dim: h * self.__action_dim + self.__action_dim]
-            model_input = torch.cat((start_states, actions), dim=1)
-            diff_state = dyn_model.predict_tensor(model_input)
-            start_states += diff_state
-            for dim in range(self.__obs_dim):
-                start_states[:, dim].clamp_(self.__pred_low[dim], self.__pred_high[dim])
-            pred_error = torch.sqrt((start_states - traj_states[:, h * self.__obs_dim: h * self.__obs_dim + self.__obs_dim]).pow(2).sum(1))
-            state_norm = torch.sqrt((traj_states[:, h * self.__obs_dim: h * self.__obs_dim + self.__obs_dim]).pow(2).sum(1))
-            error += (pred_error / state_norm)/self.__horizon
-            if h == 0:
-                one_step_error = (pred_error / state_norm)
+        for model_index in range(len(self.models)):
+            dyn_model = self.__models[model_index]
+            for h in range(self.__horizon):
+                actions = action_batch[:, h * self.__action_dim: h * self.__action_dim + self.__action_dim]
+                model_input = torch.cat((start_states, actions), dim=1)
+                diff_state = dyn_model.predict_tensor(model_input)
+                start_states += diff_state
+                for dim in range(self.__obs_dim):
+                    start_states[:, dim].clamp_(self.__pred_low[dim], self.__pred_high[dim])
+                pred_error = torch.sqrt((start_states - traj_states[:, h * self.__obs_dim: h * self.__obs_dim + self.__obs_dim]).pow(2).sum(1))
+                state_norm = torch.sqrt((traj_states[:, h * self.__obs_dim: h * self.__obs_dim + self.__obs_dim]).pow(2).sum(1))
+                error[model_index] += (pred_error / state_norm)/self.__horizon
+                if h == 0:
+                    one_step_error[model_index] = (pred_error / state_norm)
         return error.cpu().detach().numpy(), one_step_error.cpu().detach().numpy()
 
 def process_data(data):
@@ -207,7 +208,7 @@ def execute_3(env, steps, init_var, model, config, pred_high, pred_low, index_it
     reward = []
     control_sol = []
     traject_cost = 0
-    model_error = 0
+    model_error = np.zeros(len(model.get_models()))
     sliding_mean = np.zeros(config["sol_dim"])
     goal = None
     omega = config['omega']
@@ -266,8 +267,11 @@ def execute_3(env, steps, init_var, model, config, pred_high, pred_low, index_it
 def test_model(ensemble_model, init_state, action, state_diff):
     x = np.concatenate(([init_state], [action]), axis=1)
     y = state_diff.reshape(1, -1)
-    y_pred = ensemble_model.get_models()[0].predict(x)
-    return np.linalg.norm(y-y_pred)/np.linalg.norm(y)
+    error = []
+    for model_index in range(len(ensemble_model.get_models())):
+        y_pred = ensemble_model.get_models()[model_index].predict(x)
+        error.append(np.linalg.norm(y-y_pred)/np.linalg.norm(y))
+    return np.array(error)
 
 
 def extract_action_seq(data):
