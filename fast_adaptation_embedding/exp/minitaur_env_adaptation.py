@@ -99,7 +99,7 @@ if __name__ == "__main__":
         "horizon": 25,  # NOTE: "sol_dim" must be adjusted
         "iterations": 100,
         "random_iter": 1,
-        "episode_length": 500,
+        "episode_length": 250,
         "init_state": None,
         "action_dim": 8,
         "video_recording_frequency": 25,
