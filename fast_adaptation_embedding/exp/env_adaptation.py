@@ -242,7 +242,7 @@ def execute_3(env, steps, init_var, model, config, pred_high, pred_low, index_it
             acs.append(a)
             reward.append(r)
             control_sol.append(np.copy(sol))
-            motor_actions.append(np.copy(motor_action))
+            motor_actions.append(np.copy(motor_action['action']))
         trajectory.append([current_state.copy(), a.copy(), next_state-current_state, -r])
         model_error += test_model(model, current_state.copy(), a.copy(), next_state-current_state)
         current_state = next_state
@@ -260,7 +260,7 @@ def execute_3(env, steps, init_var, model, config, pred_high, pred_low, index_it
     samples['reward_sum'].append(-traject_cost)
     samples['model_error'].append(model_error/(i+1))
     samples['controller_sol'].append(np.copy(control_sol))
-    samples['motor_actions'].append(np.copy(motor_actions['action']))
+    samples['motor_actions'].append(np.copy(motor_actions))
     return np.array(trajectory), traject_cost
 
 
