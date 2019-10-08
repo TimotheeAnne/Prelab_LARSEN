@@ -3,7 +3,7 @@
     "exp":"exp/minitaur_env_adaptation.py",
     "prefix": "minitaur_test",
     "result_dir":"exp/log",
-    "walltime": "6:00",
+    "walltime": "2:00",
     "args": "-c n_ensembles 1",
     "replicates": 1
   }
