@@ -361,7 +361,7 @@ class MinitaurGymEnv(gym.Env):
     self._env_step_counter += 1
     if done:
       self.minitaur.Terminate()
-    return np.array(self._get_observation()), reward, done, {}
+    return np.array(self._get_observation()), reward, done, {'action': action}
 
   def render(self, mode="rgb_array", close=False):
     if mode != "rgb_array":
