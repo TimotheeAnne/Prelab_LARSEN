@@ -176,7 +176,7 @@ if __name__ == "__main__":
     }
     config['env_args'] = env_args
     if config['controller'] is not None:
-        lb = [-0.5] * 8 + [-np.pi] * 8
+        lb = [0] * 8 + [-np.pi] * 8
         ub = [0.5] * 8 + [np.pi] * 8
         config['lb'] = lb
         config['ub'] = ub
