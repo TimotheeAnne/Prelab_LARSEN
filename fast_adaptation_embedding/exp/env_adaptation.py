@@ -291,6 +291,7 @@ def main(config):
     n_task = 1
     render = False
     envs = [gym.make(config['env'], **config['env_args']) for i in range(n_task)]
+    envs[0].metadata["video.frames_per_second"] = config['video.frames_per_second']
     random_iter = config['random_iter']
     data = n_task * [None]
     models = n_task * [None]

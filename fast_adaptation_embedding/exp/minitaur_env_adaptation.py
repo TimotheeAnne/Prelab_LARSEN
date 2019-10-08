@@ -165,6 +165,7 @@ if __name__ == "__main__":
             config[key] = [int(val), int(val), int(val)]
         else:
             config[key] = float(val)
+    config['video.frames_per_second'] = 1 / (config['K'] * config['control_time_step'])
     config['sol_dim'] = config['horizon'] * config['action_dim']
     env_args = {'render': False, 'control_time_step': config['control_time_step'],
                 'distance_weight': config['distance_weight'],
