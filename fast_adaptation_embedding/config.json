@@ -1,10 +1,18 @@
 [
   {
     "exp":"exp/minitaur_env_adaptation.py",
-    "prefix": "minitaur_test",
+    "prefix": "minitaur_H50",
     "result_dir":"exp/log",
     "walltime": "2:00",
-    "args": "-c n_ensembles 1",
+    "args": "-c horizon 50",
+    "replicates": 1
+  },
+  {
+    "exp":"exp/minitaur_env_adaptation.py",
+    "prefix": "minitaur_H25",
+    "result_dir":"exp/log",
+    "walltime": "2:00",
+    "args": "-c horizon 25",
     "replicates": 1
   }
 ]
