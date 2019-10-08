@@ -97,7 +97,7 @@ if __name__ == "__main__":
         # "env": 'MinitaurBulletEnv_fastAdapt-v0',
         "env": 'MinitaurGymEnv_fastAdapt-v0',
         "horizon": 25,  # NOTE: "sol_dim" must be adjusted
-        "iterations": 200,
+        "iterations": 100,
         "random_iter": 1,
         "episode_length": 250,
         "init_state": None,
@@ -157,7 +157,7 @@ if __name__ == "__main__":
         "initial_boost": 25
     }
     for (key, val) in args.config:
-        if key in ['horizon', 'K', 'popsize', 'iterations']:
+        if key in ['horizon', 'K', 'popsize', 'iterations', 'n_ensembles']:
             config[key] = int(val)
         elif key in ['load_data']:
             config[key] = val
