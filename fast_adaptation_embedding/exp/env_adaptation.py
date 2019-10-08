@@ -121,9 +121,9 @@ def execute_random(env, steps, samples, K, config):
         next_state, r = 0, 0
         for k in range(K):
             next_state, r, done, _ = env.step(a)
-            obs.append(next_state)
-            acs.append(a)
-            reward.append(r)
+        obs.append(next_state)
+        acs.append(a)
+        reward.append(r)
         trajectory.append([current_state.copy(), a.copy(), next_state-current_state, -r])
         current_state = next_state
         traject_cost += -r
@@ -232,18 +232,17 @@ def execute_3(env, steps, init_var, model, config, pred_high, pred_low, index_it
                                      options={'maxfevals': config['max_iters'] * config['popsize'],
                                               'popsize': config['popsize']})
                 sol = xopt
+        a = controller(t, omega, sol)
         next_state, r = 0, 0
         if recorder is not None:
             recorder.capture_frame()
         for k in range(config["K"]):
-            t = env.minitaur.GetTimeSinceReset()
-            a = controller(t, omega, sol)
             next_state, r, done, motor_action = env.step(a)
-            obs.append(next_state)
-            acs.append(a)
-            reward.append(r)
-            control_sol.append(np.copy(sol))
-            motor_actions.append(np.copy(motor_action['action']))
+        obs.append(next_state)
+        acs.append(a)
+        reward.append(r)
+        control_sol.append(np.copy(sol))
+        motor_actions.append(np.copy(motor_action['action']))
         trajectory.append([current_state.copy(), a.copy(), next_state-current_state, -r])
         model_error += test_model(model, current_state.copy(), a.copy(), next_state-current_state)
         current_state = next_state
