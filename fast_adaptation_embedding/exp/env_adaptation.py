@@ -260,7 +260,7 @@ def execute_3(env, steps, init_var, model, config, pred_high, pred_low, index_it
     samples['reward_sum'].append(-traject_cost)
     samples['model_error'].append(model_error/(i+1))
     samples['controller_sol'].append(np.copy(control_sol))
-    samples['motor_actions'].append(np.copy(motor_actions))
+    samples['motor_actions'].append(np.copy(motor_actions['action']))
     return np.array(trajectory), traject_cost
 
 
