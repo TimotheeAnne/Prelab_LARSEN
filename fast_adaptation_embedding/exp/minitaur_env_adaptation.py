@@ -134,7 +134,7 @@ if __name__ == "__main__":
         "ensemble_seed": None,
         "ensemble_output_limit": None,
         "ensemble_dropout": 0.0,
-        "n_ensembles": 5,
+        "n_ensembles": 1,
         "ensemble_batch_size": 64,
         "ensemble_log_interval": 500,
 
