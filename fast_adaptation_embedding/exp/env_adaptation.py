@@ -204,10 +204,7 @@ def execute_3(env, steps, init_var, model, config, pred_high, pred_low, index_it
     if f_rec and  (index_iter ==1 or index_iter % f_rec == (f_rec - 1)):
         recorder = VideoRecorder(env, os.path.join(config['logdir'], "iter_" + str(index_iter) + ".mp4"))
     obs = [current_state]
-    acs = []
-    trajectory = []
-    reward = []
-    control_sol = []
+    acs, trajectory, reward, control_sol, motor_actions = [], [], [], [], []
     traject_cost = 0
     model_error = np.zeros(len(model.get_models()))
     sliding_mean = np.zeros(config["sol_dim"])
@@ -240,11 +237,12 @@ def execute_3(env, steps, init_var, model, config, pred_high, pred_low, index_it
         if recorder is not None:
             recorder.capture_frame()
         for k in range(config["K"]):
-            next_state, r, done, _ = env.step(a)
+            next_state, r, done, motor_action = env.step(a)
             obs.append(next_state)
             acs.append(a)
             reward.append(r)
             control_sol.append(np.copy(sol))
+            motor_actions.append(np.copy(motor_action))
         trajectory.append([current_state.copy(), a.copy(), next_state-current_state, -r])
         model_error += test_model(model, current_state.copy(), a.copy(), next_state-current_state)
         current_state = next_state
@@ -262,6 +260,7 @@ def execute_3(env, steps, init_var, model, config, pred_high, pred_low, index_it
     samples['reward_sum'].append(-traject_cost)
     samples['model_error'].append(model_error/(i+1))
     samples['controller_sol'].append(np.copy(control_sol))
+    samples['motor_actions'].append(np.copy(motor_actions))
     return np.array(trajectory), traject_cost
 
 
@@ -300,7 +299,7 @@ def main(config):
         with open(os.path.join(config['logdir'], "env_costs_task_" + str(i)+".txt"), "w+") as f:
             f.write("")
 
-    traj_obs, traj_acs, traj_rets, traj_rews, traj_error, traj_eval, traj_sol = [], [], [], [], [], [], []
+    traj_obs, traj_acs, traj_rets, traj_rews, traj_error, traj_eval, traj_sol, traj_motor = [], [], [], [], [], [], [], []
 
     for index_iter in range(config["iterations"]):
         '''Pick a random environment'''
@@ -311,7 +310,8 @@ def main(config):
         print("Env index: ", env_index)
         c = None
 
-        samples = {'acs': [], 'obs': [], 'reward': [], 'reward_sum': [], 'model_error': [], "controller_sol": []}
+        samples = {'acs': [], 'obs': [], 'reward': [], 'reward_sum': [], 'model_error': [],
+                   "controller_sol": [], 'motor_actions': []}
         if (not config['load_data'] is None) and (data[env_index] is None):
             with open(config['load_data'], 'rb') as f:
                 data = pickle.load(f)
@@ -363,6 +363,7 @@ def main(config):
         traj_rews.extend(samples["reward"])
         traj_error.extend(samples["model_error"])
         traj_sol.extend(samples["controller_sol"])
+        traj_motor.extend(samples['motor_actions'])
         savemat(
             os.path.join(config['logdir'], "logs.mat"),
             {
@@ -372,7 +373,8 @@ def main(config):
                 "rewards": traj_rews,
                 "model_error": traj_error,
                 "model_eval": traj_eval,
-                "controller_sol": traj_sol
+                "controller_sol": traj_sol,
+                "motor_actions": traj_motor
             }
         )
         print("-------------------------------\n")
