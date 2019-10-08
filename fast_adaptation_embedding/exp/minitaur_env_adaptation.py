@@ -115,7 +115,7 @@ if __name__ == "__main__":
         "angle_limit": 1,
         "K": 1,
         "controller": controller,
-        "omega": 4*2*np.pi,
+        "omega": 2*2*np.pi,
         "control_time_step": 0.01,
         "stop_training": np.inf,
 
