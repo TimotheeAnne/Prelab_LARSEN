@@ -232,11 +232,12 @@ def execute_3(env, steps, init_var, model, config, pred_high, pred_low, index_it
                                      options={'maxfevals': config['max_iters'] * config['popsize'],
                                               'popsize': config['popsize']})
                 sol = xopt
-        a = controller(t, omega, sol)
         next_state, r = 0, 0
         if recorder is not None:
             recorder.capture_frame()
         for k in range(config["K"]):
+            t = env.minitaur.GetTimeSinceReset()
+            a = controller(t, omega, sol)
             next_state, r, done, motor_action = env.step(a)
             obs.append(next_state)
             acs.append(a)
