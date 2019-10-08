@@ -21,6 +21,7 @@ import pprint
 from scipy.io import savemat
 import cma
 
+
 def train_ensemble_model(train_in, train_out, sampling_size, config, model=None):
     network = model
     if network is None:
@@ -64,21 +65,19 @@ class Evaluation_ensemble(object):
         action_batch = torch.FloatTensor(actions).cuda() \
             if self.__ensemble_model.CUDA \
             else torch.FloatTensor(actions)
-        start_states = torch.FloatTensor(init_states).cuda() \
-            if self.__ensemble_model.CUDA \
-            else torch.FloatTensor(init_states)
         traj_states = torch.FloatTensor(observations).cuda() \
             if self.__ensemble_model.CUDA \
             else torch.FloatTensor(observations)
-        error = torch.FloatTensor(np.zeros((len(self.models), len(actions)))).cuda() \
+        error = torch.FloatTensor(np.zeros((len(self.__models), len(actions)))).cuda() \
             if self.__ensemble_model.CUDA \
-            else torch.FloatTensor(np.zeros((len(self.models), len(actions))))
-        one_step_error = torch.FloatTensor(np.zeros(len(self.models), len(actions))).cuda() \
+            else torch.FloatTensor(np.zeros((len(self.__models), len(actions))))
+        one_step_error = torch.FloatTensor(np.zeros((len(self.__models), len(actions)))).cuda() \
             if self.__ensemble_model.CUDA \
-            else torch.FloatTensor(np.zeros((len(self.models), len(actions))))
+            else torch.FloatTensor(np.zeros((len(self.__models), len(actions))))
 
-        for model_index in range(len(self.models)):
+        for model_index in range(len(self.__models)):
             dyn_model = self.__models[model_index]
+            start_states = torch.FloatTensor(init_states).cuda() if self.__ensemble_model.CUDA else torch.FloatTensor(init_states)
             for h in range(self.__horizon):
                 actions = action_batch[:, h * self.__action_dim: h * self.__action_dim + self.__action_dim]
                 model_input = torch.cat((start_states, actions), dim=1)
@@ -92,6 +91,7 @@ class Evaluation_ensemble(object):
                 if h == 0:
                     one_step_error[model_index] = (pred_error / state_norm)
         return error.cpu().detach().numpy(), one_step_error.cpu().detach().numpy()
+
 
 def process_data(data):
     # Assuming dada: an array containing [state, action, state_transition, cost]
@@ -194,6 +194,7 @@ def execute_2(env, steps, init_var, model, config, pred_high, pred_low, index_it
     samples['reward_sum'].append(-traject_cost)
     samples['model_error'].append(model_error/steps)
     return np.array(trajectory), traject_cost
+
 
 def execute_3(env, steps, init_var, model, config, pred_high, pred_low, index_iter, samples):
     current_state = env.reset()
@@ -334,9 +335,10 @@ def main(config):
                 evaluator = Evaluation_ensemble(ensemble_model=models[env_index], pred_high=high, pred_low=low, config=config)
                 actions, init_observations, observations = evaluator.preprocess_data(traj_obs, traj_acs)
                 if len(actions) > 0:
-                    evaluations[env_index] = evaluator.eval(actions, init_observations, observations)
-                    print("Evaluation of the models:", np.mean(evaluations[env_index], axis=1))
-                    traj_eval.append(np.mean(evaluations[env_index], axis=1))
+                    traj, one_step = evaluator.eval(actions, init_observations, observations)
+                    print("Evaluation of the models one step prediction:", np.mean(one_step, axis=1))
+                    print("Evaluation of the models trajectory prediction:", np.mean(traj, axis=1))
+                    traj_eval.append([np.mean(traj, axis=1), np.mean(one_step, axis=1)])
             elif index_iter % 50 == 0:
                 config['popsize'] = config['popsize'] * 10
             print("Execution...")
@@ -361,7 +363,6 @@ def main(config):
         traj_rews.extend(samples["reward"])
         traj_error.extend(samples["model_error"])
         traj_sol.extend(samples["controller_sol"])
-
         savemat(
             os.path.join(config['logdir'], "logs.mat"),
             {
