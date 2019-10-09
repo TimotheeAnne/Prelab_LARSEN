@@ -166,9 +166,9 @@ class FFNN_Ensemble_Model():
     def train(self, epochs, training_inputs, training_targets, sampling_size, batch_size=None, logInterval=100):
         for i in range(self.n_ensembles):
             sampled_indices = range(len(training_inputs))
-            if self.n_ensembles > 1 and sampling_size > 0 :
+            if self.n_ensembles > 1 and sampling_size > 0:
                 print("Data randomly sampled with replacement: ", sampling_size, " times")
-                sampled_indices =  np.random.randint(0, len(training_inputs), size=sampling_size)
+                sampled_indices = np.random.randint(0, len(training_inputs), size=sampling_size)
             self.models[i].train(epochs=epochs, training_inputs=training_inputs[sampled_indices], training_targets=training_targets[sampled_indices], batch_size=batch_size, logInterval=logInterval)
     
     def forward(self, d_in):
