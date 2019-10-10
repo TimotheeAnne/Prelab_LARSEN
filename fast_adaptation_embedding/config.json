@@ -1,42 +1,26 @@
 [
   {
     "exp":"exp/minitaur_env_adaptation.py",
-    "prefix": "minitaur_ensemble_25",
+    "prefix": "minitaur_survical",
     "result_dir":"exp/log",
-    "walltime": "6:00",
-    "args": "-c n_ensembles 5 -c horizon 25",
+    "walltime": "4:00",
+    "args": "-c horizon 50 -c survival_weight 10",
     "replicates": 3
   },
-  {
+    {
     "exp":"exp/minitaur_env_adaptation.py",
-    "prefix": "minitaur_ensemble_50",
+    "prefix": "minitaur_shake",
     "result_dir":"exp/log",
-    "walltime": "6:00",
-    "args": "-c n_ensembles 5 -c horizon 50",
+    "walltime": "4:00",
+    "args": "-c horizon 50 -c shake_weight 1",
     "replicates": 3
   },
-  {
+    {
     "exp":"exp/minitaur_env_adaptation.py",
-    "prefix": "minitaur_H50_discount",
+    "prefix": "minitaur_drift",
     "result_dir":"exp/log",
-    "walltime": "6:00",
-    "args": "-c n_ensembles 1 -c horizon 50 -c discount 0.99",
-    "replicates": 3
-  },
-  {
-    "exp":"exp/minitaur_env_adaptation.py",
-    "prefix": "minitaur_ensemble_50",
-    "result_dir":"exp/log",
-    "walltime": "6:00",
-    "args": "-c n_ensembles 5 -c horizon 50 -c discount 0.99",
-    "replicates": 3
-  },
-  {
-    "exp":"exp/minitaur_env_adaptation.py",
-    "prefix": "minitaur_H25_discount",
-    "result_dir":"exp/log",
-    "walltime": "6:00",
-    "args": "-c n_ensembles 1 -c horizon 50 -c discount 0.99",
+    "walltime": "4:00",
+    "args": "-c horizon 50 -c drift_weight 10",
     "replicates": 3
   }
 ]
