@@ -50,8 +50,10 @@ class Evaluation_ensemble(object):
         self.__pred_low = pred_low
         self.__obs_dim = config['ensemble_dim_out']
         self.__episode_length = config['episode_length']
+        self._inputs = np.array([])
+        self._outputs = np.array([])
 
-    def preprocess_data(self, traj_obs, traj_acs):
+    def preprocess_data_traj(self, traj_obs, traj_acs):
         N = len(traj_acs)
         actions, init_observations, observations = [], [], []
         for i in range(N):
@@ -61,7 +63,13 @@ class Evaluation_ensemble(object):
                 observations.append(traj_obs[i][t + 1:t + 1 + self.__horizon].flatten())
         return np.array(actions), np.array(init_observations), np.array(observations)
 
-    def eval(self, actions, init_states, observations):
+    def add_sample(self, obs, acs):
+        assert(len(obs) == (len(acs) + 1))
+        for t in range(len(acs)):
+            self._inputs.extend(np.concatenate((obs[t], acs[t])))
+            self._outputs.extend(obs[t+1]-obs[t])
+
+    def eval_traj(self, actions, init_states, observations):
         action_batch = torch.FloatTensor(actions).cuda() \
             if self.__ensemble_model.CUDA \
             else torch.FloatTensor(actions)
@@ -92,6 +100,22 @@ class Evaluation_ensemble(object):
                     one_step_error[model_index] = (pred_error / state_norm)
         return error.cpu().detach().numpy(), one_step_error.cpu().detach().numpy()
 
+    def eval_model(self):
+        inputs = torch.FloatTensor(self._inputs).cuda() \
+            if self.__ensemble_model.CUDA \
+            else torch.FloatTensor(self._inputs)
+        outputs = torch.FloatTensor(self._outputs).cuda() \
+            if self.__ensemble_model.CUDA \
+            else torch.FloatTensor(self._outputs)
+        error = torch.FloatTensor(np.zeros((len(self.__models), len(self._inputs)))).cuda() \
+            if self.__ensemble_model.CUDA \
+            else torch.FloatTensor(np.zeros((len(self.__models), len(self._inputs))))
+        for model_index in range(len(self.__models)):
+            dyn_model = self.__models[model_index]
+            diff_state = dyn_model.predict_tensor(inputs)
+            pred_error = (outputs - diff_state).pow(2).sum()
+            error[model_index] += pred_error
+        return error.cpu().detach().numpy()
 
 def process_data(data):
     # Assuming dada: an array containing [state, action, state_transition, cost]
@@ -335,12 +359,10 @@ def main(config):
                 models[env_index] = train_ensemble_model(train_in=x, train_out=y, sampling_size=sampling_size, config=config, model=models[env_index])
                 print("Evaluate model...")
                 evaluator = Evaluation_ensemble(ensemble_model=models[env_index], pred_high=high, pred_low=low, config=config)
-                actions, init_observations, observations = evaluator.preprocess_data(traj_obs, traj_acs)
-                if len(actions) > 0:
-                    traj, one_step = evaluator.eval(actions, init_observations, observations)
-                    print("Evaluation of the models one step prediction:", np.mean(one_step, axis=1))
-                    print("Evaluation of the models trajectory prediction:", np.mean(traj, axis=1))
-                    traj_eval.append([np.mean(traj, axis=1), np.mean(one_step, axis=1)])
+                evaluator.add_sample(traj_obs[-1], traj_acs[-1])
+                error = evaluator.eval_model()
+                print("Training error:", np.mean(error, axis=1))
+                traj_eval.append(np.mean(error, axis=1))
             elif index_iter % 50 == 0:
                 config['popsize'] = config['popsize'] * 10
             print("Execution...")
