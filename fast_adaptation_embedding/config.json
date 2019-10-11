@@ -67,7 +67,7 @@
     "exp":"exp/minitaur_env_adaptation.py",
     "prefix": "model8_50",
     "result_dir":"exp/log",
-    "walltime": "0:30_50",
+    "walltime": "0:30",
     "args": "-c model_size 8 -c data_size 50",
     "replicates": 1
   },
