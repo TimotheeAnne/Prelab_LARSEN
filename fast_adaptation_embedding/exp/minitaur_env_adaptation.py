@@ -111,7 +111,7 @@ if __name__ == "__main__":
         # "env": 'MinitaurBulletEnv_fastAdapt-v0',
         "env": 'MinitaurGymEnv_fastAdapt-v0',
         "horizon": 25,  # NOTE: "sol_dim" must be adjusted
-        "iterations": 100,
+        "iterations": 300,
         "random_iter": 1,
         "episode_length": 500,
         "init_state": None,
