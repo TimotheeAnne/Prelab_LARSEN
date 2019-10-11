@@ -1,9 +1,169 @@
 [
   {
     "exp":"exp/minitaur_env_adaptation.py",
+    "prefix": "model0_100",
+    "result_dir":"exp/log",
+    "walltime": "2:00",
+    "args": "-c model_size 0 -c data_size 100",
+    "replicates": 1
+  },
+  {
+    "exp":"exp/minitaur_env_adaptation.py",
+    "prefix": "model1_100",
+    "result_dir":"exp/log",
+    "walltime": "2:00",
+    "args": "-c model_size 1 -c data_size 100",
+    "replicates": 1
+  },
+    {
+    "exp":"exp/minitaur_env_adaptation.py",
+    "prefix": "model2_100",
+    "result_dir":"exp/log",
+    "walltime": "2:00",
+    "args": "-c model_size 2 -c data_size 100",
+    "replicates": 1
+  },
+    {
+    "exp":"exp/minitaur_env_adaptation.py",
+    "prefix": "model3_100",
+    "result_dir":"exp/log",
+    "walltime": "2:00",
+    "args": "-c model_size 3 -c data_size 100",
+    "replicates": 1
+  },
+    {
+    "exp":"exp/minitaur_env_adaptation.py",
+    "prefix": "model4_100",
+    "result_dir":"exp/log",
+    "walltime": "2:00",
+    "args": "-c model_size 4 -c data_size 100",
+    "replicates": 1
+  },
+      {
+    "exp":"exp/minitaur_env_adaptation.py",
+    "prefix": "model5_100",
+    "result_dir":"exp/log",
+    "walltime": "2:00",
+    "args": "-c model_size 5 -c data_size 100",
+    "replicates": 1
+  },
+      {
+    "exp":"exp/minitaur_env_adaptation.py",
+    "prefix": "model6_100",
+    "result_dir":"exp/log",
+    "walltime": "2:00",
+    "args": "-c model_size 6 -c data_size 100",
+    "replicates": 1
+  },
+  {
+    "exp":"exp/minitaur_env_adaptation.py",
+    "prefix": "model7_100",
+    "result_dir":"exp/log",
+    "walltime": "2:00",
+    "args": "-c model_size 7 -c data_size 100",
+    "replicates": 1
+  },
+  {
+    "exp":"exp/minitaur_env_adaptation.py",
+    "prefix": "model8_100",
+    "result_dir":"exp/log",
+    "walltime": "2:00",
+    "args": "-c model_size 8 -c data_size 100",
+    "replicates": 1
+  },
+  {
+    "exp":"exp/minitaur_env_adaptation.py",
+    "prefix": "model9_100",
+    "result_dir":"exp/log",
+    "walltime": "2:00",
+    "args": "-c model_size 9 -c data_size 100",
+    "replicates": 1
+  },
+    {
+    "exp":"exp/minitaur_env_adaptation.py",
+    "prefix": "model0_200",
+    "result_dir":"exp/log",
+    "walltime": "2:00",
+    "args": "-c model_size 0 -c data_size 200",
+    "replicates": 1
+  },
+  {
+    "exp":"exp/minitaur_env_adaptation.py",
+    "prefix": "model1_200",
+    "result_dir":"exp/log",
+    "walltime": "2:00",
+    "args": "-c model_size 1 -c data_size 200",
+    "replicates": 1
+  },
+    {
+    "exp":"exp/minitaur_env_adaptation.py",
+    "prefix": "model2_200",
+    "result_dir":"exp/log",
+    "walltime": "2:00",
+    "args": "-c model_size 2 -c data_size 200",
+    "replicates": 1
+  },
+    {
+    "exp":"exp/minitaur_env_adaptation.py",
+    "prefix": "model3_200",
+    "result_dir":"exp/log",
+    "walltime": "2:00",
+    "args": "-c model_size 3 -c data_size 200",
+    "replicates": 1
+  },
+    {
+    "exp":"exp/minitaur_env_adaptation.py",
+    "prefix": "model4_200",
+    "result_dir":"exp/log",
+    "walltime": "2:00",
+    "args": "-c model_size 4 -c data_size 200",
+    "replicates": 1
+  },
+      {
+    "exp":"exp/minitaur_env_adaptation.py",
+    "prefix": "model5_200",
+    "result_dir":"exp/log",
+    "walltime": "2:00",
+    "args": "-c model_size 5 -c data_size 200",
+    "replicates": 1
+  },
+      {
+    "exp":"exp/minitaur_env_adaptation.py",
+    "prefix": "model6_200",
+    "result_dir":"exp/log",
+    "walltime": "2:00",
+    "args": "-c model_size 6 -c data_size 200",
+    "replicates": 1
+  },
+  {
+    "exp":"exp/minitaur_env_adaptation.py",
+    "prefix": "model7_200",
+    "result_dir":"exp/log",
+    "walltime": "2:00",
+    "args": "-c model_size 7 -c data_size 200",
+    "replicates": 1
+  },
+  {
+    "exp":"exp/minitaur_env_adaptation.py",
+    "prefix": "model8_200",
+    "result_dir":"exp/log",
+    "walltime": "2:00",
+    "args": "-c model_size 8 -c data_size 200",
+    "replicates": 1
+  },
+  {
+    "exp":"exp/minitaur_env_adaptation.py",
+    "prefix": "model9_200",
+    "result_dir":"exp/log",
+    "walltime": "2:00",
+    "args": "-c model_size 9 -c data_size 200",
+    "replicates": 1
+  },
+    {
+    "exp":"exp/minitaur_env_adaptation.py",
     "prefix": "model0_50",
     "result_dir":"exp/log",
-    "walltime": "0:30",
+    "walltime": "2:00",
     "args": "-c model_size 0 -c data_size 50",
     "replicates": 1
   },
@@ -11,7 +171,7 @@
     "exp":"exp/minitaur_env_adaptation.py",
     "prefix": "model1_50",
     "result_dir":"exp/log",
-    "walltime": "0:30",
+    "walltime": "2:00",
     "args": "-c model_size 1 -c data_size 50",
     "replicates": 1
   },
@@ -19,7 +179,7 @@
     "exp":"exp/minitaur_env_adaptation.py",
     "prefix": "model2_50",
     "result_dir":"exp/log",
-    "walltime": "0:30",
+    "walltime": "2:00",
     "args": "-c model_size 2 -c data_size 50",
     "replicates": 1
   },
@@ -27,7 +187,7 @@
     "exp":"exp/minitaur_env_adaptation.py",
     "prefix": "model3_50",
     "result_dir":"exp/log",
-    "walltime": "0:30",
+    "walltime": "2:00",
     "args": "-c model_size 3 -c data_size 50",
     "replicates": 1
   },
@@ -35,7 +195,7 @@
     "exp":"exp/minitaur_env_adaptation.py",
     "prefix": "model4_50",
     "result_dir":"exp/log",
-    "walltime": "0:30",
+    "walltime": "2:00",
     "args": "-c model_size 4 -c data_size 50",
     "replicates": 1
   },
@@ -43,7 +203,7 @@
     "exp":"exp/minitaur_env_adaptation.py",
     "prefix": "model5_50",
     "result_dir":"exp/log",
-    "walltime": "0:30",
+    "walltime": "2:00",
     "args": "-c model_size 5 -c data_size 50",
     "replicates": 1
   },
@@ -51,7 +211,7 @@
     "exp":"exp/minitaur_env_adaptation.py",
     "prefix": "model6_50",
     "result_dir":"exp/log",
-    "walltime": "0:30",
+    "walltime": "2:00",
     "args": "-c model_size 6 -c data_size 50",
     "replicates": 1
   },
@@ -59,7 +219,7 @@
     "exp":"exp/minitaur_env_adaptation.py",
     "prefix": "model7_50",
     "result_dir":"exp/log",
-    "walltime": "0:30",
+    "walltime": "2:00",
     "args": "-c model_size 7 -c data_size 50",
     "replicates": 1
   },
@@ -67,7 +227,7 @@
     "exp":"exp/minitaur_env_adaptation.py",
     "prefix": "model8_50",
     "result_dir":"exp/log",
-    "walltime": "0:30",
+    "walltime": "2:00",
     "args": "-c model_size 8 -c data_size 50",
     "replicates": 1
   },
@@ -75,7 +235,7 @@
     "exp":"exp/minitaur_env_adaptation.py",
     "prefix": "model9_50",
     "result_dir":"exp/log",
-    "walltime": "0:30",
+    "walltime": "2:00",
     "args": "-c model_size 9 -c data_size 50",
     "replicates": 1
   }
