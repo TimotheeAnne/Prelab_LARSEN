@@ -1,10 +1,90 @@
 [
   {
     "exp":"exp/minitaur_env_adaptation.py",
-    "prefix": "minitaur_survical",
+    "prefix": "model0",
+    "result_dir":"exp/log",
+    "walltime": "0:30",
+    "args": "-c model_size 0",
+    "replicates": 1
+  },
+  {
+    "exp":"exp/minitaur_env_adaptation.py",
+    "prefix": "model1",
     "result_dir":"exp/log",
     "walltime": "0:30",
     "args": "-c model_size 1",
+    "replicates": 1
+  },
+    {
+    "exp":"exp/minitaur_env_adaptation.py",
+    "prefix": "model2",
+    "result_dir":"exp/log",
+    "walltime": "0:30",
+    "args": "-c model_size 2",
+    "replicates": 1
+  },
+    {
+    "exp":"exp/minitaur_env_adaptation.py",
+    "prefix": "model3",
+    "result_dir":"exp/log",
+    "walltime": "0:30",
+    "args": "-c model_size 3",
+    "replicates": 1
+  },
+    {
+    "exp":"exp/minitaur_env_adaptation.py",
+    "prefix": "model4",
+    "result_dir":"exp/log",
+    "walltime": "1:00",
+    "args": "-c model_size 4",
+    "replicates": 1
+  },
+      {
+    "exp":"exp/minitaur_env_adaptation.py",
+    "prefix": "model5",
+    "result_dir":"exp/log",
+    "walltime": "1:00",
+    "args": "-c model_size 5",
+    "replicates": 1
+  },
+      {
+    "exp":"exp/minitaur_env_adaptation.py",
+    "prefix": "model6",
+    "result_dir":"exp/log",
+    "walltime": "1:00",
+    "args": "-c model_size 6",
+    "replicates": 1
+  },
+  {
+    "exp":"exp/minitaur_env_adaptation.py",
+    "prefix": "model7",
+    "result_dir":"exp/log",
+    "walltime": "2:00",
+    "args": "-c model_size 7",
+    "replicates": 1
+  },
+  {
+    "exp":"exp/minitaur_env_adaptation.py",
+    "prefix": "model8",
+    "result_dir":"exp/log",
+    "walltime": "2:00",
+    "args": "-c model_size 8",
+    "replicates": 1
+  },
+  {
+    "exp":"exp/minitaur_env_adaptation.py",
+    "prefix": "model9",
+    "result_dir":"exp/log",
+    "walltime": "2:00",
+    "args": "-c model_size 9",
+    "replicates": 1
+  },
+    {
+    "exp":"exp/minitaur_env_adaptation.py",
+    "prefix": "model10",
+    "result_dir":"exp/log",
+    "walltime": "2:00",
+    "args": "-c model_size 10",
     "replicates": 1
   }
 ]
