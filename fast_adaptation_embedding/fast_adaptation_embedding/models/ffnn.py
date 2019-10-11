@@ -28,7 +28,7 @@ class FFNN(nn.Module):
 
         self.Layers = nn.ModuleList()
         self.Layers.append(nn.Linear(dim_in, hidden[0]))
-        for i in range(0,len(hidden)-1):
+        for i in range(0, len(hidden)-1):
             self.Layers.append(nn.Linear(hidden[i], hidden[i+1]))        
         self.fcout = nn.Linear(hidden[-1], dim_out)
 
@@ -154,6 +154,13 @@ class FFNN_Model():
         """
         return self.model.predict((d_in - self.data_mean_input) / self.data_std_input) * self.data_std_output + self.data_mean_output
     
+    def compute_error(self, d_in, d_out):
+        """
+       d_in: 2d tensor. Must be casted properly to cpu or cuda.
+        """
+        diff_state = self.model.predict((d_in - self.data_mean_input) / self.data_std_input)
+        outputs = (d_out - self.data_mean_output) / self.data_std_output
+        return torch.sqrt((outputs - diff_state).pow(2).sum(1))
 
 class FFNN_Ensemble_Model():
     def __init__(self, dim_in, hidden, dim_out, n_ensembles, CUDA=False, SEED=None, output_limit=None, dropout=0.0, hidden_activation="tanh"):       
