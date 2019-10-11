@@ -117,20 +117,12 @@ class Evaluation_ensemble(object):
         inputs = torch.FloatTensor(self.__inputs).cuda()
         outputs = torch.FloatTensor(self.__outputs).cuda()
         error = torch.FloatTensor(np.zeros((len(models), len(self.__inputs)))).cuda()
-
-        data_mean_input = torch.FloatTensor(np.mean(inputs, axis=0)).cuda()
-        data_std_input = torch.FloatTensor(np.std(inputs, axis=0) + 1e-10).cuda()
-        data_mean_output = torch.FloatTensor(np.mean(outputs, axis=0)).cuda()
-        data_std_output = torch.FloatTensor(np.std(outputs, axis=0) + 1e-10).cuda()
-
-        inputs = (inputs - data_mean_input) / data_std_input
-        outputs = (outputs - data_mean_output) / data_std_output
+        error0 = torch.FloatTensor(np.zeros((len(models), len(self.__inputs)))).cuda()
 
         for model_index in range(len(models)):
             dyn_model = models[model_index]
-            diff_state = dyn_model.predict_tensor(inputs)
-            error[model_index] += torch.sqrt((outputs - diff_state).pow(2).sum(1))
-        return error.cpu().detach().numpy()
+            error[model_index], error0[model_index] = dyn_model.compute_error(inputs, outputs)
+        return error.cpu().detach().numpy(), error0.cpu().detach().numpy()
 
 
 def process_data(data):
@@ -161,7 +153,7 @@ def main(config):
     models = n_task * [None]
     evaluations = n_task * [None]
 
-    traj_obs, traj_acs, traj_rets, traj_rews, traj_error, traj_eval, traj_sol, traj_motor = [], [], [], [], [], [], [], []
+    traj_eval0, traj_error0, traj_rets, traj_rews, traj_error, traj_eval, traj_sol, traj_motor = [], [], [], [], [], [], [], []
 
     with open("train_data.pk", 'rb') as f:
         data = pickle.load(f)
@@ -185,17 +177,24 @@ def main(config):
         models[env_index] = train_ensemble_model(train_in=x, train_out=y, sampling_size=sampling_size, config=config,
                                                  model=models[env_index])
         print("Evaluate model...")
-        training_error = evaluator_train.eval_model(models[env_index])
-        eval_error = evaluator_eval.eval_model(models[env_index])
+        training_error, training_error0 = evaluator_train.eval_model(models[env_index])
+        eval_error, eval_error0 = evaluator_eval.eval_model(models[env_index])
         print("Training error:", np.mean(training_error, axis=1))
         print("Test error:", np.mean(eval_error, axis=1))
+        print("Training R²:", np.mean(1-training_error/training_error0, axis=1))
+        print("Test R²:", np.mean(1-eval_error/eval_error0, axis=1))
         traj_eval.append(np.mean(eval_error, axis=1))
         traj_error.append(np.mean(training_error, axis=1))
+        traj_eval0.append(np.mean(1-eval_error/eval_error0, axis=1))
+        traj_error0.append(np.mean(1-training_error/training_error0, axis=1))
+
         savemat(
             os.path.join(config['logdir'], "logs.mat"),
             {
                 "train_error": traj_error,
                 "test_error": traj_eval,
+                "train_R2": traj_error0,
+                "test_R2": traj_eval0,
             }
         )
         print("-------------------------------\n")
