@@ -5,7 +5,9 @@ os.sys.path.insert(0, parentdir)
 import argparse
 import torch
 import numpy as np
-from exp.env_adaptation import main
+# from exp.env_adaptation import main
+from exp.model_comparison import main
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -14,7 +16,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
     logdir = args.logdir
 
-
+    Sizes = [
+        [200, 200, 100],
+        [10, 10]
+    ]
     class Cost_ensemble(object):
         def __init__(self, ensemble_model, init_state, horizon, action_dim, goal, pred_high, pred_low, config):
             self.__ensemble_model = ensemble_model
@@ -97,7 +102,7 @@ if __name__ == "__main__":
         # "env": 'MinitaurBulletEnv_fastAdapt-v0',
         "env": 'MinitaurGymEnv_fastAdapt-v0',
         "horizon": 25,  # NOTE: "sol_dim" must be adjusted
-        "iterations": 200,
+        "iterations": 100,
         "random_iter": 1,
         "episode_length": 500,
         "init_state": None,
@@ -137,6 +142,8 @@ if __name__ == "__main__":
         "n_ensembles": 1,
         "ensemble_batch_size": 64,
         "ensemble_log_interval": 500,
+        "model_size": None,
+
 
         # Optimizer parameters
         "max_iters": 1,
@@ -163,6 +170,9 @@ if __name__ == "__main__":
             config[key] = val
         elif key in ['ensemble_hidden']:
             config[key] = [int(val), int(val), int(val)]
+        elif key in ['model_size']:
+            index = int(val)
+            config['ensemble_hidden'] = Sizes[index]
         else:
             config[key] = float(val)
     config['video.frames_per_second'] = int(1 / config['control_time_step'])
