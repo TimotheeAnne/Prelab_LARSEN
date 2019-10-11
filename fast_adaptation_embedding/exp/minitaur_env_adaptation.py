@@ -17,8 +17,17 @@ if __name__ == "__main__":
     logdir = args.logdir
 
     Sizes = [
-        [200, 200, 100],
-        [10, 10]
+        [10, 10, 10],
+        [50, 50, 50],
+        [100, 100, 100],
+        [200, 200, 200],
+        [350, 350, 350],
+        [500, 500, 500],
+        [750, 750, 750],
+        [1000, 1000, 1000],
+        [1000, 1000, 1000, 1000],
+        [2000, 2000, 2000, 2000],
+        [5000, 5000, 5000, 5000],
     ]
     class Cost_ensemble(object):
         def __init__(self, ensemble_model, init_state, horizon, action_dim, goal, pred_high, pred_low, config):
