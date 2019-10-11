@@ -90,6 +90,7 @@ class Evaluation_ensemble(object):
             if self.__ensemble_model.CUDA \
             else torch.FloatTensor(np.zeros((len(self.__models), len(actions))))
 
+
         for model_index in range(len(self.__models)):
             dyn_model = self.__models[model_index]
             start_states = torch.FloatTensor(init_states).cuda() if self.__ensemble_model.CUDA else torch.FloatTensor(
@@ -113,15 +114,17 @@ class Evaluation_ensemble(object):
 
     def eval_model(self, ensemble):
         models = ensemble.get_models()
-        inputs = torch.FloatTensor(self.__inputs).cuda() \
-            if ensemble.CUDA \
-            else torch.FloatTensor(self.__inputs)
-        outputs = torch.FloatTensor(self.__outputs).cuda() \
-            if ensemble.CUDA \
-            else torch.FloatTensor(self.__outputs)
-        error = torch.FloatTensor(np.zeros((len(models), len(self.__inputs)))).cuda() \
-            if ensemble.CUDA \
-            else torch.FloatTensor(np.zeros((len(models), len(self.__inputs))))
+        inputs = torch.FloatTensor(self.__inputs).cuda()
+        outputs = torch.FloatTensor(self.__outputs).cuda()
+        error = torch.FloatTensor(np.zeros((len(models), len(self.__inputs)))).cuda()
+
+        data_mean_input = torch.FloatTensor(np.mean(inputs, axis=0)).cuda()
+        data_std_input = torch.FloatTensor(np.std(inputs, axis=0) + 1e-10).cuda()
+        data_mean_output = torch.FloatTensor(np.mean(outputs, axis=0)).cuda()
+        data_std_output = torch.FloatTensor(np.std(outputs, axis=0) + 1e-10).cuda()
+
+        inputs = (inputs - data_mean_input) / data_std_input
+        outputs = (outputs - data_mean_output) / data_std_output
 
         for model_index in range(len(models)):
             dyn_model = models[model_index]
