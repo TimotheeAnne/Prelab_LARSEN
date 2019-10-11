@@ -38,11 +38,13 @@ and compare to droppout it does not interfere woth batch normalization and does 
 *** new paper by levin inplicit MAML (méta-learning)
 - they use explicit L2 regularisation for the inner-loop optimisation
 - they reduce the memory complexity by using an implicite outer-gradient approximation isntead of differentiate through the inner-loop gradient step.
-*** [[https://arxiv.org/pdf/1905.12588.pdf][Meta-Learning Representations for Continual Learning]] 
+*** Meta-Learning Representations for Continual Learning
+[[https://arxiv.org/pdf/1905.12588.pdf][pdf]]
 they cut the model in two:
 - the first part learn the representation and is only updated in the outer (meta) loop which encourage the weights to move to a good representation to avoid interference and encourage generalization
 - the second part is train both in the inner and outer loop for eahc task (this part is similar to MAML)
-*** [[https://openreview.net/pdf?id=H1exf64KwH][EXPLORING MODEL-BASED PLANNING WITH POLICY NETWORKS]]
+*** EXPLORING MODEL-BASED PLANNING WITH POLICY NETWORKS
+[[https://openreview.net/pdf?id=H1exf64KwH][pdf]]
 use eitheir a policy network to generate the first generation of the CEM or improve the parameter of the policy network to select the action sequence to perform 
 *** Deep Dynamics Models for Learning  Dexterous Manipulation
 [[https://sites.google.com/view/pddm/][site]] [[https://arxiv.org/pdf/1909.11652.pdf][pdf]]
@@ -50,15 +52,30 @@ use eitheir a policy network to generate the first generation of the CEM or impr
 thay say thant in handful of trials, they say that you do not need to do bootsrap sampling to train the ensemble but using different initialization and different batch is enough.
 **** MPC
 They use filtering and reward-Weighed Refinement which smooth the action candidates
-*** TODO Deep Evidential Regression
+*** Deep Evidential Regression
 [[https://openreview.net/pdf?id=S1eSoeSYwr][pdf]] 
-*** TODO The Differentiable Cross-entropy Method
-[[https://arxiv.org/pdf/1909.12830.pdf][pdf]] 
-*** TODO ADVANTAGE-WEIGHTED REGRESSION: SIMPLE AND SCALABLE OFF-POLICY REINFORCEMENT LEARNING
-[[https://xbpeng.github.io/projects/AWR/2019_AWR.pdf][pdf]]
-*** TODO Model Predictive Path Integral Control using Covariance Variable Importance Sampling
-[[https://arxiv.org/pdf/1509.01149.pdf][pdf]]
+They use an higher probavbilistic prior to model the epistemic uncertainty learn by the NN.
+It allows the network to effectivly model that it does not know outside the training examples.
+It better estimate the epistemic uncertainty without requiring several sampling.
 
+*** The Differentiable Cross-entropy Method
+[[https://arxiv.org/pdf/1909.12830.pdf][pdf]] 
+One key idea is to learn a latent action space to not waist time in sampling irrelevant action sequences. 
+DCEM learn an encoder a=f_dec(z). They also gradient descent to optimize the latent action sequence (?)
+*** ADVANTAGE-WEIGHTED REGRESSION: SIMPLE AND SCALABLE OFF-POLICY REINFORCEMENT LEARNING
+[[https://xbpeng.github.io/projects/AWR/2019_AWR.pdf][pdf]]
+Simple but effective model-free RL algorithm which alternate between collecting data from the current policy, training (supervise) value function on the data collected 
+and training a policy using advantage weighted regression.
+*** Model Predictive Path Integral Control using Covariance Variable Importance Sampling
+[[https://arxiv.org/pdf/1509.01149.pdf][pdf]]
+Introduction of MPC with sampling on GPU. The key ideas are:
+Using parallel sampling on gpu in real time (50Hz)
+Adapting the variance of the sampling distribution using derivation of the likelihood ratio.
+Theu start from a working action sequence.
+*** TODO On Learning Symmetric Locomotion
+[[https://www.cs.ubc.ca/~van/papers/2019-MIG-symmetry/2019-MIG-symmetry.pdf][pdf]]
+*** TODO Reconciling modern machine-learning practice and the classical bias–variance trade-off
+[[https://www.pnas.org/content/pnas/116/32/15849.full.pdf][pdf]]
 ** Minitaur
 *** [[https://arxiv.org/pdf/1804.10332.pdf][Sim-to-Real: Learning Agile Locomotion For Quadruped Robots]] 
 **** observation space
@@ -85,15 +102,17 @@ random force apply to the base every 200 steps to force the model to learn how t
 ***** compact observation space
 they reduce to a size of 4 to reduce the gap (the expected return in simulation drop but, the real life one increase).
 If the observation space is too large the learn representation as more chance to be sparse and the real observation have less chance to be apart form it
-*** TODO [[https://hal.inria.fr/hal-02084619/document][Learning and adapting quadruped gaits with the ”Intelligent Trial & Error” algorithm]] 
+*** [[https://hal.inria.fr/hal-02084619/document][Learning and adapting quadruped gaits with the ”Intelligent Trial & Error” algorithm]] 
+The high dimension action space is reduced to a low dimension policy space using 3 gait parameters for each 2d cartesian position of the legs (24 dimension) which is
+further reduced to 16 dimension using the torque send to each legs in each quarter of the cycle. They first use the simulation to find 16,000 high performing policy to cover 
+the low dimensional space. For the real robot they use Gaussian Processes to model the performance of each policy in order to find the more confident one and adapt quiwcly.  
 *** [[https://bair.berkeley.edu/blog/2018/12/14/sac/][Soft Actor Critic—Deep Reinforcement Learning with Real-World Robots 
 ]][[https://arxiv.org/pdf/1812.11103.pdf][pdf]] 
 they use the model-free RL Soft-Actor Critic (SAC) 
 on simulation (from a fined tune one) they have a reward of maximum 200 in 0.3M samples and 80 in 0.15M in real world
 **** reward 
 (x_t-x_t-1) - 0.05*|joint accelerations| - 0.5*|roll angle of the base| + penalty when the front legs are folded under the robot 
-*** Learning Fast Adaptation with Meta Strategy Optimization
-[[https://arxiv.org/pdf/1909.12995.pdf][pdf]] 
+*** [[https://arxiv.org/pdf/1909.12995.pdf][Learning Fast Adaptation with Meta Strategy Optimization]]
 They use Meta Strategy Optimisation of a policy taking as inputs the "physical context", the alternate the optimisation of the physical context and the policy parameters theta.
 15 episodes are enough to adapt effectivly
 They also use randomize parameter: mass, friction, intertia, motor sthrenght, latency, battery votlage, contact friction, joint friction
@@ -382,3 +401,50 @@ sol = xopt
 *** 02/10/2019
 **** gym minitaur env
 it needs tensorflow for logging
+*** 07/10/2019
+**** Minitaur
+We need to use the accurate_motor_model_enable, it improve the smoothness and bring better model from the NN.
+[[file:///home/timothee/Documents/Prelab_LARSEN/Documents/Figures/Minitaur/Second%20exp%20on%20gymMinitaur/error_model_accurate.png][model error]] [[file:///home/timothee/Documents/Prelab_LARSEN/Documents/Figures/Minitaur/Second%20exp%20on%20gymMinitaur/reward_model_accurate.png][reward]]
+[[file:///home/timothee/Documents/Prelab_LARSEN/fast_adaptation_embedding/exp/log/Saved/GymMinitaur/2019-10-04--15:19:2587318/iter_99.mp4][video 99]] [[file:///home/timothee/Documents/Prelab_LARSEN/fast_adaptation_embedding/exp/log/Saved/GymMinitaur/2019-10-04--15:19:2587318/iter_299.mp4][video 299 (200)]]
+***** Popsize
+Increasing by 100 the population of the MPC optimizer (RS) does not improve the reward see figures above.
+We could conclude that the default parameters for the RS 12500 individuals for the first step followed by 500 individuals are enough to take the best of the model.
+As there is also no overfitting of the model 
+***** episode length
+passing from 250 to 500 icnrease the fall percentage to 20% and do not increase much the average reward. 
+The model seems to be worst.
+***** model size
+the default size [200,200,100] seems to be the best one compared to
+[50,50,50], [100,100,50] and [400,400,200] [[file:///home/timothee/Documents/Prelab_LARSEN/Documents/Figures/Minitaur/Second%20exp%20on%20gymMinitaur/compare_model_size_reward.png][reward]] [[file:///home/timothee/Documents/Prelab_LARSEN/Documents/Figures/Minitaur/Second%20exp%20on%20gymMinitaur/compare_model_size_error.png][error]]
+*** 08/10/2019
+**** nothing
+**** survival
+it seems to be the worst parameter (maybe the model overestimate the falls)
+[[file:///home/timothee/Documents/Prelab_LARSEN/fast_adaptation_embedding/exp/log/Saved/GymMinitaur/2019-10-08--09:41:1315203/iter_99.mp4][video]] 
+to much vibration
+**** drift 
+better but maybe to much enphasis on the drift part [[file:///home/timothee/Documents/Prelab_LARSEN/fast_adaptation_embedding/exp/log/Saved/GymMinitaur/2019-10-08--10:05:0427108/iter_99.mp4][video]]
+**** skake + drift 
+good results [[file:///home/timothee/Documents/Prelab_LARSEN/fast_adaptation_embedding/exp/log/Saved/GymMinitaur/2019-10-08--10:40:5574062/iter_99.mp4][video]]
+*** 09/10/2019
+**** Shake,drift,survival
+with a gait frequency of 2 Hz, using half a gait of horizon does not five very good result.
+drift seems to avoid some fall
+*** 10/10/2019
+**** H50/discount/ensembles
+200 iterations * 500 episode length
+H50 discount (4h) VS E5 H50 discount (12h) VS E5 H25 discount (8h) 
+[[file:///home/timothee/Documents/Prelab_LARSEN/fast_adaptation_embedding/exp/log/Saved/GymMinitaur/2019-10-09--16:31:1253463/iter_149.mp4][video H50 discount]] r=1.05 
+H50 discount has better reward in average and good result in max (1.56) but it falls more often
+using an ensemble seems to decrease the reward and the percentage of fall from 60% to 40%
+The testing error follow nicely the training error
+**** The difference in the motor action sent and realised
+[[file:///home/timothee/Documents/Prelab_LARSEN/Documents/Figures/Minitaur/Second%20exp%20on%20gymMinitaur/motor_actions_differences.png][motor joints]] of tjhe previous video
+the vibrations occurs when the legs is not in contact with the floor
+**** Ensemble
+with a sampling of 10% they start to present disimilarity
+with a sampling of 25%, they were the same
+*** 11/10/2019
+Evaluation of the model error on the data.
+be carefull about the normailization
+I added the R² coefficient
