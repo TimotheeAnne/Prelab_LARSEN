@@ -132,6 +132,7 @@ if __name__ == "__main__":
         "omega": 2*2*np.pi,
         "control_time_step": 0.01,
         "stop_training": np.inf,
+        "data_size": "50",
 
         # Model learning parameters
         "epoch": 1000,
@@ -175,7 +176,7 @@ if __name__ == "__main__":
     for (key, val) in args.config:
         if key in ['horizon', 'K', 'popsize', 'iterations', 'n_ensembles']:
             config[key] = int(val)
-        elif key in ['load_data']:
+        elif key in ['load_data', 'hidden_activation', 'data_size']:
             config[key] = val
         elif key in ['ensemble_hidden']:
             config[key] = [int(val), int(val), int(val)]
