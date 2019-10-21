@@ -129,6 +129,7 @@ if __name__ == "__main__":
         "video_recording_frequency": 25,
         "logdir": logdir,
         "load_data": None,
+        "save_data": None,
         "distance_weight": 1.0,
         "energy_weight": 0.,
         "shake_weight": 0.,
