@@ -83,7 +83,7 @@
     "exp":"exp/minitaur_env_adaptation.py",
     "prefix": "model_10_200",
     "result_dir":"exp/log",
-    "walltime": "2:00",
+    "walltime": "4:00",
     "args": "-c hidden_activation relu -c model_size 10 -c data_size 200",
     "replicates": 1
   },
@@ -91,7 +91,7 @@
     "exp":"exp/minitaur_env_adaptation.py",
     "prefix": "model_11_200",
     "result_dir":"exp/log",
-    "walltime": "2:00",
+    "walltime": "4:00",
     "args": "-c hidden_activation relu -c model_size 11 -c data_size 200",
     "replicates": 1
   },
@@ -99,7 +99,7 @@
     "exp":"exp/minitaur_env_adaptation.py",
     "prefix": "model_12_200",
     "result_dir":"exp/log",
-    "walltime": "2:00",
+    "walltime": "4:00",
     "args": "-c hidden_activation relu -c model_size 12 -c data_size 200",
     "replicates": 1
   },
@@ -107,7 +107,7 @@
     "exp":"exp/minitaur_env_adaptation.py",
     "prefix": "model_13_200",
     "result_dir":"exp/log",
-    "walltime": "2:00",
+    "walltime": "4:00",
     "args": "-c hidden_activation relu -c model_size 13 -c data_size 200",
     "replicates": 1
   },
@@ -115,7 +115,7 @@
     "exp":"exp/minitaur_env_adaptation.py",
     "prefix": "model_14_200",
     "result_dir":"exp/log",
-    "walltime": "2:00",
+    "walltime": "4:00",
     "args": "-c hidden_activation relu -c model_size 14 -c data_size 200",
     "replicates": 1
   },
@@ -123,7 +123,7 @@
     "exp":"exp/minitaur_env_adaptation.py",
     "prefix": "model_15_200",
     "result_dir":"exp/log",
-    "walltime": "2:00",
+    "walltime": "4:00",
     "args": "-c hidden_activation relu -c model_size 15 -c data_size 200",
     "replicates": 1
   },
@@ -131,7 +131,7 @@
     "exp":"exp/minitaur_env_adaptation.py",
     "prefix": "model_16_200",
     "result_dir":"exp/log",
-    "walltime": "2:00",
+    "walltime": "4:00",
     "args": "-c hidden_activation relu -c model_size 16 -c data_size 200",
     "replicates": 1
   },
@@ -139,7 +139,7 @@
     "exp":"exp/minitaur_env_adaptation.py",
     "prefix": "model_17_200",
     "result_dir":"exp/log",
-    "walltime": "2:00",
+    "walltime": "4:00",
     "args": "-c hidden_activation relu -c model_size 17 -c data_size 200",
     "replicates": 1
   },
@@ -147,7 +147,7 @@
     "exp":"exp/minitaur_env_adaptation.py",
     "prefix": "model_18_200",
     "result_dir":"exp/log",
-    "walltime": "2:00",
+    "walltime": "4:00",
     "args": "-c hidden_activation relu -c model_size 18 -c data_size 200",
     "replicates": 1
   },
@@ -155,7 +155,7 @@
     "exp":"exp/minitaur_env_adaptation.py",
     "prefix": "model_19_200",
     "result_dir":"exp/log",
-    "walltime": "2:00",
+    "walltime": "4:00",
     "args": "-c hidden_activation relu -c model_size 19 -c data_size 200",
     "replicates": 1
   }
