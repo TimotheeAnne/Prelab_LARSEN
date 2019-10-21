@@ -4,7 +4,7 @@
     "prefix": "model_dropout_0_200",
     "result_dir":"exp/log",
     "walltime": "2:00",
-    "args": " -c model_size 0 -c script compare -c load_data 200 -c data_size 200",
+    "args": " -c model_size 0 -c script compare -c load_data 200 -c ensemble_dropout 0.5",
     "replicates": 1 
   },
   {
@@ -12,7 +12,7 @@
     "prefix": "model_dropout_1_200",
     "result_dir":"exp/log",
     "walltime": "2:00",
-    "args": " -c model_size 1 -c script compare -c load_data 200 -c data_size 200",
+    "args": " -c model_size 1 -c script compare -c load_data 200 -c ensemble_dropout 0.5",
     "replicates": 1 
   },
     {
@@ -20,7 +20,7 @@
     "prefix": "model_dropout_2_200",
     "result_dir":"exp/log",
     "walltime": "2:00",
-    "args": " -c model_size 2 -c script compare -c load_data 200 -c data_size 200",
+    "args": " -c model_size 2 -c script compare -c load_data 200 -c ensemble_dropout 0.5",
     "replicates": 1 
   },
     {
@@ -28,7 +28,7 @@
     "prefix": "model_dropout_3_200",
     "result_dir":"exp/log",
     "walltime": "2:00",
-    "args": " -c model_size 3 -c script compare -c load_data 200 -c data_size 200",
+    "args": " -c model_size 3 -c script compare -c load_data 200 -c ensemble_dropout 0.5",
     "replicates": 1 
   },
     {
@@ -36,7 +36,7 @@
     "prefix": "model_dropout_4_200",
     "result_dir":"exp/log",
     "walltime": "2:00",
-    "args": " -c model_size 4 -c script compare -c load_data 200 -c data_size 200",
+    "args": " -c model_size 4 -c script compare -c load_data 200 -c ensemble_dropout 0.5",
     "replicates": 1 
   },
       {
@@ -44,7 +44,7 @@
     "prefix": "model_dropout_5_200",
     "result_dir":"exp/log",
     "walltime": "2:00",
-    "args": " -c model_size 5 -c script compare -c load_data 200 -c data_size 200",
+    "args": " -c model_size 5 -c script compare -c load_data 200 -c ensemble_dropout 0.5",
     "replicates": 1 
   },
       {
@@ -52,7 +52,7 @@
     "prefix": "model_dropout_6_200",
     "result_dir":"exp/log",
     "walltime": "2:00",
-    "args": " -c model_size 6 -c script compare -c load_data 200 -c data_size 200",
+    "args": " -c model_size 6 -c script compare -c load_data 200 -c ensemble_dropout 0.5",
     "replicates": 1 
   },
   {
@@ -60,7 +60,7 @@
     "prefix": "model_dropout_7_200",
     "result_dir":"exp/log",
     "walltime": "2:00",
-    "args": " -c model_size 7 -c script compare -c load_data 200 -c data_size 200",
+    "args": " -c model_size 7 -c script compare -c load_data 200 -c ensemble_dropout 0.5",
     "replicates": 1 
   },
   {
@@ -68,7 +68,7 @@
     "prefix": "model_dropout_8_200",
     "result_dir":"exp/log",
     "walltime": "2:00",
-    "args": " -c model_size 8 -c script compare -c load_data 200 -c data_size 200",
+    "args": " -c model_size 8 -c script compare -c load_data 200 -c ensemble_dropout 0.5",
     "replicates": 1 
   },
   {
@@ -76,7 +76,7 @@
     "prefix": "model_dropout_9_200",
     "result_dir":"exp/log",
     "walltime": "2:00",
-    "args": " -c model_size 9 -c script compare -c load_data 200 -c data_size 200",
+    "args": " -c model_size 9 -c script compare -c load_data 200 -c ensemble_dropout 0.5",
     "replicates": 1 
   }
 ]
