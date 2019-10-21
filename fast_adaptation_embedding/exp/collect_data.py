@@ -334,7 +334,7 @@ def collect(config):
 
     with open('train_data_'+config['save_data']+'.pk', 'wb') as f:
         pickle.dump(data[0], f)
-    with open('eval_data_'+config['save_data']+'.pk', 'wb') as f:
+    with open('train_eval_'+config['save_data']+'.pk', 'wb') as f:
         train_in, train_out = evaluator.get_data()
         pickle.dump((train_in, train_out), f)
 
