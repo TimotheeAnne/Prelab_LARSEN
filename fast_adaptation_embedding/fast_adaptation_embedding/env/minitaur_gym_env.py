@@ -497,7 +497,7 @@ class MinitaurGymEnv(gym.Env):
     observation = []
     observation.extend(self.minitaur.GetMotorAngles().tolist())
     observation.extend(self.minitaur.GetMotorVelocities().tolist())
-    observation.extend(self.minitaur.GetMotorTorques().tolist())
+    # observation.extend(self.minitaur.GetMotorTorques().tolist())
     observation.extend(list(self.minitaur.GetBaseOrientation()))
     observation.extend(list(self.minitaur.GetBasePosition()))
     self._observation = observation
@@ -595,11 +595,16 @@ class MinitaurGymEnv(gym.Env):
     return self._env_step_counter
 
 
-def controller(t, params):
-    a = np.zeros(8)
-    for i in range(4):
-      a[i] = params[i] * np.sin(params[-1]*t+params[8+i])
-      a[4+i] = params[4+i] * np.sin(params[-1]*t+params[12+i])
+def controller(t, w, params):
+    a = [params[0] * np.sin(w * t + params[8]),
+         params[1] * np.sin(w * t + params[9]),
+         params[2] * np.sin(w * t + params[10]),
+         params[3] * np.sin(w * t + params[11]),
+         params[4] * np.sin(w * t + params[12]),
+         params[5] * np.sin(w * t + params[13]),
+         params[6] * np.sin(w * t + params[14]),
+         params[7] * np.sin(w * t + params[15])
+         ]
     return a
 
 
@@ -618,17 +623,15 @@ if __name__ == "__main__":
     previous_obs = system.reset()
     rew = 0
     dist = 0
-    for i in range(1000):
+    for i in range(10000):
         if recorder is not None:
             recorder.capture_frame()
         t = system.minitaur.GetTimeSinceReset()
         w = 4 * np.pi
 
-        params = [0.3]*4+[0.2]*4+[0, np.pi, np.pi, 0]*2+[w]
-        a = controller(t, params)
-        a[1] += 0.3
+        params = np.random.uniform([0.4] * 8 + [-np.pi] * 8, [0.5] * 8 + [np.pi] * 8)
+        a = controller(t, w, params)
         obs, r, done, _ = system.step(a)
-        print(done)
         previous_obs = np.copy(obs)
         rew += r
         # time.sleep(0.04)

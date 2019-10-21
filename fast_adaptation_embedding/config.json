@@ -1,82 +1,82 @@
 [
   {
     "exp":"exp/minitaur_env_adaptation.py",
-    "prefix": "model_onrack_0_200",
+    "prefix": "model_torqueless_0_200",
     "result_dir":"exp/log",
     "walltime": "2:00",
-    "args": " -c model_size 0 -c script compare -c load_data onrack200 -c data_size 200",
+    "args": " -c model_size 0 -c script compare -c load_data torqueless200 -c data_size 200",
     "replicates": 1 
   },
   {
     "exp":"exp/minitaur_env_adaptation.py",
-    "prefix": "model_onrack_1_200",
+    "prefix": "model_torqueless_1_200",
     "result_dir":"exp/log",
     "walltime": "2:00",
-    "args": " -c model_size 1 -c script compare -c load_data onrack200 -c data_size 200",
+    "args": " -c model_size 1 -c script compare -c load_data torqueless200 -c data_size 200",
     "replicates": 1 
   },
     {
     "exp":"exp/minitaur_env_adaptation.py",
-    "prefix": "model_onrack_2_200",
+    "prefix": "model_torqueless_2_200",
     "result_dir":"exp/log",
     "walltime": "2:00",
-    "args": " -c model_size 2 -c script compare -c load_data onrack200 -c data_size 200",
+    "args": " -c model_size 2 -c script compare -c load_data torqueless200 -c data_size 200",
     "replicates": 1 
   },
     {
     "exp":"exp/minitaur_env_adaptation.py",
-    "prefix": "model_onrack_3_200",
+    "prefix": "model_torqueless_3_200",
     "result_dir":"exp/log",
     "walltime": "2:00",
-    "args": " -c model_size 3 -c script compare -c load_data onrack200 -c data_size 200",
+    "args": " -c model_size 3 -c script compare -c load_data torqueless200 -c data_size 200",
     "replicates": 1 
   },
     {
     "exp":"exp/minitaur_env_adaptation.py",
-    "prefix": "model_onrack_4_200",
+    "prefix": "model_torqueless_4_200",
     "result_dir":"exp/log",
     "walltime": "2:00",
-    "args": " -c model_size 4 -c script compare -c load_data onrack200 -c data_size 200",
+    "args": " -c model_size 4 -c script compare -c load_data torqueless200 -c data_size 200",
     "replicates": 1 
   },
       {
     "exp":"exp/minitaur_env_adaptation.py",
-    "prefix": "model_onrack_5_200",
+    "prefix": "model_torqueless_5_200",
     "result_dir":"exp/log",
     "walltime": "2:00",
-    "args": " -c model_size 5 -c script compare -c load_data onrack200 -c data_size 200",
+    "args": " -c model_size 5 -c script compare -c load_data torqueless200 -c data_size 200",
     "replicates": 1 
   },
       {
     "exp":"exp/minitaur_env_adaptation.py",
-    "prefix": "model_onrack_6_200",
+    "prefix": "model_torqueless_6_200",
     "result_dir":"exp/log",
     "walltime": "2:00",
-    "args": " -c model_size 6 -c script compare -c load_data onrack200 -c data_size 200",
+    "args": " -c model_size 6 -c script compare -c load_data torqueless200 -c data_size 200",
     "replicates": 1 
   },
   {
     "exp":"exp/minitaur_env_adaptation.py",
-    "prefix": "model_onrack_7_200",
+    "prefix": "model_torqueless_7_200",
     "result_dir":"exp/log",
     "walltime": "2:00",
-    "args": " -c model_size 7 -c script compare -c load_data onrack200 -c data_size 200",
+    "args": " -c model_size 7 -c script compare -c load_data torqueless200 -c data_size 200",
     "replicates": 1 
   },
   {
     "exp":"exp/minitaur_env_adaptation.py",
-    "prefix": "model_onrack_8_200",
+    "prefix": "model_torqueless_8_200",
     "result_dir":"exp/log",
     "walltime": "2:00",
-    "args": " -c model_size 8 -c script compare -c load_data onrack200 -c data_size 200",
+    "args": " -c model_size 8 -c script compare -c load_data torqueless200 -c data_size 200",
     "replicates": 1 
   },
   {
     "exp":"exp/minitaur_env_adaptation.py",
-    "prefix": "model_onrack_9_200",
+    "prefix": "model_torqueless_9_200",
     "result_dir":"exp/log",
     "walltime": "2:00",
-    "args": " -c model_size 9 -c script compare -c load_data onrack200 -c data_size 200",
+    "args": " -c model_size 9 -c script compare -c load_data torqueless200 -c data_size 200",
     "replicates": 1 
-  },
+  }
 ]
