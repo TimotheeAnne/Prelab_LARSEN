@@ -165,7 +165,7 @@ class FFNN_Model():
         """
         diff_state = self.model.predict((d_in - self.data_mean_input) / self.data_std_input)
         outputs = (d_out - self.data_mean_output) / self.data_std_output
-        return torch.sqrt((outputs - diff_state).pow(2).sum(1)), torch.sqrt(outputs.pow(2).sum(1))
+        return torch.sqrt((outputs - diff_state).pow(2).sum(1)/d_out.size()[1]), torch.sqrt(outputs.pow(2).sum(1)/d_out.size()[1])
 
 class FFNN_Ensemble_Model():
     def __init__(self, dim_in, hidden, dim_out, n_ensembles, CUDA=False, SEED=None, output_limit=None, dropout=0.0, hidden_activation="tanh"):       
