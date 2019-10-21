@@ -294,7 +294,7 @@ def extract_action_seq(data):
     return np.array(actions)
 
 
-def main(config):
+def collect(config):
     logdir = os.path.join(config['logdir'], strftime("%Y-%m-%d--%H:%M:%S", localtime()) + str(np.random.randint(10**5)))
     config['logdir'] = logdir
     os.makedirs(logdir)
@@ -332,8 +332,9 @@ def main(config):
         evaluator.add_sample(traj_obs[-1], traj_acs[-1])
         print("-------------------------------\n")
 
-    with open('train_data'+config['save_data']+'.pk', 'wb') as f:
-        pickle.dump(data)
-    with open('eval_data'+config['save_data']+'.pk', 'wb') as f:
+    with open('train_data_'+config['save_data']+'.pk', 'wb') as f:
+        pickle.dump(data[0], f)
+    with open('eval_data_'+config['save_data']+'.pk', 'wb') as f:
         train_in, train_out = evaluator.get_data()
-        pickle.dump((train_in, train_out))
+        pickle.dump((train_in, train_out), f)
+

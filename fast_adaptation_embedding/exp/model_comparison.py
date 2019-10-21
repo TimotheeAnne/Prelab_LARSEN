@@ -137,7 +137,7 @@ def process_data(data):
     return np.array(training_in), np.array(training_out), np.max(training_in, axis=0), np.min(training_in, axis=0)
 
 
-def main(config):
+def compare(config):
     logdir = os.path.join(config['logdir'],
                           strftime("%Y-%m-%d--%H:%M:%S", localtime()) + str(np.random.randint(10 ** 5)))
     config['logdir'] = logdir

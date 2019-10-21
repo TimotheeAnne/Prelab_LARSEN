@@ -1,13 +1,14 @@
 import os, inspect
+
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 os.sys.path.insert(0, parentdir)
 import argparse
 import torch
 import numpy as np
-# from exp.env_adaptation import main
-from exp.model_comparison import main
-
+from exp.env_adaptation import main
+from exp.model_comparison import compare
+from exp.collect_data import collect
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -39,6 +40,8 @@ if __name__ == "__main__":
         [500, 500, 500, 500, 500, 500, 500, 500, 500, 500],
         [500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500],
     ]
+
+
     class Cost_ensemble(object):
         def __init__(self, ensemble_model, init_state, horizon, action_dim, goal, pred_high, pred_low, config):
             self.__ensemble_model = ensemble_model
@@ -90,17 +93,18 @@ if __name__ == "__main__":
 
                         action_cost = torch.sum(actions * actions, dim=1) * self.__action_weight
                         energy_cost = abs(
-                            torch.sum(start_states[:, 16:24] * start_states[:, 8:16], dim=1)) * 0.02 * self.__energy_weight
+                            torch.sum(start_states[:, 16:24] * start_states[:, 8:16],
+                                      dim=1)) * 0.02 * self.__energy_weight
                         x_vel_cost = -diff_state[:, 28] * self.__distance_weight
                         y_vel_cost = abs(diff_state[:, 29]) * self.__drift_weight
                         shake_cost = abs(diff_state[:, 30]) * self.__shake_weight
                         survival_cost = (start_states[:, 30] < 0.13).type(start_states.dtype) * self.__survival_weight
                         all_costs[start_index: end_index] += (x_vel_cost * self.__discount ** h + \
-                                                             action_cost * self.__discount ** h + \
-                                                             survival_cost * self.__discount ** h + \
-                                                             y_vel_cost * self.__discount ** h + \
-                                                             shake_cost * self.__discount ** h + \
-                                                             energy_cost * self.__discount ** h)/len(self.__models)
+                                                              action_cost * self.__discount ** h + \
+                                                              survival_cost * self.__discount ** h + \
+                                                              y_vel_cost * self.__discount ** h + \
+                                                              shake_cost * self.__discount ** h + \
+                                                              energy_cost * self.__discount ** h) / len(self.__models)
             return all_costs.cpu().detach().numpy()
 
 
@@ -116,7 +120,11 @@ if __name__ == "__main__":
              ]
         return a
 
+
     config = {
+        # script parameter
+        "script": "main",
+
         # exp parameters:
         # "env": 'MinitaurBulletEnv_fastAdapt-v0',
         "env": 'MinitaurGymEnv_fastAdapt-v0',
@@ -140,7 +148,7 @@ if __name__ == "__main__":
         "angle_limit": 1,
         "K": 1,
         "controller": controller,
-        "omega": 2*2*np.pi,
+        "omega": 2 * 2 * np.pi,
         "control_time_step": 0.01,
         "stop_training": np.inf,
         "data_size": "50",
@@ -152,7 +160,7 @@ if __name__ == "__main__":
 
         # Ensemble model params'log'
         "ensemble_epoch": 5,
-        "ensemble_dim_in": 8+31,
+        "ensemble_dim_in": 8 + 31,
         "ensemble_dim_out": 31,
         "ensemble_hidden": [200, 200, 100],
         "hidden_activation": "relu",
@@ -165,7 +173,6 @@ if __name__ == "__main__":
         "ensemble_log_interval": 500,
         "model_size": None,
 
-
         # Optimizer parameters
         "max_iters": 1,
         "epsilon": 0.0001,
@@ -175,7 +182,7 @@ if __name__ == "__main__":
         "init_var": 0.05,
         "popsize": 500,
         "pop_batch": 16384,
-        "sol_dim": 8*20,  # NOTE: Depends on Horizon
+        "sol_dim": 8 * 20,  # NOTE: Depends on Horizon
         "num_elites": 50,
         "cost_fn": None,
         "alpha": 0.1,
@@ -187,7 +194,7 @@ if __name__ == "__main__":
     for (key, val) in args.config:
         if key in ['horizon', 'K', 'popsize', 'iterations', 'n_ensembles']:
             config[key] = int(val)
-        elif key in ['load_data', 'hidden_activation', 'data_size']:
+        elif key in ['load_data', 'hidden_activation', 'data_size', 'save_data', 'script']:
             config[key] = val
         elif key in ['ensemble_hidden']:
             config[key] = [int(val), int(val), int(val)]
@@ -205,7 +212,7 @@ if __name__ == "__main__":
                 'accurate_motor_model_enabled': True,
                 #      'action_weight': config['action_weight'], 'motor_velocity_limit': config['motor_velocity_limit'],
                 #      'angle_limit': config['angle_limit']
-    }
+                }
     config['env_args'] = env_args
     if config['controller'] is not None:
         lb = [0] * 8 + [-np.pi] * 8
@@ -213,5 +220,10 @@ if __name__ == "__main__":
         config['lb'] = lb
         config['ub'] = ub
         config['sol_dim'] = 16
-        config['init_var'] = np.array([config['init_var']]*8+[config['init_var']*2*np.pi]*8)
-    main(config)
+        config['init_var'] = np.array([config['init_var']] * 8 + [config['init_var'] * 2 * np.pi] * 8)
+    if config['script'] == "collect":
+        collect(config)
+    elif config['script'] == "compare":
+        compare(config)
+    else:
+        main(config)
