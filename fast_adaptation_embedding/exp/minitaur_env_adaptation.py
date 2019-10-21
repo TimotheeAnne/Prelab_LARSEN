@@ -160,8 +160,8 @@ if __name__ == "__main__":
 
         # Ensemble model params'log'
         "ensemble_epoch": 5,
-        "ensemble_dim_in": 8 + 31 -8,
-        "ensemble_dim_out": 31-8,
+        "ensemble_dim_in": 8 + 31,
+        "ensemble_dim_out": 31,
         "ensemble_hidden": [200, 200, 100],
         "hidden_activation": "relu",
         "ensemble_cuda": True,
