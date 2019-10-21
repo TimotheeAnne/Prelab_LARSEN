@@ -20,7 +20,12 @@ class FFNN(nn.Module):
         self.dim_out = dim_out
         self.output_limit=output_limit
         self.hidden = hidden
-        self.hidden_activation = nn.ReLU() if hidden_activation=="relu" else nn.Tanh()
+        if hidden_activation == "relu":
+            self.hidden_activation = nn.ReLU()
+        elif hidden_activation == "lrelu":
+            self.hidden_activation = nn.LeakyReLU(0.01)
+        else:
+            self.hidden_activation = nn.Tanh()
         if not SEED == None:
             torch.manual_seed(SEED)
             if CUDA:
