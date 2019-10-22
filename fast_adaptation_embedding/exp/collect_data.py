@@ -34,6 +34,7 @@ class Evaluation_ensemble(object):
         self.__episode_length = config['episode_length']
         self.__inputs = np.zeros((0, config['ensemble_dim_in']))
         self.__outputs = np.zeros((0, config['ensemble_dim_out']))
+        self.__contact = config['ensemble_contact']
 
     def preprocess_data_traj(self, traj_obs, traj_acs):
         N = len(traj_acs)
@@ -49,7 +50,10 @@ class Evaluation_ensemble(object):
         assert (len(obs) == (len(acs) + 1))
         for t in range(len(acs)):
             self.__inputs = np.concatenate((self.__inputs, [np.concatenate((obs[t], acs[t]))]))
-            self.__outputs = np.concatenate((self.__outputs, [obs[t + 1] - obs[t]]))
+            if self.__contact:
+                self.__outputs = np.concatenate((self.__outputs, [np.concatenate((obs[t + 1, :-4] - obs[t, :-4], obs[t+1, -4:]))]))
+            else:
+                self.__outputs = np.concatenate((self.__outputs, [obs[t + 1] - obs[t]]))
 
     def get_data(self):
         return self.__inputs, self.__outputs
