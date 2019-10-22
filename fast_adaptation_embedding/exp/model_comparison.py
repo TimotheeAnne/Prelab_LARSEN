@@ -156,11 +156,11 @@ def compare(config):
 
     traj_eval0, traj_error0, traj_rets, traj_rews, traj_error, traj_eval, traj_sol, traj_motor = [], [], [], [], [], [], [], []
     all_training_error, all_eval_error, traj_train_pred, traj_eval_pred = [], [], [], []
-    with open("../data/train_data_"+config['load_data']+".pk", 'rb') as f:
+    with open("./data/train_data_"+config['load_data']+".pk", 'rb') as f:
         data = pickle.load(f)
-    with open("../data/train_eval_"+config['load_data']+".pk", 'rb') as f:
+    with open("./data/train_eval_"+config['load_data']+".pk", 'rb') as f:
         train_in, train_out = pickle.load(f)
-    with open("../data/test_eval_"+config['load_data']+".pk", 'rb') as f:
+    with open("./data/test_eval_"+config['load_data']+".pk", 'rb') as f:
         eval_in, eval_out = pickle.load(f)
 
     evaluator_train = Evaluation_ensemble(config=config)
