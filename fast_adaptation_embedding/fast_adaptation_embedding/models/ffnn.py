@@ -13,13 +13,15 @@ class FFNN(nn.Module):
     """
     simple FFNN with dropout regularization
     """
-    def __init__(self, dim_in, hidden, dim_out, CUDA=False, SEED=None, output_limit=None, dropout=0.0, hidden_activation="tanh"):
+    def __init__(self, dim_in, hidden, dim_out, CUDA=False, SEED=None, output_limit=None, dropout=0.0,
+                 hidden_activation="tanh", contact=False):
 
         super(FFNN, self).__init__()
         self.dim_in = dim_in
         self.dim_out = dim_out
         self.output_limit=output_limit
         self.hidden = hidden
+        self.contact = contact
         if hidden_activation == "relu":
             self.hidden_activation = nn.ReLU()
         elif hidden_activation == "lrelu":
@@ -36,7 +38,7 @@ class FFNN(nn.Module):
         for i in range(0, len(hidden)-1):
             self.Layers.append(nn.Linear(hidden[i], hidden[i+1]))        
         self.fcout = nn.Linear(hidden[-1], dim_out)
-
+        self.fcontact = nn.Sigmoid()
         self.ReLU = nn.ReLU()
         self.Tanh = nn.Tanh()
         self.dropout = nn.Dropout(dropout)
@@ -55,7 +57,7 @@ class FFNN(nn.Module):
         if self.output_limit is None:
             return self.fcout(outputs[-1])
         else:
-            return  self.Tanh(self.fcout(outputs[-1])) * self.output_limit
+            return self.Tanh(self.fcout(outputs[-1])) * self.output_limit
 
     # Call this when not training
     # Other wise repeatedly calling forward will consume memory by building the 
@@ -82,14 +84,16 @@ class FFNN(nn.Module):
     
 
 class FFNN_Model():
-    def __init__(self, dim_in, hidden, dim_out, CUDA=False, SEED=None, output_limit=None, dropout=0.0, hidden_activation="tanh"):
+    def __init__(self, dim_in, hidden, dim_out, CUDA=False, SEED=None, output_limit=None,
+                 dropout=0.0, hidden_activation="tanh", contact=False):
        
         self.dim_in = dim_in
         self.dim_out = dim_out
         self.hidden = hidden
         self.CUDA = CUDA
         self.output_limit=output_limit
-        self.model = FFNN (dim_in=dim_in, hidden=hidden, dim_out=dim_out, CUDA=CUDA, SEED=SEED, output_limit=output_limit, dropout=dropout, hidden_activation=hidden_activation)
+        self.model = FFNN(dim_in=dim_in, hidden=hidden, dim_out=dim_out, CUDA=CUDA, SEED=SEED, contact=contact,
+                          output_limit=output_limit, dropout=dropout, hidden_activation=hidden_activation)
         self.data_mean_input = None
         self.data_mean_output = None
         self.data_std_input = None
@@ -168,12 +172,15 @@ class FFNN_Model():
         return torch.sqrt((outputs - diff_state).pow(2).sum(1)/d_out.size()[1]), torch.sqrt(outputs.pow(2).sum(1)/d_out.size()[1])
 
 class FFNN_Ensemble_Model():
-    def __init__(self, dim_in, hidden, dim_out, n_ensembles, CUDA=False, SEED=None, output_limit=None, dropout=0.0, hidden_activation="tanh"):       
+    def __init__(self, dim_in, hidden, dim_out, n_ensembles, CUDA=False, SEED=None, output_limit=None,
+                 dropout=0.0, hidden_activation="tanh", contact=False):
         self.n_ensembles = n_ensembles
         self.models = []
         self.CUDA = CUDA
         for i in range(self.n_ensembles):
-            self.models.append(FFNN_Model(dim_in=dim_in, hidden=hidden, dim_out=dim_out, CUDA=CUDA, SEED=SEED, output_limit=output_limit, dropout=dropout, hidden_activation=hidden_activation))
+            self.models.append(FFNN_Model(dim_in=dim_in, hidden=hidden, dim_out=dim_out, CUDA=CUDA, SEED=SEED,
+                                          output_limit=output_limit, dropout=dropout, contact=contact,
+                                          hidden_activation=hidden_activation))
         
     def train(self, epochs, training_inputs, training_targets, sampling_size, batch_size=None, logInterval=100):
         for i in range(self.n_ensembles):
