@@ -389,6 +389,25 @@ class MinitaurGymEnv(gym.Env):
     rgb_array = rgb_array[:, :, :3]
     return rgb_array
 
+  def get_foot_contact(self):
+      """
+      FR r3 - l6
+      BR r9 - l12
+      FL l16 -r19
+      BL l22 - r25
+      :return: [FR, BR, FL, BL] boolean contact with the floor
+      """
+      contacts = []
+      for foot_id in self.minitaur._foot_link_ids:
+        contact = self.pybullet_client.getContactPoints(0, 1, -1, foot_id)
+        if contact != ():
+            contacts.append(foot_id)
+      FR = 3 in contacts or 6 in contacts
+      BR = 9 in contacts or 12 in contacts
+      FL = 16 in contacts or 19 in contacts
+      BL = 22 in contacts or 25 in contacts
+      return [FR, BR, FL, BL]
+
   def get_minitaur_motor_angles(self):
     """Get the minitaur's motor angles.
 
@@ -500,6 +519,7 @@ class MinitaurGymEnv(gym.Env):
     observation.extend(self.minitaur.GetMotorTorques().tolist())
     observation.extend(list(self.minitaur.GetBaseOrientation()))
     observation.extend(list(self.minitaur.GetBasePosition()))
+    observation.extend(self.get_foot_contact())
     self._observation = observation
     return self._observation
 
@@ -616,7 +636,7 @@ if __name__ == "__main__":
 
     render = True
     # render = False
-    system = gym.make("MinitaurGymEnv_fastAdapt-v0", render=render,
+    system = gym.make("MinitaurGymEnv_fastAdapt-v0", render=render, on_rack=False,
                       control_time_step=0.01, accurate_motor_model_enabled=1)
     recorder = None
     # recorder = VideoRecorder(system, "test.mp4")
@@ -633,8 +653,9 @@ if __name__ == "__main__":
         a = controller(t, w, params)
         obs, r, done, _ = system.step(a)
         previous_obs = np.copy(obs)
+        print(obs)
         rew += r
-        # time.sleep(0.04)
+        # time.sleep(3)
     if recorder is not None:
         recorder.capture_frame()
         recorder.close()
