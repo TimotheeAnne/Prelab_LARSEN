@@ -34,7 +34,8 @@ def train_ensemble_model(train_in, train_out, sampling_size, config, model=None)
                                       SEED=config["ensemble_seed"],
                                       output_limit=config["ensemble_output_limit"],
                                       dropout=config["ensemble_dropout"],
-                                      n_ensembles=config["n_ensembles"])
+                                      n_ensembles=config["n_ensembles"],
+                                      contact=config['ensemble_contact'])
     network.train(epochs=config["ensemble_epoch"], training_inputs=train_in, training_targets=train_out,
                   batch_size=config["ensemble_batch_size"], logInterval=config["ensemble_log_interval"],
                   sampling_size=sampling_size)
