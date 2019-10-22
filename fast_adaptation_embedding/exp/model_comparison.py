@@ -122,8 +122,8 @@ class Evaluation_ensemble(object):
 
         for model_index in range(len(models)):
             dyn_model = models[model_index]
-            error[model_index], error0[model_index] = dyn_model.compute_error(inputs, outputs)
-        return error.cpu().detach().numpy(), error0.cpu().detach().numpy()
+            error[model_index], error0[model_index], pred = dyn_model.compute_error(inputs, outputs)
+        return error.cpu().detach().numpy(), error0.cpu().detach().numpy(), pred.cpu().detach().numpy()
 
 
 def process_data(data):
@@ -155,7 +155,7 @@ def compare(config):
     evaluations = n_task * [None]
 
     traj_eval0, traj_error0, traj_rets, traj_rews, traj_error, traj_eval, traj_sol, traj_motor = [], [], [], [], [], [], [], []
-    all_training_error, all_eval_error = [], []
+    all_training_error, all_eval_error, traj_train_pred, traj_eval_pred = [], [], [], []
     with open("../data/train_data_"+config['load_data']+".pk", 'rb') as f:
         data = pickle.load(f)
     with open("../data/train_eval_"+config['load_data']+".pk", 'rb') as f:
@@ -178,8 +178,8 @@ def compare(config):
         models[env_index] = train_ensemble_model(train_in=x, train_out=y, sampling_size=sampling_size, config=config,
                                                  model=models[env_index])
         print("Evaluate model...")
-        training_error, training_error0 = evaluator_train.eval_model(models[env_index])
-        eval_error, eval_error0 = evaluator_eval.eval_model(models[env_index])
+        training_error, training_error0, train_pred = evaluator_train.eval_model(models[env_index])
+        eval_error, eval_error0, eval_pred = evaluator_eval.eval_model(models[env_index])
         print("Training error:", np.mean(training_error, axis=1))
         print("Test error:", np.mean(eval_error, axis=1))
         print("Training R²:", np.mean(1-training_error/training_error0, axis=1))
@@ -190,6 +190,8 @@ def compare(config):
         traj_error0.append(np.mean(1-training_error/training_error0, axis=1))
         all_training_error.append(training_error)
         all_eval_error.append(eval_error)
+        traj_eval_pred.append(eval_pred)
+        traj_train_pred.append(train_pred)
 
         savemat(
             os.path.join(config['logdir'], "logs.mat"),
@@ -200,6 +202,8 @@ def compare(config):
                 "test_R2": traj_eval0,
                 "all_eval_error": all_eval_error,
                 "all_training_error": all_training_error,
+                "eval_pred": traj_eval_pred,
+                "train_pred": traj_train_pred,
             }
         )
         print("-------------------------------\n")
