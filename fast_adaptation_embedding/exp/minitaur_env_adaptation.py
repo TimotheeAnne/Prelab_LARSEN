@@ -160,14 +160,15 @@ if __name__ == "__main__":
 
         # Ensemble model params'log'
         "ensemble_epoch": 5,
-        "ensemble_dim_in": 8 + 31,
+        "ensemble_dim_in": 8 + 31 + 4,
         "ensemble_dim_out": 31,
+        "ensemble_contact": True,
         "ensemble_hidden": [200, 200, 100],
         "hidden_activation": "relu",
         "ensemble_cuda": True,
         "ensemble_seed": None,
         "ensemble_output_limit": None,
-        "ensemble_dropout": 0.0,
+        "ensemble_dropout": 0.,
         "n_ensembles": 1,
         "ensemble_batch_size": 64,
         "ensemble_log_interval": 500,
