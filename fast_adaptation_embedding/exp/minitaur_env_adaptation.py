@@ -160,7 +160,7 @@ if __name__ == "__main__":
 
         # Ensemble model params'log'
         "ensemble_epoch": 5,
-        "ensemble_dim_in": 8 + 31 + 4,
+        "ensemble_dim_in": 8 + 31,
         "ensemble_dim_out": 31,
         "ensemble_contact": True,
         "ensemble_hidden": [200, 200, 100],
@@ -215,6 +215,9 @@ if __name__ == "__main__":
                 #      'angle_limit': config['angle_limit']
                 }
     config['env_args'] = env_args
+    if config['ensemble_contact']:
+        config['ensemble_dim_out'] += 4
+        config['ensemble_dim_in'] += 4
     if config['controller'] is not None:
         lb = [0] * 8 + [-np.pi] * 8
         ub = [0.5] * 8 + [np.pi] * 8
