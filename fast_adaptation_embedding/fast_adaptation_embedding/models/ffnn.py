@@ -196,14 +196,18 @@ class FFNN_Model():
         return self.model.predict(
             (d_in - self.data_mean_input) / self.data_std_input) * self.data_std_output + self.data_mean_output
 
-    def compute_error(self, d_in, d_out):
+    def compute_error(self, d_in, d_out, return_pred=False):
         """
        d_in: 2d tensor. Must be casted properly to cpu or cuda.
         """
         diff_state = self.model.predict((d_in - self.data_mean_input) / self.data_std_input)
         outputs = (d_out - self.data_mean_output) / self.data_std_output
-        return torch.sqrt((outputs - diff_state).pow(2).sum(1) / d_out.size()[1]), torch.sqrt(
+        if return_pred:
+            return torch.sqrt((outputs - diff_state).pow(2).sum(1) / d_out.size()[1]), torch.sqrt(
             outputs.pow(2).sum(1) / d_out.size()[1]), diff_state
+        else:
+            return torch.sqrt((outputs - diff_state).pow(2).sum(1) / d_out.size()[1]), torch.sqrt(
+            outputs.pow(2).sum(1) / d_out.size()[1])
 
 
 class FFNN_Ensemble_Model():
