@@ -1,82 +1,10 @@
 [
   {
-    "exp":"exp/minitaur_env_adaptation.py",
-    "prefix": "model_contact_0_200",
+    "exp":"exp/ant_env_adaptation.py",
+    "prefix": "ant",
     "result_dir":"exp/log",
-    "walltime": "2:00",
-    "args": " -c model_size 0 -c script compare -c load_data contact200 ",
-    "replicates": 1 
-  },
-  {
-    "exp":"exp/minitaur_env_adaptation.py",
-    "prefix": "model_contact_1_200",
-    "result_dir":"exp/log",
-    "walltime": "2:00",
-    "args": " -c model_size 1 -c script compare -c load_data contact200 ",
-    "replicates": 1 
-  },
-    {
-    "exp":"exp/minitaur_env_adaptation.py",
-    "prefix": "model_contact_2_200",
-    "result_dir":"exp/log",
-    "walltime": "2:00",
-    "args": " -c model_size 2 -c script compare -c load_data contact200 ",
-    "replicates": 1 
-  },
-    {
-    "exp":"exp/minitaur_env_adaptation.py",
-    "prefix": "model_contact_3_200",
-    "result_dir":"exp/log",
-    "walltime": "2:00",
-    "args": " -c model_size 3 -c script compare -c load_data contact200 ",
-    "replicates": 1 
-  },
-    {
-    "exp":"exp/minitaur_env_adaptation.py",
-    "prefix": "model_contact_4_200",
-    "result_dir":"exp/log",
-    "walltime": "2:00",
-    "args": " -c model_size 4 -c script compare -c load_data contact200 ",
-    "replicates": 1 
-  },
-      {
-    "exp":"exp/minitaur_env_adaptation.py",
-    "prefix": "model_contact_5_200",
-    "result_dir":"exp/log",
-    "walltime": "2:00",
-    "args": " -c model_size 5 -c script compare -c load_data contact200 ",
-    "replicates": 1 
-  },
-      {
-    "exp":"exp/minitaur_env_adaptation.py",
-    "prefix": "model_contact_6_200",
-    "result_dir":"exp/log",
-    "walltime": "2:00",
-    "args": " -c model_size 6 -c script compare -c load_data contact200 ",
-    "replicates": 1 
-  },
-  {
-    "exp":"exp/minitaur_env_adaptation.py",
-    "prefix": "model_contact_7_200",
-    "result_dir":"exp/log",
-    "walltime": "2:00",
-    "args": " -c model_size 7 -c script compare -c load_data contact200 ",
-    "replicates": 1 
-  },
-  {
-    "exp":"exp/minitaur_env_adaptation.py",
-    "prefix": "model_contact_8_200",
-    "result_dir":"exp/log",
-    "walltime": "2:00",
-    "args": " -c model_size 8 -c script compare -c load_data contact200 ",
-    "replicates": 1 
-  },
-  {
-    "exp":"exp/minitaur_env_adaptation.py",
-    "prefix": "model_contact_9_200",
-    "result_dir":"exp/log",
-    "walltime": "2:00",
-    "args": " -c model_size 9 -c script compare -c load_data contact200 ",
-    "replicates": 1 
+    "walltime": "4:00",
+    "args": "",
+    "replicates": 3
   }
 ]
