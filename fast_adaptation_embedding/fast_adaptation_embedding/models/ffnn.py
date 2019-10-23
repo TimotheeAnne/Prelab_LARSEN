@@ -181,13 +181,13 @@ class FFNN_Model():
                     loss_vals = []
         self.model.train(mode=False)
 
-    # ~ def predict(self, d_in): #TODO: this is not efficient due to the conversions from numpy to tensor
-    # ~ """
-    # ~ d_in: 2d numpy arrays
-    # ~ """
-    # ~ x = (torch.FloatTensor(d_in).cuda() - self.data_mean_input) / self.data_std_input if self.CUDA else (torch.FloatTensor(d_in) - self.data_mean_input) / self.data_std_input
+    def predict(self, d_in): #TODO: this is not efficient due to the conversions from numpy to tensor
+        """
+        d_in: 2d numpy arrays
+        """
+        x = (torch.FloatTensor(d_in).cuda() - self.data_mean_input) / self.data_std_input if self.CUDA else (torch.FloatTensor(d_in) - self.data_mean_input) / self.data_std_input
 
-    # ~ return ((self.model.forward(x) * self.data_std_output) + self.data_mean_output).cpu().detach().numpy()
+        return ((self.model.forward(x) * self.data_std_output) + self.data_mean_output).cpu().detach().numpy()
 
     def predict_tensor(self, d_in):
         """
