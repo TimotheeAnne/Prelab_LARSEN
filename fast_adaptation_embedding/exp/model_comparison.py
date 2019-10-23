@@ -113,17 +113,23 @@ class Evaluation_ensemble(object):
                     one_step_error[model_index] = (pred_error / state_norm)
         return error.cpu().detach().numpy(), one_step_error.cpu().detach().numpy()
 
-    def eval_model(self, ensemble):
+    def eval_model(self, ensemble, return_pred=False):
         models = ensemble.get_models()
         inputs = torch.FloatTensor(self.__inputs).cuda()
         outputs = torch.FloatTensor(self.__outputs).cuda()
         error = torch.FloatTensor(np.zeros((len(models), len(self.__inputs)))).cuda()
         error0 = torch.FloatTensor(np.zeros((len(models), len(self.__inputs)))).cuda()
 
-        for model_index in range(len(models)):
-            dyn_model = models[model_index]
-            error[model_index], error0[model_index], pred = dyn_model.compute_error(inputs, outputs)
-        return error.cpu().detach().numpy(), error0.cpu().detach().numpy(), pred.cpu().detach().numpy()
+        if return_pred:
+            for model_index in range(len(models)):
+                dyn_model = models[model_index]
+                error[model_index], error0[model_index], pred = dyn_model.compute_error(inputs, outputs, True)
+            return error.cpu().detach().numpy(), error0.cpu().detach().numpy(), pred.cpu().detach().numpy()
+        else:
+            for model_index in range(len(models)):
+                dyn_model = models[model_index]
+                error[model_index], error0[model_index] = dyn_model.compute_error(inputs, outputs)
+        return error.cpu().detach().numpy(), error0.cpu().detach().numpy()
 
 
 def process_data(data):
@@ -178,8 +184,15 @@ def compare(config):
         models[env_index] = train_ensemble_model(train_in=x, train_out=y, sampling_size=sampling_size, config=config,
                                                  model=models[env_index])
         print("Evaluate model...")
-        training_error, training_error0, train_pred = evaluator_train.eval_model(models[env_index])
-        eval_error, eval_error0, eval_pred = evaluator_eval.eval_model(models[env_index])
+
+        if (index_iter % 50 == 0) or (index_iter == (config["iterations"]-1)):
+            training_error, training_error0, train_pred = evaluator_train.eval_model(models[env_index], True)
+            eval_error, eval_error0, eval_pred = evaluator_eval.eval_model(models[env_index], True)
+            traj_eval_pred.append(eval_pred)
+            traj_train_pred.append(train_pred)
+        else:
+            training_error, training_error0 = evaluator_train.eval_model(models[env_index])
+            eval_error, eval_error0 = evaluator_eval.eval_model(models[env_index])
         print("Training error:", np.mean(training_error, axis=1))
         print("Test error:", np.mean(eval_error, axis=1))
         print("Training R²:", np.mean(1-training_error/training_error0, axis=1))
@@ -190,8 +203,7 @@ def compare(config):
         traj_error0.append(np.mean(1-training_error/training_error0, axis=1))
         all_training_error.append(training_error)
         all_eval_error.append(eval_error)
-        traj_eval_pred.append(eval_pred)
-        traj_train_pred.append(train_pred)
+
 
         savemat(
             os.path.join(config['logdir'], "logs.mat"),
