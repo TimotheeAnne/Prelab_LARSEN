@@ -72,8 +72,8 @@ if __name__ == "__main__":
         "env": "AntMuJoCoEnv_fastAdapt-v0",
         "env_args": {},
         "horizon": 20,  # NOTE: "sol_dim" must be adjusted
-        "iterations": 200,
-        "random_iter": 1,
+        "iterations": 300,
+        "random_iter": 100,
         "episode_length": 1000,
         "init_state": None,  # Must be updated before passing config as param
         "action_dim": 8,
