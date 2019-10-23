@@ -1,4 +1,5 @@
 import os, inspect
+
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 os.sys.path.insert(0, parentdir)
@@ -29,11 +30,14 @@ if __name__ == "__main__":
             self.__discount = config['discount']
 
         def cost_fn(self, samples):
-            action_samples = torch.FloatTensor(samples).cuda() if self.__ensemble_model.CUDA else torch.FloatTensor(samples)
+            action_samples = torch.FloatTensor(samples).cuda() if self.__ensemble_model.CUDA else torch.FloatTensor(
+                samples)
             init_states = torch.FloatTensor(np.repeat([self.__init_state], len(samples),
                                                       axis=0)).cuda() if self.__ensemble_model.CUDA else torch.FloatTensor(
                 np.repeat([self.__init_state], len(samples), axis=0))
-            all_costs = torch.FloatTensor(np.zeros(len(samples))).cuda() if self.__ensemble_model.CUDA else torch.FloatTensor(np.zeros(len(samples)))
+            all_costs = torch.FloatTensor(
+                np.zeros(len(samples))).cuda() if self.__ensemble_model.CUDA else torch.FloatTensor(
+                np.zeros(len(samples)))
 
             n_model = len(self.__models)
             # n_batch = min(n_model, int(len(samples)/1024))
@@ -57,10 +61,11 @@ if __name__ == "__main__":
                     action_cost = torch.sum(actions * actions, dim=1) * 0.0
                     x_vel_cost = -start_states[:, 13]
                     survive_cost = (start_states[:, 0] < 0.26).type(start_states.dtype) * 2.0
-                    all_costs[start_index: end_index] += x_vel_cost * self.__discount ** h +\
-                                                         action_cost * self.__discount ** h +\
+                    all_costs[start_index: end_index] += x_vel_cost * self.__discount ** h + \
+                                                         action_cost * self.__discount ** h + \
                                                          survive_cost * self.__discount ** h
             return all_costs.cpu().detach().numpy()
+
 
     config = {
         # exp parameters:
@@ -78,6 +83,10 @@ if __name__ == "__main__":
         "motor_velocity_limit": np.inf,
         "angle_limit": 1,
         "K": 1,
+        'video.frames_per_second': 50,
+        'controller': None,
+        'stop_training': np.inf,
+        "control_time_step": 0.02,
 
         # Model learning parameters
         "epoch": 1000,
@@ -86,9 +95,10 @@ if __name__ == "__main__":
 
         # Ensemble model params'log'
         "ensemble_epoch": 5,
-        "ensemble_dim_in": 8+27,
+        "ensemble_dim_in": 8 + 27,
         "ensemble_dim_out": 27,
         "ensemble_hidden": [200, 200, 100],
+        "ensemble_contact": False,
         "hidden_activation": "relu",
         "ensemble_cuda": True,
         "ensemble_seed": None,
@@ -106,12 +116,16 @@ if __name__ == "__main__":
         "ub": 0.5,
         "popsize": 500,
         "pop_batch": 16384,
-        "sol_dim": 8*20,  # NOTE: Depends on Horizon
+        "sol_dim": 8 * 20,  # NOTE: Depends on Horizon
         "num_elites": 50,
         "cost_fn": None,
         "alpha": 0.1,
         "discount": 1.,
-        "Cost_ensemble": Cost_ensemble
+        "Cost_ensemble": Cost_ensemble,
+        "init_var": 0.2,
+        "initial_boost": 25,
+        "omega": None,
+
     }
     for (key, val) in args.config:
         if key in ['horizon', 'K', 'popsize', 'iterations']:

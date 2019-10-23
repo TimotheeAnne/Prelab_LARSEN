@@ -42,33 +42,43 @@ def train_ensemble_model(train_in, train_out, sampling_size, config, model=None)
 
 
 class Evaluation_ensemble(object):
-    def __init__(self, ensemble_model, pred_high, pred_low, config):
+    def __init__(self, config, ensemble_model=None, pred_high=None, pred_low=None):
         self.__ensemble_model = ensemble_model
         self.__horizon = config['horizon']
         self.__action_dim = config['action_dim']
-        self.__models = self.__ensemble_model.get_models()
         self.__pred_high = pred_high
         self.__pred_low = pred_low
         self.__obs_dim = config['ensemble_dim_out']
         self.__episode_length = config['episode_length']
-        self._inputs = np.array([])
-        self._outputs = np.array([])
+        self.__inputs = np.zeros((0, config['ensemble_dim_in']))
+        self.__outputs = np.zeros((0, config['ensemble_dim_out']))
+        self.__contact = config['ensemble_contact']
 
     def preprocess_data_traj(self, traj_obs, traj_acs):
         N = len(traj_acs)
         actions, init_observations, observations = [], [], []
         for i in range(N):
-            for t in range(0, len(traj_acs[i])-self.__horizon, self.__horizon):
+            for t in range(0, len(traj_acs[i]) - self.__horizon, self.__horizon):
                 actions.append(traj_acs[i][t:t + self.__horizon].flatten())
                 init_observations.append(traj_obs[i][t])
                 observations.append(traj_obs[i][t + 1:t + 1 + self.__horizon].flatten())
         return np.array(actions), np.array(init_observations), np.array(observations)
 
     def add_sample(self, obs, acs):
-        assert(len(obs) == (len(acs) + 1))
+        assert (len(obs) == (len(acs) + 1))
         for t in range(len(acs)):
-            self._inputs.extend(np.concatenate((obs[t], acs[t])))
-            self._outputs.extend(obs[t+1]-obs[t])
+            self.__inputs = np.concatenate((self.__inputs, [np.concatenate((obs[t], acs[t]))]))
+            if self.__contact:
+                self.__outputs = np.concatenate((self.__outputs, [np.concatenate((obs[t + 1, :-4] - obs[t, :-4], obs[t+1, -4:]))]))
+            else:
+                self.__outputs = np.concatenate((self.__outputs, [obs[t + 1] - obs[t]]))
+
+    def get_data(self):
+        return self.__inputs, self.__outputs
+
+    def set_data(self, inputs, outputs):
+        self.__inputs = inputs
+        self.__outputs = outputs
 
     def eval_traj(self, actions, init_states, observations):
         action_batch = torch.FloatTensor(actions).cuda() \
@@ -84,9 +94,11 @@ class Evaluation_ensemble(object):
             if self.__ensemble_model.CUDA \
             else torch.FloatTensor(np.zeros((len(self.__models), len(actions))))
 
+
         for model_index in range(len(self.__models)):
             dyn_model = self.__models[model_index]
-            start_states = torch.FloatTensor(init_states).cuda() if self.__ensemble_model.CUDA else torch.FloatTensor(init_states)
+            start_states = torch.FloatTensor(init_states).cuda() if self.__ensemble_model.CUDA else torch.FloatTensor(
+                init_states)
             for h in range(self.__horizon):
                 actions = action_batch[:, h * self.__action_dim: h * self.__action_dim + self.__action_dim]
                 model_input = torch.cat((start_states, actions), dim=1)
@@ -94,29 +106,27 @@ class Evaluation_ensemble(object):
                 start_states += diff_state
                 for dim in range(self.__obs_dim):
                     start_states[:, dim].clamp_(self.__pred_low[dim], self.__pred_high[dim])
-                pred_error = torch.sqrt((start_states - traj_states[:, h * self.__obs_dim: h * self.__obs_dim + self.__obs_dim]).pow(2).sum(1))
-                state_norm = torch.sqrt((traj_states[:, h * self.__obs_dim: h * self.__obs_dim + self.__obs_dim]).pow(2).sum(1))
-                error[model_index] += (pred_error / state_norm)/self.__horizon
+                pred_error = torch.sqrt(
+                    (start_states - traj_states[:, h * self.__obs_dim: h * self.__obs_dim + self.__obs_dim]).pow(2).sum(
+                        1))
+                state_norm = torch.sqrt(
+                    (traj_states[:, h * self.__obs_dim: h * self.__obs_dim + self.__obs_dim]).pow(2).sum(1))
+                error[model_index] += (pred_error / state_norm) / self.__horizon
                 if h == 0:
                     one_step_error[model_index] = (pred_error / state_norm)
         return error.cpu().detach().numpy(), one_step_error.cpu().detach().numpy()
 
-    def eval_model(self):
-        inputs = torch.FloatTensor(self._inputs).cuda() \
-            if self.__ensemble_model.CUDA \
-            else torch.FloatTensor(self._inputs)
-        outputs = torch.FloatTensor(self._outputs).cuda() \
-            if self.__ensemble_model.CUDA \
-            else torch.FloatTensor(self._outputs)
-        error = torch.FloatTensor(np.zeros((len(self.__models), len(self._inputs)))).cuda() \
-            if self.__ensemble_model.CUDA \
-            else torch.FloatTensor(np.zeros((len(self.__models), len(self._inputs))))
-        for model_index in range(len(self.__models)):
-            dyn_model = self.__models[model_index]
-            diff_state = dyn_model.predict_tensor(inputs)
-            pred_error = (outputs - diff_state).pow(2).sum()
-            error[model_index] += pred_error
-        return error.cpu().detach().numpy()
+    def eval_model(self, ensemble):
+        models = ensemble.get_models()
+        inputs = torch.FloatTensor(self.__inputs).cuda()
+        outputs = torch.FloatTensor(self.__outputs).cuda()
+        error = torch.FloatTensor(np.zeros((len(models), len(self.__inputs)))).cuda()
+        error0 = torch.FloatTensor(np.zeros((len(models), len(self.__inputs)))).cuda()
+
+        for model_index in range(len(models)):
+            dyn_model = models[model_index]
+            error[model_index], error0[model_index] = dyn_model.compute_error(inputs, outputs)
+        return error.cpu().detach().numpy(), error0.cpu().detach().numpy()
 
 def process_data(data):
     # Assuming dada: an array containing [state, action, state_transition, cost]
@@ -314,6 +324,7 @@ def main(config):
         f.write(pprint.pformat(config))
     n_task = 1
     render = False
+    print(config)
     envs = [gym.make(config['env'], **config['env_args']) for i in range(n_task)]
     envs[0].metadata["video.frames_per_second"] = config['video.frames_per_second']
     random_iter = config['random_iter']
@@ -361,14 +372,14 @@ def main(config):
                 print("Evaluate model...")
                 evaluator = Evaluation_ensemble(ensemble_model=models[env_index], pred_high=high, pred_low=low, config=config)
                 evaluator.add_sample(traj_obs[-1], traj_acs[-1])
-                error = evaluator.eval_model()
+                error, _ = evaluator.eval_model(models[env_index])
                 print("Training error:", np.mean(error, axis=1))
                 traj_eval.append(np.mean(error, axis=1))
             elif index_iter % 50 == 0:
                 config['popsize'] = config['popsize'] * 10
             print("Execution...")
 
-            trajectory, c = execute_3(env=env,
+            trajectory, c = execute_2(env=env,
                                     model=models[env_index],
                                     steps=config["episode_length"],
                                     init_var=config["init_var"] * np.ones(config["sol_dim"]),
