@@ -88,13 +88,16 @@ class FFNN(nn.Module):
         return output.detach()
 
     def loss_function(self, y, y_pred):
-        MSE = (y[:, :self.dim_out - 4] - y_pred[:, :self.dim_out - 4]).pow(2).sum()
-        BCE = 0
         if self.contact:
+            MSE = (y[:, :self.dim_out - 4] - y_pred[:, :self.dim_out - 4]).pow(2).sum()
             BCE = self.contact_loss(y_pred[:, -1], y[:, -1]) + self.contact_loss(y_pred[:, -2],
                                                                                  y[:, -2]) + self.contact_loss(
                 y_pred[:, -3], y[:, -3]) + self.contact_loss(y_pred[:, -4], y[:, -4])
-        return MSE + BCE
+            return MSE + BCE
+        else:
+            MSE = (y - y_pred).pow(2).sum()
+            return MSE
+
 
 
 class FFNN_Model():
