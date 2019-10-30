@@ -62,7 +62,7 @@ class MinitaurGymEnv(gym.Env):
   expenditure.
 
   """
-  metadata = {"render.modes": ["human", "rgb_array"], "video.frames_per_second": 100}
+  metadata = {"render.modes": ["human", "rgb_array"], "video.frames_per_second": 166}
 
   def __init__(self,
                urdf_root=pybullet_data.getDataPath(),
@@ -361,7 +361,7 @@ class MinitaurGymEnv(gym.Env):
     self._env_step_counter += 1
     if done:
       self.minitaur.Terminate()
-    return np.array(self._get_observation()), reward, done, {'action': action}
+    return np.array(self._get_observation()), reward, done, {'action': action, 'rewards': self._objectives}
 
   def render(self, mode="rgb_array", close=False):
     if mode != "rgb_array":
@@ -616,14 +616,14 @@ class MinitaurGymEnv(gym.Env):
 
 
 def controller(t, w, params):
-    a = [params[0] * np.sin(w * t + params[8]),
-         params[1] * np.sin(w * t + params[9]),
-         params[2] * np.sin(w * t + params[10]),
-         params[3] * np.sin(w * t + params[11]),
-         params[4] * np.sin(w * t + params[12]),
-         params[5] * np.sin(w * t + params[13]),
-         params[6] * np.sin(w * t + params[14]),
-         params[7] * np.sin(w * t + params[15])
+    a = [params[0] * np.sin(w * t + params[8]*2*np.pi),   #s FL
+         params[1] * np.sin(w * t + params[9]*2*np.pi),   #s BL
+         params[2] * np.sin(w * t + params[10]*2*np.pi),  #s FR
+         params[3] * np.sin(w * t + params[11]*2*np.pi),  #s BR
+         params[4] * np.sin(w * t + params[12]*2*np.pi),  #e FL
+         params[5] * np.sin(w * t + params[13]*2*np.pi),  #e BR
+         params[6] * np.sin(w * t + params[14]*2*np.pi),  #e FR
+         params[7] * np.sin(w * t + params[15]*2*np.pi)   #e BR
          ]
     return a
 
@@ -631,34 +631,45 @@ def controller(t, w, params):
 if __name__ == "__main__":
     import gym
     import time
+    import pickle
     import fast_adaptation_embedding.env
     from gym.wrappers.monitoring.video_recorder import VideoRecorder
 
-    render = True
-    # render = False
-    system = gym.make("MinitaurGymEnv_fastAdapt-v0", render=render, on_rack=False,
-                      control_time_step=0.01, accurate_motor_model_enabled=1)
+    # render = True
+    render = False
+    system = gym.make("MinitaurGymEnv_fastAdapt-v0", render=render, on_rack=0,
+                      control_time_step=0.006, accurate_motor_model_enabled=1,
+                      energy_weight=0, drift_weight=1, shake_weight=0.01)
+
     recorder = None
+    Params, R = [], []
     # recorder = VideoRecorder(system, "test.mp4")
-    previous_obs = system.reset()
-    rew = 0
-    dist = 0
-    for i in range(10000):
+    while True:
+        previous_obs = system.reset()
+        rew = 0
+        dist = 0
+        params = np.random.uniform([0]*16, [1] * 16)
+        for i in range(166*5):
+            if recorder is not None:
+                recorder.capture_frame()
+            t = system.minitaur.GetTimeSinceReset()
+            w = 4 * np.pi
+            a = controller(t, w, params)
+
+            obs, r, done, info = system.step(a)
+            previous_obs = np.copy(obs)
+            # print(obs)
+            rew += r
+            # time.sleep(0.1)
+            if done:
+                break
         if recorder is not None:
             recorder.capture_frame()
-        t = system.minitaur.GetTimeSinceReset()
-        w = 4 * np.pi
+            recorder.close()
+        Params.append(np.copy(params))
+        R.append(np.sum(info['rewards'], axis=0))
+        with open('data/data.pk', 'wb') as f:
+            pickle.dump((Params, R), f)
 
-        params = np.random.uniform([0.4] * 8 + [-np.pi] * 8, [0.5] * 8 + [np.pi] * 8)
-        a = controller(t, w, params)
-        obs, r, done, _ = system.step(a)
-        previous_obs = np.copy(obs)
-        print(obs)
-        rew += r
-        # time.sleep(3)
-    if recorder is not None:
-        recorder.capture_frame()
-        recorder.close()
-    print(rew)
 
 
