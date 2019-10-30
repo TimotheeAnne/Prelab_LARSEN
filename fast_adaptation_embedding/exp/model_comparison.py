@@ -54,16 +54,6 @@ class Evaluation_ensemble(object):
         self.__inputs = np.zeros((0, config['ensemble_dim_in']))
         self.__outputs = np.zeros((0, config['ensemble_dim_out']))
 
-    def preprocess_data_traj(self, traj_obs, traj_acs):
-        N = len(traj_acs)
-        actions, init_observations, observations = [], [], []
-        for i in range(N):
-            for t in range(0, len(traj_acs[i]) - self.__horizon, self.__horizon):
-                actions.append(traj_acs[i][t:t + self.__horizon].flatten())
-                init_observations.append(traj_obs[i][t])
-                observations.append(traj_obs[i][t + 1:t + 1 + self.__horizon].flatten())
-        return np.array(actions), np.array(init_observations), np.array(observations)
-
     def add_sample(self, obs, acs):
         assert (len(obs) == (len(acs) + 1))
         for t in range(len(acs)):
@@ -90,7 +80,6 @@ class Evaluation_ensemble(object):
         one_step_error = torch.FloatTensor(np.zeros((len(self.__models), len(actions)))).cuda() \
             if self.__ensemble_model.CUDA \
             else torch.FloatTensor(np.zeros((len(self.__models), len(actions))))
-
 
         for model_index in range(len(self.__models)):
             dyn_model = self.__models[model_index]
@@ -132,18 +121,6 @@ class Evaluation_ensemble(object):
         return error.cpu().detach().numpy(), error0.cpu().detach().numpy()
 
 
-def process_data(data):
-    # Assuming dada: an array containing [state, action, state_transition, cost]
-    training_in = []
-    training_out = []
-    for d in data:
-        s = d[0]
-        a = d[1]
-        training_in.append(np.concatenate((s, a)))
-        training_out.append(d[2])
-    return np.array(training_in), np.array(training_out), np.max(training_in, axis=0), np.min(training_in, axis=0)
-
-
 def compare(config):
     logdir = os.path.join(config['logdir'],
                           strftime("%Y-%m-%d--%H:%M:%S", localtime()) + str(np.random.randint(10 ** 5)))
@@ -162,48 +139,46 @@ def compare(config):
 
     traj_eval0, traj_error0, traj_rets, traj_rews, traj_error, traj_eval, traj_sol, traj_motor = [], [], [], [], [], [], [], []
     all_training_error, all_eval_error, traj_train_pred, traj_eval_pred = [], [], [], []
-    with open("./data/train_data_"+config['load_data']+".pk", 'rb') as f:
-        data = pickle.load(f)
-    with open("./data/train_eval_"+config['load_data']+".pk", 'rb') as f:
-        train_in, train_out = pickle.load(f)
-    with open("./data/test_eval_"+config['load_data']+".pk", 'rb') as f:
-        eval_in, eval_out = pickle.load(f)
 
-    evaluator_train = Evaluation_ensemble(config=config)
-    evaluator_train.set_data(train_in, train_out)
-    evaluator_eval = Evaluation_ensemble(config=config)
-    evaluator_eval.set_data(eval_in, eval_out)
+    with open("../data/train_" + config['load_data'] + ".pk", 'rb') as f:
+        training_samples = pickle.load(f)
+    with open("../data/eval_" + config['load_data'] + ".pk", 'rb') as f:
+        eval_samples = pickle.load(f)
+
+    trainer = Evaluation_ensemble(config=config)
+    trainer.set_data(training_samples)
+    evaluator = Evaluation_ensemble(config=config)
+    evaluator.set_data(eval_samples)
 
     for index_iter in range(config["iterations"]):
         print("iteration :", index_iter)
         env_index = 0
         '''------------Update models------------'''
-        x, y, high, low = process_data(data)
+        x, y = trainer.get_data()
         print("Learning model...")
         sampling_size = -1 if config['n_ensembles'] == 1 else len(x)
         models[env_index] = train_ensemble_model(train_in=x, train_out=y, sampling_size=sampling_size, config=config,
                                                  model=models[env_index])
         print("Evaluate model...")
 
-        if (index_iter % 50 == 0) or (index_iter == (config["iterations"]-1)):
-            training_error, training_error0, train_pred = evaluator_train.eval_model(models[env_index], True)
-            eval_error, eval_error0, eval_pred = evaluator_eval.eval_model(models[env_index], True)
+        if (index_iter % 50 == 0) or (index_iter == (config["iterations"] - 1)):
+            training_error, training_error0, train_pred = trainer.eval_model(models[env_index], True)
+            eval_error, eval_error0, eval_pred = evaluator.eval_model(models[env_index], True)
             traj_eval_pred.append(eval_pred)
             traj_train_pred.append(train_pred)
         else:
-            training_error, training_error0 = evaluator_train.eval_model(models[env_index])
-            eval_error, eval_error0 = evaluator_eval.eval_model(models[env_index])
+            training_error, training_error0 = trainer.eval_model(models[env_index])
+            eval_error, eval_error0 = evaluator.eval_model(models[env_index])
         print("Training error:", np.mean(training_error, axis=1))
         print("Test error:", np.mean(eval_error, axis=1))
-        print("Training R²:", np.mean(1-training_error/training_error0, axis=1))
-        print("Test R²:", np.mean(1-eval_error/eval_error0, axis=1))
+        print("Training R²:", np.mean(1 - training_error / training_error0, axis=1))
+        print("Test R²:", np.mean(1 - eval_error / eval_error0, axis=1))
         traj_eval.append(np.mean(eval_error, axis=1))
         traj_error.append(np.mean(training_error, axis=1))
-        traj_eval0.append(np.mean(1-eval_error/eval_error0, axis=1))
-        traj_error0.append(np.mean(1-training_error/training_error0, axis=1))
+        traj_eval0.append(np.mean(1 - eval_error / eval_error0, axis=1))
+        traj_error0.append(np.mean(1 - training_error / training_error0, axis=1))
         all_training_error.append(training_error)
         all_eval_error.append(eval_error)
-
 
         savemat(
             os.path.join(config['logdir'], "logs.mat"),
