@@ -36,16 +36,6 @@ class Evaluation_ensemble(object):
         self.__outputs = np.zeros((0, config['ensemble_dim_out']))
         self.__contact = config['ensemble_contact']
 
-    def preprocess_data_traj(self, traj_obs, traj_acs):
-        N = len(traj_acs)
-        actions, init_observations, observations = [], [], []
-        for i in range(N):
-            for t in range(0, len(traj_acs[i]) - self.__horizon, self.__horizon):
-                actions.append(traj_acs[i][t:t + self.__horizon].flatten())
-                init_observations.append(traj_obs[i][t])
-                observations.append(traj_obs[i][t + 1:t + 1 + self.__horizon].flatten())
-        return np.array(actions), np.array(init_observations), np.array(observations)
-
     def add_sample(self, obs, acs):
         assert (len(obs) == (len(acs) + 1))
         for t in range(len(acs)):
@@ -129,10 +119,11 @@ def execute_random(env, steps, samples, K, config):
     trajectory = []
     reward = []
     traject_cost = 0
+    params = np.random.uniform(config['lb'], config['ub'])
     for i in tqdm(range(steps)):
         if config["controller"] is not None:
             t = env.minitaur.GetTimeSinceReset()
-            a = config["controller"](t, config['omega'], np.random.uniform(config['lb'], config['ub']))
+            a = config["controller"](t, config['omega'], params)
         else:
             a = env.action_space.sample()
         next_state, r = 0, 0
@@ -141,13 +132,12 @@ def execute_random(env, steps, samples, K, config):
         obs.append(next_state)
         acs.append(a)
         reward.append(r)
-        trajectory.append([current_state.copy(), a.copy(), next_state-current_state, -r])
-        current_state = next_state
         traject_cost += -r
         if done:
             break
     samples['acs'].append(np.copy(acs))
     samples['obs'].append(np.copy(obs))
+    samples['controller'].append(np.copy(params))
     samples['reward'].append(np.copy(reward))
     samples['reward_sum'].append(-traject_cost)
     return np.array(trajectory), traject_cost
@@ -307,10 +297,6 @@ def collect(config):
     n_task = 1
     envs = [gym.make(config['env'], **config['env_args']) for i in range(n_task)]
     envs[0].metadata["video.frames_per_second"] = config['video.frames_per_second']
-    data = n_task * [None]
-
-    traj_obs, traj_acs, traj_rets, traj_rews, traj_error, traj_eval, traj_sol, traj_motor = [], [], [], [], [], [], [], []
-
     evaluator = Evaluation_ensemble(config=config)
 
     for index_iter in range(config["iterations"]):
@@ -322,23 +308,14 @@ def collect(config):
         c = None
 
         samples = {'acs': [], 'obs': [], 'reward': [], 'reward_sum': [], 'model_error': [],
-                   "controller_sol": [], 'motor_actions': []}
+                   "controller": [], 'motor_actions': []}
 
-        trajectory, c = execute_random(env=env, steps=config["episode_length"], samples=samples,
+        execute_random(env=env, steps=config["episode_length"], samples=samples,
                                        K=config["K"], config=config)
-        if data[env_index] is None:
-            data[env_index] = trajectory
-        else:
-            data[env_index] = np.concatenate((data[env_index], trajectory), axis=0)
-
-        traj_obs.extend(samples["obs"])
-        traj_acs.extend(samples["acs"])
-        evaluator.add_sample(traj_obs[-1], traj_acs[-1])
+        evaluator.add_sample(samples["obs"], samples["acs"])
         print("-------------------------------\n")
 
-    with open('train_data_'+config['save_data']+'.pk', 'wb') as f:
-        pickle.dump(data[0], f)
-    with open('train_eval_'+config['save_data']+'.pk', 'wb') as f:
+    with open(config['save_data']+'.pk', 'wb') as f:
         train_in, train_out = evaluator.get_data()
         pickle.dump((train_in, train_out), f)
 
