@@ -206,7 +206,9 @@ if __name__ == "__main__":
             config[key] = float(val)
     config['video.frames_per_second'] = int(1 / config['control_time_step'])
     config['sol_dim'] = config['horizon'] * config['action_dim']
+    config["action_repeat"] = int(240 * config['control_time_step'])
     env_args = {'render': False, 'control_time_step': config['control_time_step'],
+                'action_repeat': config['action_repeat'],
                 'distance_weight': config['distance_weight'],
                 'energy_weight': config['energy_weight'], 'survival_weight': config['survival_weight'],
                 'drift_weight': config['drift_weight'], 'shake_weight': config['shake_weight'],
