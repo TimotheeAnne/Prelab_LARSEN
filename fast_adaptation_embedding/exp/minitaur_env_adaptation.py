@@ -109,14 +109,14 @@ if __name__ == "__main__":
 
 
     def controller(t, w, params):
-        a = [params[0] * np.sin(w * t + params[8]),
-             params[1] * np.sin(w * t + params[9]),
-             params[2] * np.sin(w * t + params[10]),
-             params[3] * np.sin(w * t + params[11]),
-             params[4] * np.sin(w * t + params[12]),
-             params[5] * np.sin(w * t + params[13]),
-             params[6] * np.sin(w * t + params[14]),
-             params[7] * np.sin(w * t + params[15])
+        a = [params[0] * np.sin(w * t + params[8] * 2 * np.pi),  # s FL
+             params[1] * np.sin(w * t + params[9] * 2 * np.pi),  # s BL
+             params[2] * np.sin(w * t + params[10] * 2 * np.pi),  # s FR
+             params[3] * np.sin(w * t + params[11] * 2 * np.pi),  # s BR
+             params[4] * np.sin(w * t + params[12] * 2 * np.pi),  # e FL
+             params[5] * np.sin(w * t + params[13] * 2 * np.pi),  # e BR
+             params[6] * np.sin(w * t + params[14] * 2 * np.pi),  # e FR
+             params[7] * np.sin(w * t + params[15] * 2 * np.pi)  # e BR
              ]
         return a
 
@@ -149,7 +149,7 @@ if __name__ == "__main__":
         "K": 1,
         "controller": controller,
         "omega": 2 * 2 * np.pi,
-        "control_time_step": 0.01,
+        "control_time_step": 0.006,
         "stop_training": np.inf,
         "data_size": "50",
 
@@ -162,7 +162,7 @@ if __name__ == "__main__":
         "ensemble_epoch": 5,
         "ensemble_dim_in": 8 + 31,
         "ensemble_dim_out": 31,
-        "ensemble_contact": True,
+        "ensemble_contact": False,
         "ensemble_hidden": [200, 200, 100],
         "hidden_activation": "relu",
         "ensemble_cuda": True,
@@ -219,12 +219,12 @@ if __name__ == "__main__":
         config['ensemble_dim_out'] += 4
         config['ensemble_dim_in'] += 4
     if config['controller'] is not None:
-        lb = [0] * 8 + [-np.pi] * 8
-        ub = [0.5] * 8 + [np.pi] * 8
+        lb = [0.2] * 8 + [0] * 8
+        ub = [0.8] * 8 + [1] * 8
         config['lb'] = lb
         config['ub'] = ub
         config['sol_dim'] = 16
-        config['init_var'] = np.array([config['init_var']] * 8 + [config['init_var'] * 2 * np.pi] * 8)
+        config['init_var'] = np.array([config['init_var']]) * 16
     if config['script'] == "collect":
         collect(config)
     elif config['script'] == "compare":
