@@ -207,7 +207,7 @@ class FFNN_Model():
         outputs = (d_out - self.data_mean_output) / self.data_std_output
         if return_pred:
             return torch.sqrt((outputs - diff_state).pow(2).sum(1) / d_out.size()[1]), torch.sqrt(
-            outputs.pow(2).sum(1) / d_out.size()[1]), diff_state
+            outputs.pow(2).sum(1) / d_out.size()[1]), diff_state * self.data_std_output + self.data_mean_output
         else:
             return torch.sqrt((outputs - diff_state).pow(2).sum(1) / d_out.size()[1]), torch.sqrt(
             outputs.pow(2).sum(1) / d_out.size()[1])
