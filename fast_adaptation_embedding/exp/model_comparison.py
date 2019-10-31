@@ -51,56 +51,87 @@ class Evaluation_ensemble(object):
         self.__pred_low = pred_low
         self.__obs_dim = config['ensemble_dim_out']
         self.__episode_length = config['episode_length']
-        self.__inputs = np.zeros((0, config['ensemble_dim_in']))
-        self.__outputs = np.zeros((0, config['ensemble_dim_out']))
+        self.__inputs = []
+        self.__outputs = []
+        self.__type = config['model_type']
+        self.H = config['horizon']
+        self.indexes = None
 
-    def add_sample(self, obs, acs):
-        assert (len(obs) == (len(acs) + 1))
-        for t in range(len(acs)):
-            self.__inputs = np.concatenate((self.__inputs, [np.concatenate((obs[t], acs[t]))]))
-            self.__outputs = np.concatenate((self.__outputs, [obs[t + 1] - obs[t]]))
+    def add_samples(self, samples):
+        if self.__type == "D":
+            acs = samples['acs']
+            obs = samples['obs']
+            indexes = []
+            for i in tqdm(range(len(acs))):
+                T = len(obs[i])
+                for t in range(len(acs[i])):
+                    if t < T - self.H:
+                        my_index = len(self.__inputs)
+                        indexes.append(my_index)
+                    self.__inputs.append(np.concatenate((obs[i][t][:28], obs[i][t][30:31], acs[i][t])))
+                    self.__outputs.append(obs[i][t + 1] - obs[i][t])
+            self.indexes = np.array(indexes)
+            self.__pred_low = np.min(self.__inputs[:29], axis=0)
+            self.__pred_high = np.max(self.__inputs[:29], axis=0)
+        else:
+            ctrl = samples['controller']
+            obs = samples['obs']
+            for i in range(len(obs)):
+                T = len(obs[i])
+                for t in range(0, T - self.H):
+                    self.__inputs.append(np.concatenate((obs[i][t][:28], obs[i][t][30:31], ctrl[i], [(t % 25) / 25])))
+                    self.__outputs.append(obs[i][t + self.H][28:31] - obs[i][t][28:31])
 
     def get_data(self):
         return self.__inputs, self.__outputs
 
-    def set_data(self, inputs, outputs):
-        self.__inputs = inputs
-        self.__outputs = outputs
+    def set_bounds(self, low, high):
+        self.__pred_low = low
+        self.__pred_high = high
 
-    def eval_traj(self, actions, init_states, observations):
-        action_batch = torch.FloatTensor(actions).cuda() \
-            if self.__ensemble_model.CUDA \
-            else torch.FloatTensor(actions)
-        traj_states = torch.FloatTensor(observations).cuda() \
-            if self.__ensemble_model.CUDA \
-            else torch.FloatTensor(observations)
-        error = torch.FloatTensor(np.zeros((len(self.__models), len(actions)))).cuda() \
-            if self.__ensemble_model.CUDA \
-            else torch.FloatTensor(np.zeros((len(self.__models), len(actions))))
-        one_step_error = torch.FloatTensor(np.zeros((len(self.__models), len(actions)))).cuda() \
-            if self.__ensemble_model.CUDA \
-            else torch.FloatTensor(np.zeros((len(self.__models), len(actions))))
+    def get_bounds(self):
+        return self.__pred_low, self.__pred_high
 
-        for model_index in range(len(self.__models)):
-            dyn_model = self.__models[model_index]
-            start_states = torch.FloatTensor(init_states).cuda() if self.__ensemble_model.CUDA else torch.FloatTensor(
-                init_states)
-            for h in range(self.__horizon):
-                actions = action_batch[:, h * self.__action_dim: h * self.__action_dim + self.__action_dim]
-                model_input = torch.cat((start_states, actions), dim=1)
-                diff_state = dyn_model.predict_tensor(model_input)
-                start_states += diff_state
-                for dim in range(self.__obs_dim):
-                    start_states[:, dim].clamp_(self.__pred_low[dim], self.__pred_high[dim])
-                pred_error = torch.sqrt(
-                    (start_states - traj_states[:, h * self.__obs_dim: h * self.__obs_dim + self.__obs_dim]).pow(2).sum(
-                        1))
-                state_norm = torch.sqrt(
-                    (traj_states[:, h * self.__obs_dim: h * self.__obs_dim + self.__obs_dim]).pow(2).sum(1))
-                error[model_index] += (pred_error / state_norm) / self.__horizon
-                if h == 0:
-                    one_step_error[model_index] = (pred_error / state_norm)
-        return error.cpu().detach().numpy(), one_step_error.cpu().detach().numpy()
+    def eval_traj(self, ensemble):
+        models = ensemble.get_models()
+        inputs = torch.FloatTensor(self.__inputs).cuda()
+        outputs = torch.FloatTensor(self.__outputs).cuda()
+
+        if self.__type == "D":
+            error = torch.FloatTensor(np.zeros((len(models), self.H, len(self.indexes)))).cuda()
+            error0 = torch.FloatTensor(np.zeros((len(models), self.H, len(self.indexes)))).cuda()
+            traj_pred = torch.FloatTensor(np.zeros((len(models), self.H + 1, len(self.indexes), 3))).cuda()
+            for model_index in range(len(models)):
+                dyn_model = models[model_index]
+                current_state = inputs[self.indexes, :29]
+                traj_pred[model_index][0] = torch.zeros((len(self.indexes), 3))
+                for t in range(self.H):
+                    current_input = torch.cat((current_state, inputs[self.indexes + t, 29:]), dim=1)
+                    current_output = outputs[self.indexes + t]
+                    error[model_index, t], error0[model_index, t], diff_pred = dyn_model.compute_error(current_input,
+                                                                                                       current_output,
+                                                                                                       True)
+                    current_state[:, :28] += diff_pred[:, :28]
+                    current_state[:, 28:29] += diff_pred[:, 30:31]
+                    # ~ if t< 3:
+                    # ~ print(t)
+                    # ~ print('input', current_input[0])
+                    # ~ print('diff pred', diff_pred[0])
+                    # ~ print('diff target', current_output[0])
+                    # ~ print('current state', current_state[0])
+                    # ~ print('target state', inputs[1])
+                    # ~ print('\n')
+                    # ~ for dim in range(self.__obs_dim-2):
+                    # ~ current_state[:, dim].clamp_(self.__pred_low[dim], self.__pred_high[dim])
+                    traj_pred[model_index][t + 1] = traj_pred[model_index][t] + diff_pred[:, 28:31]
+            return error.cpu().detach().numpy(), error0.cpu().detach().numpy(), traj_pred.cpu().detach().numpy()
+        else:
+            error = torch.FloatTensor(np.zeros((len(models), len(self.__inputs)))).cuda()
+            error0 = torch.FloatTensor(np.zeros((len(models), len(self.__inputs)))).cuda()
+            for model_index in range(len(models)):
+                dyn_model = models[model_index]
+                error[model_index], error0[model_index], pred = dyn_model.compute_error(inputs, outputs, True)
+            return error.cpu().detach().numpy(), error0.cpu().detach().numpy(), pred.cpu().detach().numpy()
 
     def eval_model(self, ensemble, return_pred=False):
         models = ensemble.get_models()
@@ -146,10 +177,11 @@ def compare(config):
         eval_samples = pickle.load(f)
 
     trainer = Evaluation_ensemble(config=config)
-    trainer.set_data(training_samples)
+    trainer.add_samples(training_samples)
     evaluator = Evaluation_ensemble(config=config)
-    evaluator.set_data(eval_samples)
-
+    evaluator.add_samples(eval_samples)
+    l, h = trainer.get_bounds()
+    evaluator.set_bounds(l, h)
     for index_iter in range(config["iterations"]):
         print("iteration :", index_iter)
         env_index = 0
@@ -157,28 +189,33 @@ def compare(config):
         x, y = trainer.get_data()
         print("Learning model...")
         sampling_size = -1 if config['n_ensembles'] == 1 else len(x)
-        models[env_index] = train_ensemble_model(train_in=x, train_out=y, sampling_size=sampling_size, config=config,
+        models[env_index] = train_ensemble_model(train_in=np.array(x), train_out=np.array(y),
+                                                 sampling_size=sampling_size, config=config,
                                                  model=models[env_index])
         print("Evaluate model...")
 
-        if (index_iter % 50 == 0) or (index_iter == (config["iterations"] - 1)):
-            training_error, training_error0, train_pred = trainer.eval_model(models[env_index], True)
-            eval_error, eval_error0, eval_pred = evaluator.eval_model(models[env_index], True)
+        if (index_iter % 1 == 0) or (index_iter == (config["iterations"] - 1)):
+            training_error, training_error0, train_pred = trainer.eval_traj(models[env_index])
+            eval_error, eval_error0, eval_pred = evaluator.eval_traj(models[env_index])
             traj_eval_pred.append(eval_pred)
             traj_train_pred.append(train_pred)
-        else:
-            training_error, training_error0 = trainer.eval_model(models[env_index])
-            eval_error, eval_error0 = evaluator.eval_model(models[env_index])
-        print("Training error:", np.mean(training_error, axis=1))
-        print("Test error:", np.mean(eval_error, axis=1))
-        print("Training R²:", np.mean(1 - training_error / training_error0, axis=1))
-        print("Test R²:", np.mean(1 - eval_error / eval_error0, axis=1))
-        traj_eval.append(np.mean(eval_error, axis=1))
-        traj_error.append(np.mean(training_error, axis=1))
-        traj_eval0.append(np.mean(1 - eval_error / eval_error0, axis=1))
-        traj_error0.append(np.mean(1 - training_error / training_error0, axis=1))
-        all_training_error.append(training_error)
-        all_eval_error.append(eval_error)
+            print("Training error:", np.mean(training_error, axis=2))
+            print("Test error:", np.mean(eval_error, axis=2))
+            # ~ print("Training R²:", np.mean(1 - training_error / training_error0, axis=2))
+            # ~ print("Test R²:", np.mean(1 - eval_error / eval_error0, axis=2))
+
+        # ~ else:
+        # ~ training_error, training_error0 = trainer.eval_model(models[env_index])
+        # ~ eval_error, eval_error0 = evaluator.eval_model(models[env_index])
+        # ~ print("Training error:", np.mean(training_error, axis=1))
+        # ~ print("Test error:", np.mean(eval_error, axis=1))
+        # ~ print("Training R²:", np.mean(1 - training_error / training_error0, axis=1))
+        # ~ print("Test R²:", np.mean(1 - eval_error / eval_error0, axis=1))
+
+        # ~ traj_eval.append(np.mean(eval_error, axis=1))
+        # ~ traj_error.append(np.mean(training_error, axis=1))
+        # ~ traj_eval0.append(np.mean(1 - eval_error / eval_error0, axis=1))
+        # ~ traj_error0.append(np.mean(1 - training_error / training_error0, axis=1))
 
         savemat(
             os.path.join(config['logdir'], "logs.mat"),
@@ -187,8 +224,7 @@ def compare(config):
                 "test_error": traj_eval,
                 "train_R2": traj_error0,
                 "test_R2": traj_eval0,
-                "all_eval_error": all_eval_error,
-                "all_training_error": all_training_error,
+
                 "eval_pred": traj_eval_pred,
                 "train_pred": traj_train_pred,
             }
