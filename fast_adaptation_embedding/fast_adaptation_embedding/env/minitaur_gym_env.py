@@ -598,6 +598,9 @@ class MinitaurGymEnv(gym.Env):
     self._pybullet_client.setTimeStep(self._time_step)
     self.minitaur.SetTimeSteps(action_repeat=self._action_repeat, simulation_step=self._time_step)
 
+  def get_timesteps(self):
+    return self.control_time_step, self._time_step
+
   @property
   def pybullet_client(self):
     return self._pybullet_client
@@ -637,8 +640,10 @@ if __name__ == "__main__":
 
     render = True
     # render = False
+    ctrl_time_step = 0.02
+
     system = gym.make("MinitaurGymEnv_fastAdapt-v0", render=render, on_rack=0,
-                      control_time_step=0.006, accurate_motor_model_enabled=1,
+                      control_time_step=ctrl_time_step, action_repeat=int(ctrl_time_step*240), accurate_motor_model_enabled=1,
                       energy_weight=0, drift_weight=1, shake_weight=0.01)
 
     recorder = None
@@ -649,35 +654,33 @@ if __name__ == "__main__":
     rew = 0
     dist = 0
     params = np.random.uniform([0]*16, [1] * 16)
-    params = np.array([0.15196979,  0.44120215,  0.44734516,  0.4737556,  0.4331324,
-        0.39177511,  0.32945941,  0.19081727, 0.85514155,  0.31171731,
-        0.46467034,  0.03487151,  0.0941874,  0.52535486,  0.41979745,
-        0.08657507])
 
-    params = np.array([0.38988197, 0.78974537, 0.42910077, 0.59528132, 0.39941388, 0.45330775,
-    0.50086598, 0.226338,   0.80591036, 0.37183742, 0.55969599, 0.04732664,
-    0.07999865, 0.5300707,  0.46907241, 0.04910368])
+    # params = np.array([0.38988197, 0.78974537, 0.42910077, 0.59528132, 0.39941388, 0.45330775,
+    # 0.50086598, 0.226338,   0.80591036, 0.37183742, 0.55969599, 0.04732664,
+    # 0.07999865, 0.5300707,  0.46907241, 0.04910368])*0
 
-    params = np.array([0.5791837,  0.90610882, 0.88157485, 0.7385333,  0.34541331, 0.35552825,
-     0.63303087, 0.3318575,  0.69241517, 0.35977223, 0.53703204, 0.00214748,
-     0.04586218, 0.54583044, 0.47446893, 0.04734582])
+    # params = np.array([0.5791837,  0.90610882, 0.88157485, 0.7385333,  0.34541331, 0.35552825,
+    #  0.63303087, 0.3318575,  0.69241517, 0.35977223, 0.53703204, 0.00214748,
+    #  0.04586218, 0.54583044, 0.47446893, 0.04734582])
 
-    params = np.array([0.3]*4+[0.35]*4+[0, 0.5, 0.5, 0]*2)
+    params = [0.3]*4+[0.35]*4+ [1.08707590e-04, 7.50718651e-01, 4.76891710e-01, 2.25329594e-01,
+ 6.81936235e-02, 7.76331907e-01, 7.79122450e-01, 3.14621179e-01]
 
-    for i in range(166*10):
+    print("\n\n\n", system.get_timesteps(), "\n\n\n")
+    for i in range(100):
         if recorder is not None:
             recorder.capture_frame()
         t = system.minitaur.GetTimeSinceReset()
         w = 4 * np.pi
         a = controller(t, w, params)
-        print(i,t)
+        # print(i,t)
         obs, r, done, info = system.step(a)
         previous_obs = np.copy(obs)
         # print(obs)
         rew += r
         # time.sleep(0.1)
-        if done:
-            break
+        # if done:
+        #     break
     print(np.sum(info['rewards'], axis=0))
     if recorder is not None:
         recorder.capture_frame()
