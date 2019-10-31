@@ -54,16 +54,6 @@ class Evaluation_ensemble(object):
         self.__outputs = np.zeros((0, config['ensemble_dim_out']))
         self.__contact = config['ensemble_contact']
 
-    def preprocess_data_traj(self, traj_obs, traj_acs):
-        N = len(traj_acs)
-        actions, init_observations, observations = [], [], []
-        for i in range(N):
-            for t in range(0, len(traj_acs[i]) - self.__horizon, self.__horizon):
-                actions.append(traj_acs[i][t:t + self.__horizon].flatten())
-                init_observations.append(traj_obs[i][t])
-                observations.append(traj_obs[i][t + 1:t + 1 + self.__horizon].flatten())
-        return np.array(actions), np.array(init_observations), np.array(observations)
-
     def add_sample(self, obs, acs):
         assert (len(obs) == (len(acs) + 1))
         for t in range(len(acs)):
