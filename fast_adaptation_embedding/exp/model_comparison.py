@@ -56,21 +56,24 @@ class Evaluation_ensemble(object):
         self.__type = config['model_type']
         self.H = config['horizon']
         self.indexes = None
+        self.inv_indexes = None
 
     def add_samples(self, samples):
         if self.__type == "D":
             acs = samples['acs']
             obs = samples['obs']
-            indexes = []
+            indexes, inv_indexes = [], []
             for i in tqdm(range(len(acs))):
                 T = len(obs[i])
                 for t in range(len(acs[i])):
                     if t < T - self.H:
                         my_index = len(self.__inputs)
                         indexes.append(my_index)
+                        inv_indexes.append((i, t))
                     self.__inputs.append(np.concatenate((obs[i][t][:28], obs[i][t][30:31], acs[i][t])))
                     self.__outputs.append(obs[i][t + 1] - obs[i][t])
             self.indexes = np.array(indexes)
+            self.inv_indexes = np.array(inv_indexes)
             self.__pred_low = np.min(self.__inputs[:29], axis=0)
             self.__pred_high = np.max(self.__inputs[:29], axis=0)
         else:
@@ -113,14 +116,7 @@ class Evaluation_ensemble(object):
                                                                                                        True)
                     current_state[:, :28] += diff_pred[:, :28]
                     current_state[:, 28:29] += diff_pred[:, 30:31]
-                    # ~ if t< 3:
-                    # ~ print(t)
-                    # ~ print('input', current_input[0])
-                    # ~ print('diff pred', diff_pred[0])
-                    # ~ print('diff target', current_output[0])
-                    # ~ print('current state', current_state[0])
-                    # ~ print('target state', inputs[1])
-                    # ~ print('\n')
+
                     # ~ for dim in range(self.__obs_dim-2):
                     # ~ current_state[:, dim].clamp_(self.__pred_low[dim], self.__pred_high[dim])
                     traj_pred[model_index][t + 1] = traj_pred[model_index][t] + diff_pred[:, 28:31]
@@ -180,6 +176,11 @@ def compare(config):
     trainer.add_samples(training_samples)
     evaluator = Evaluation_ensemble(config=config)
     evaluator.add_samples(eval_samples)
+    save_train_indexes = [trainer.indexes, trainer.inv_indexes]
+    save_eval_indexes = [evaluator.indexes, evaluator.inv_indexes]
+    with open(config['logdir'] + "/indexes.pk", 'wb') as f:
+        pickle.dump([save_train_indexes, save_eval_indexes], f)
+
     l, h = trainer.get_bounds()
     evaluator.set_bounds(l, h)
     for index_iter in range(config["iterations"]):
@@ -199,8 +200,8 @@ def compare(config):
             eval_error, eval_error0, eval_pred = evaluator.eval_traj(models[env_index])
             traj_eval_pred.append(eval_pred)
             traj_train_pred.append(train_pred)
-            print("Training error:", np.mean(training_error, axis=2))
-            print("Test error:", np.mean(eval_error, axis=2))
+            print("Training error:", np.mean(training_error, axis=1))
+            print("Test error:", np.mean(eval_error, axis=1))
             # ~ print("Training R²:", np.mean(1 - training_error / training_error0, axis=2))
             # ~ print("Test R²:", np.mean(1 - eval_error / eval_error0, axis=2))
 
@@ -212,8 +213,8 @@ def compare(config):
         # ~ print("Training R²:", np.mean(1 - training_error / training_error0, axis=1))
         # ~ print("Test R²:", np.mean(1 - eval_error / eval_error0, axis=1))
 
-        # ~ traj_eval.append(np.mean(eval_error, axis=1))
-        # ~ traj_error.append(np.mean(training_error, axis=1))
+        traj_eval.append(np.mean(eval_error, axis=1))
+        traj_error.append(np.mean(training_error, axis=1))
         # ~ traj_eval0.append(np.mean(1 - eval_error / eval_error0, axis=1))
         # ~ traj_error0.append(np.mean(1 - training_error / training_error0, axis=1))
 
@@ -222,8 +223,8 @@ def compare(config):
             {
                 "train_error": traj_error,
                 "test_error": traj_eval,
-                "train_R2": traj_error0,
-                "test_R2": traj_eval0,
+                # ~ "train_R2": traj_error0,
+                # ~ "test_R2": traj_eval0,
 
                 "eval_pred": traj_eval_pred,
                 "train_pred": traj_train_pred,
