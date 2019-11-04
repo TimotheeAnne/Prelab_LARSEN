@@ -128,10 +128,10 @@ if __name__ == "__main__":
         # exp parameters:
         # "env": 'MinitaurBulletEnv_fastAdapt-v0',
         "env": 'MinitaurGymEnv_fastAdapt-v0',
-        "horizon": 25,  # NOTE: "sol_dim" must be adjusted
+        "horizon": 20,  # NOTE: "sol_dim" must be adjusted
         "iterations": 300,
         "random_iter": 1,
-        "episode_length": 500,
+        "episode_length": 400,
         "init_state": None,
         "action_dim": 8,
         "video_recording_frequency": 25,
@@ -149,7 +149,7 @@ if __name__ == "__main__":
         "K": 1,
         "controller": controller,
         "omega": 2 * 2 * np.pi,
-        "control_time_step": 0.006,
+        "control_time_step": 0.025,
         "stop_training": np.inf,
         "data_size": "50",
 
