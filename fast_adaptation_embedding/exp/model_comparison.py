@@ -55,8 +55,9 @@ class Evaluation_ensemble(object):
         self.__outputs = []
         self.__type = config['model_type']
         self.H = config['horizon']
-        self.indexes = None
+        self.indexes = []
         self.inv_indexes = None
+        self.__pop_batch = config['pop_batch']
 
     def add_samples(self, samples):
         if self.__type == "D":
@@ -68,12 +69,10 @@ class Evaluation_ensemble(object):
                 for t in range(len(acs[i])):
                     if t < T - self.H:
                         my_index = len(self.__inputs)
-                        indexes.append(my_index)
-                        inv_indexes.append((i, t))
+                        self.indexes.append(my_index)
+                        self.inv_indexes.append((i, t))
                     self.__inputs.append(np.concatenate((obs[i][t][:28], obs[i][t][30:31], acs[i][t])))
                     self.__outputs.append(obs[i][t + 1] - obs[i][t])
-            self.indexes = np.array(indexes)
-            self.inv_indexes = np.array(inv_indexes)
             self.__pred_low = np.min(self.__inputs[:29], axis=0)
             self.__pred_high = np.max(self.__inputs[:29], axis=0)
         else:
@@ -82,7 +81,8 @@ class Evaluation_ensemble(object):
             for i in range(len(obs)):
                 T = len(obs[i])
                 for t in range(0, T - self.H):
-                    self.__inputs.append(np.concatenate((obs[i][t][:28], obs[i][t][30:31], ctrl[i], [(t % 25) / 25])))
+                    self.__inputs.append(
+                        np.concatenate((obs[i][t][:28], obs[i][t][30:31], ctrl[i], [(t % self.H) / self.H])))
                     self.__outputs.append(obs[i][t + self.H][28:31] - obs[i][t][28:31])
 
     def get_data(self):
@@ -104,29 +104,48 @@ class Evaluation_ensemble(object):
             error = torch.FloatTensor(np.zeros((len(models), self.H, len(self.indexes)))).cuda()
             error0 = torch.FloatTensor(np.zeros((len(models), self.H, len(self.indexes)))).cuda()
             traj_pred = torch.FloatTensor(np.zeros((len(models), self.H + 1, len(self.indexes), 3))).cuda()
-            for model_index in range(len(models)):
-                dyn_model = models[model_index]
-                current_state = inputs[self.indexes, :29]
-                traj_pred[model_index][0] = torch.zeros((len(self.indexes), 3))
-                for t in range(self.H):
-                    current_input = torch.cat((current_state, inputs[self.indexes + t, 29:]), dim=1)
-                    current_output = outputs[self.indexes + t]
-                    error[model_index, t], error0[model_index, t], diff_pred = dyn_model.compute_error(current_input,
-                                                                                                       current_output,
-                                                                                                       True)
-                    current_state[:, :28] += diff_pred[:, :28]
-                    current_state[:, 28:29] += diff_pred[:, 30:31]
 
-                    # ~ for dim in range(self.__obs_dim-2):
-                    # ~ current_state[:, dim].clamp_(self.__pred_low[dim], self.__pred_high[dim])
-                    traj_pred[model_index][t + 1] = traj_pred[model_index][t] + diff_pred[:, 28:31]
+            n_batch = max(1, int(len(self.indexes) / self.__pop_batch))
+            per_batch = len(self.indexes) / n_batch
+
+            for i in range(n_batch):
+                start_index = int(i * per_batch)
+                end_index = len(indexes) if i == n_batch - 1 else int(i * per_batch + per_batch)
+                for model_index in range(len(models)):
+                    dyn_model = models[model_index]
+                    indexes = self.indexes[start_index:end_index]
+                    current_state = inputs[indexes, :29]
+                    for t in range(self.H):
+                        current_input = torch.cat((current_state, inputs[indexes + t, 29:]), dim=1)
+                        current_output = outputs[indexes + t]
+                        error[model_index, t, start_index:end_index], error0[model_index, t,
+                                                                      start_index:end_index], diff_pred = dyn_model.compute_error(
+                            current_input, current_output, True)
+                        current_state[:, :28] += diff_pred[:, :28]
+                        current_state[:, 28:29] += diff_pred[:, 30:31]
+                        # ~ for dim in range(self.__obs_dim-2):
+                        # ~ current_state[:, dim].clamp_(self.__pred_low[dim], self.__pred_high[dim])
+                        traj_pred[model_index, t + 1, start_index:end_index] = traj_pred[model_index, t,
+                                                                               start_index:end_index] + diff_pred[:,
+                                                                                                        28:31]
             return error.cpu().detach().numpy(), error0.cpu().detach().numpy(), traj_pred.cpu().detach().numpy()
         else:
-            error = torch.FloatTensor(np.zeros((len(models), len(self.__inputs)))).cuda()
-            error0 = torch.FloatTensor(np.zeros((len(models), len(self.__inputs)))).cuda()
-            for model_index in range(len(models)):
-                dyn_model = models[model_index]
-                error[model_index], error0[model_index], pred = dyn_model.compute_error(inputs, outputs, True)
+            error = torch.FloatTensor(np.zeros((len(models), len(self.__outputs)))).cuda()
+            error0 = torch.FloatTensor(np.zeros((len(models), len(self.__outputs)))).cuda()
+            pred = torch.FloatTensor(np.zeros((len(models), len(self.__outputs), 3))).cuda()
+
+            n_batch = max(1, int(len(inputs) / self.__pop_batch))
+            per_batch = len(inputs) / n_batch
+
+            for i in range(n_batch):
+                start_index = int(i * per_batch)
+                end_index = len(inputs) if i == n_batch - 1 else int(i * per_batch + per_batch)
+                for model_index in range(len(models)):
+                    dyn_model = models[model_index]
+                    error[model_index][start_index:end_index], error0[model_index][start_index:end_index], pred[
+                                                                                                               model_index][
+                                                                                                           start_index:end_index] = dyn_model.compute_error(
+                        inputs[start_index:end_index], outputs[start_index:end_index], True)
             return error.cpu().detach().numpy(), error0.cpu().detach().numpy(), pred.cpu().detach().numpy()
 
     def eval_model(self, ensemble, return_pred=False):
