@@ -1,4 +1,5 @@
 import os, inspect
+
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 os.sys.path.insert(0, parentdir)
@@ -33,8 +34,7 @@ def train_ensemble_model(train_in, train_out, sampling_size, config, model=None)
                                       SEED=config["ensemble_seed"],
                                       output_limit=config["ensemble_output_limit"],
                                       dropout=config["ensemble_dropout"],
-                                      n_ensembles=config["n_ensembles"],
-                                      contact=config['ensemble_contact'])
+                                      n_ensembles=config["n_ensembles"])
     network.train(epochs=config["ensemble_epoch"], training_inputs=train_in, training_targets=train_out,
                   batch_size=config["ensemble_batch_size"], logInterval=config["ensemble_log_interval"],
                   sampling_size=sampling_size)
@@ -50,73 +50,141 @@ class Evaluation_ensemble(object):
         self.__pred_low = pred_low
         self.__obs_dim = config['ensemble_dim_out']
         self.__episode_length = config['episode_length']
-        self.__inputs = np.zeros((0, config['ensemble_dim_in']))
-        self.__outputs = np.zeros((0, config['ensemble_dim_out']))
-        self.__contact = config['ensemble_contact']
+        self.__inputs = []
+        self.__outputs = []
+        self.__type = config['model_type']
+        self.H = config['horizon']
+        self.indexes = []
+        self.inv_indexes = []
+        self.env = config['env']
+        self.__pop_batch = config['pop_batch']
 
-    def add_sample(self, obs, acs):
-        assert (len(obs) == (len(acs) + 1))
-        for t in range(len(acs)):
-            self.__inputs = np.concatenate((self.__inputs, [np.concatenate((obs[t], acs[t]))]))
-            if self.__contact:
-                self.__outputs = np.concatenate((self.__outputs, [np.concatenate((obs[t + 1, :-4] - obs[t, :-4], obs[t+1, -4:]))]))
-            else:
-                self.__outputs = np.concatenate((self.__outputs, [obs[t + 1] - obs[t]]))
+    def add_samples(self, samples):
+        if self.__type == "D":
+            acs = samples['acs']
+            obs = samples['obs']
+            indexes, inv_indexes = [], []
+            for i in range(len(acs)):
+                T = len(obs[i])
+                for t in range(len(acs[i])):
+                    if t < T - self.H:
+                        my_index = len(self.__inputs)
+                        self.indexes.append(my_index)
+                        self.inv_indexes.append((i, t))
+                    if self.env == "AntMuJoCoEnv_fastAdapt-v0":
+                        self.__inputs.append(np.concatenate((obs[i][t], acs[i][t])))
+                    else:
+                        self.__inputs.append(np.concatenate((obs[i][t][:28], obs[i][t][30:31], acs[i][t])))
+                    self.__outputs.append(obs[i][t + 1] - obs[i][t])
+            self.__pred_low = np.min(self.__inputs[:29], axis=0)
+            self.__pred_high = np.max(self.__inputs[:29], axis=0)
+        else:
+            ctrl = samples['controller']
+            obs = samples['obs']
+            t0 = samples['t0']
+            for i in range(len(obs)):
+                T = len(obs[i])
+                for t in range(0, T - self.H):
+                    self.__inputs.append(
+                        np.concatenate((obs[i][t][:28], obs[i][t][30:31], ctrl[i], [((t + t0[i]) % self.H) / self.H])))
+                    self.__outputs.append(obs[i][t + self.H][28:31] - obs[i][t][28:31])
 
     def get_data(self):
-        return self.__inputs, self.__outputs
+        return np.array(self.__inputs), np.array(self.__outputs)
 
-    def set_data(self, inputs, outputs):
-        self.__inputs = inputs
-        self.__outputs = outputs
+    def set_bounds(self, low, high):
+        self.__pred_low = low
+        self.__pred_high = high
 
-    def eval_traj(self, actions, init_states, observations):
-        action_batch = torch.FloatTensor(actions).cuda() \
-            if self.__ensemble_model.CUDA \
-            else torch.FloatTensor(actions)
-        traj_states = torch.FloatTensor(observations).cuda() \
-            if self.__ensemble_model.CUDA \
-            else torch.FloatTensor(observations)
-        error = torch.FloatTensor(np.zeros((len(self.__models), len(actions)))).cuda() \
-            if self.__ensemble_model.CUDA \
-            else torch.FloatTensor(np.zeros((len(self.__models), len(actions))))
-        one_step_error = torch.FloatTensor(np.zeros((len(self.__models), len(actions)))).cuda() \
-            if self.__ensemble_model.CUDA \
-            else torch.FloatTensor(np.zeros((len(self.__models), len(actions))))
+    def get_bounds(self):
+        return self.__pred_low, self.__pred_high
 
+    def eval_traj(self, ensemble):
+        models = ensemble.get_models()
+        inputs = torch.FloatTensor(self.__inputs).cuda()
+        outputs = torch.FloatTensor(self.__outputs).cuda()
 
-        for model_index in range(len(self.__models)):
-            dyn_model = self.__models[model_index]
-            start_states = torch.FloatTensor(init_states).cuda() if self.__ensemble_model.CUDA else torch.FloatTensor(
-                init_states)
-            for h in range(self.__horizon):
-                actions = action_batch[:, h * self.__action_dim: h * self.__action_dim + self.__action_dim]
-                model_input = torch.cat((start_states, actions), dim=1)
-                diff_state = dyn_model.predict_tensor(model_input)
-                start_states += diff_state
-                for dim in range(self.__obs_dim):
-                    start_states[:, dim].clamp_(self.__pred_low[dim], self.__pred_high[dim])
-                pred_error = torch.sqrt(
-                    (start_states - traj_states[:, h * self.__obs_dim: h * self.__obs_dim + self.__obs_dim]).pow(2).sum(
-                        1))
-                state_norm = torch.sqrt(
-                    (traj_states[:, h * self.__obs_dim: h * self.__obs_dim + self.__obs_dim]).pow(2).sum(1))
-                error[model_index] += (pred_error / state_norm) / self.__horizon
-                if h == 0:
-                    one_step_error[model_index] = (pred_error / state_norm)
-        return error.cpu().detach().numpy(), one_step_error.cpu().detach().numpy()
+        if self.__type == "D":
+            error = torch.FloatTensor(np.zeros((len(models), self.H, len(self.indexes)))).cuda()
+            error0 = torch.FloatTensor(np.zeros((len(models), self.H, len(self.indexes)))).cuda()
+            traj_pred = torch.FloatTensor(np.zeros((len(models), self.H + 1, len(self.indexes), 3))).cuda()
 
-    def eval_model(self, ensemble):
+            n_batch = max(1, int(len(self.indexes) / self.__pop_batch))
+            per_batch = len(self.indexes) / n_batch
+
+            for i in range(n_batch):
+                start_index = int(i * per_batch)
+                end_index = len(self.indexes) if i == n_batch - 1 else int(i * per_batch + per_batch)
+                for model_index in range(len(models)):
+                    dyn_model = models[model_index]
+                    indexes = np.array(self.indexes[start_index:end_index])
+                    if self.env == "AntMuJoCoEnv_fastAdapt-v0":
+                        current_state = inputs[indexes, :27]
+                        for t in range(self.H):
+                            current_input = torch.cat((current_state, inputs[indexes + t, 27:]), dim=1)
+                            current_output = outputs[indexes + t]
+                            error[model_index, t, start_index:end_index], error0[model_index, t,
+                                                                          start_index:end_index], diff_pred = dyn_model.compute_error(
+                                current_input, current_output, True)
+                            current_state[:, :27] += diff_pred
+                    else:
+                        current_state = inputs[indexes, :29]
+                        for t in range(self.H):
+                            current_input = torch.cat((current_state, inputs[indexes + t, 29:]), dim=1)
+                            current_output = outputs[indexes + t]
+                            error[model_index, t, start_index:end_index], error0[model_index, t,
+                                                                          start_index:end_index], diff_pred = dyn_model.compute_error(
+                                current_input, current_output, True)
+                            current_state[:, :28] += diff_pred[:, :28]
+                            current_state[:, 28:29] += diff_pred[:, 30:31]
+                            traj_pred[model_index, t + 1, start_index:end_index] = traj_pred[model_index, t,
+                                                                                   start_index:end_index] + diff_pred[:,
+                                                                                                            28:31]
+            return error.cpu().detach().numpy(), error0.cpu().detach().numpy(), traj_pred.cpu().detach().numpy()
+        else:
+            error = torch.FloatTensor(np.zeros((len(models), len(self.__outputs)))).cuda()
+            error0 = torch.FloatTensor(np.zeros((len(models), len(self.__outputs)))).cuda()
+            pred = torch.FloatTensor(np.zeros((len(models), len(self.__outputs), 3))).cuda()
+
+            n_batch = max(1, int(len(inputs) / self.__pop_batch))
+            per_batch = len(inputs) / n_batch
+
+            for i in range(n_batch):
+                start_index = int(i * per_batch)
+                end_index = len(inputs) if i == n_batch - 1 else int(i * per_batch + per_batch)
+                for model_index in range(len(models)):
+                    dyn_model = models[model_index]
+                    error[model_index][start_index:end_index], error0[model_index][start_index:end_index], pred[
+                                                                                                               model_index][
+                                                                                                           start_index:end_index] = dyn_model.compute_error(
+                        inputs[start_index:end_index], outputs[start_index:end_index], True)
+
+            pred_notfallen = (pred[:, :, 2] + inputs[:, 28]) > 0.13
+            not_fallen = (outputs[:, 2] + inputs[:, 28]) > 0.13
+            CM = [[[0, 0], [0, 0]] for _ in range(len(models))]
+            for model_index in range(len(models)):
+                for i in range(len(not_fallen)):
+                    CM[model_index][pred_notfallen[model_index][i]][not_fallen[i]] += 1
+            return error.cpu().detach().numpy(), error0.cpu().detach().numpy(), pred.cpu().detach().numpy(), CM
+
+    def eval_model(self, ensemble, return_pred=False):
         models = ensemble.get_models()
         inputs = torch.FloatTensor(self.__inputs).cuda()
         outputs = torch.FloatTensor(self.__outputs).cuda()
         error = torch.FloatTensor(np.zeros((len(models), len(self.__inputs)))).cuda()
         error0 = torch.FloatTensor(np.zeros((len(models), len(self.__inputs)))).cuda()
 
-        for model_index in range(len(models)):
-            dyn_model = models[model_index]
-            error[model_index], error0[model_index] = dyn_model.compute_error(inputs, outputs)
+        if return_pred:
+            for model_index in range(len(models)):
+                dyn_model = models[model_index]
+                error[model_index], error0[model_index], pred = dyn_model.compute_error(inputs, outputs, True)
+            return error.cpu().detach().numpy(), error0.cpu().detach().numpy(), pred.cpu().detach().numpy()
+        else:
+            for model_index in range(len(models)):
+                dyn_model = models[model_index]
+                error[model_index], error0[model_index] = dyn_model.compute_error(inputs, outputs)
         return error.cpu().detach().numpy(), error0.cpu().detach().numpy()
+
 
 def process_data(data):
     # Assuming dada: an array containing [state, action, state_transition, cost]
@@ -137,10 +205,18 @@ def execute_random(env, steps, samples, K, config):
     trajectory = []
     reward = []
     traject_cost = 0
+    param = []
+
     for i in tqdm(range(steps)):
         if config["controller"] is not None:
+            if param == []:
+                with open('../data/good_controllers.pk', 'rb') as f:
+                    controllers = pickle.load(f)
+                param = controllers[np.random.randint(0, len(controllers))]
             t = env.minitaur.GetTimeSinceReset()
-            a = config["controller"](t, config['omega'], np.random.uniform(config['lb'], config['ub']))
+            # ~ param = np.random.normal(param, config['init_var'])
+            # ~ param = np.clip(param, config['lb'], config['ub'])
+            a = config["controller"](t, config['omega'], param)
         else:
             a = env.action_space.sample()
         next_state, r = 0, 0
@@ -149,15 +225,18 @@ def execute_random(env, steps, samples, K, config):
         obs.append(next_state)
         acs.append(a)
         reward.append(r)
-        trajectory.append([current_state.copy(), a.copy(), next_state-current_state, -r])
+        trajectory.append([current_state.copy(), a.copy(), next_state - current_state, -r])
         current_state = next_state
         traject_cost += -r
         if done:
+            print(i)
             break
+    samples['t0'].append(0)
     samples['acs'].append(np.copy(acs))
     samples['obs'].append(np.copy(obs))
     samples['reward'].append(np.copy(reward))
     samples['reward_sum'].append(-traject_cost)
+    samples['controller'].append(np.copy(param))
     return np.array(trajectory), traject_cost
 
 
@@ -165,8 +244,8 @@ def execute_2(env, steps, init_var, model, config, pred_high, pred_low, index_it
     current_state = env.reset()
     f_rec = config['video_recording_frequency']
     recorder = None
-    if f_rec and index_iter % f_rec == (f_rec - 1):
-        recorder = VideoRecorder(env, os.path.join(config['logdir'], "iter_" + str(index_iter) + ".mp4"))
+    # ~ if f_rec and index_iter % f_rec == (f_rec - 1):
+    # ~ recorder = VideoRecorder(env, os.path.join(config['logdir'], "iter_" + str(index_iter) + ".mp4"))
     obs = [current_state]
     acs = []
     trajectory = []
@@ -180,12 +259,15 @@ def execute_2(env, steps, init_var, model, config, pred_high, pred_low, index_it
     goal = None
     for i in tqdm(range(steps)):
         cost_object = config['Cost_ensemble'](ensemble_model=model, init_state=current_state, horizon=config["horizon"],
-                                    action_dim=env.action_space.shape[0], goal=goal, pred_high=pred_high,
-                                    pred_low=pred_low, config=config)
+                                              action_dim=env.action_space.shape[0], goal=goal, pred_high=pred_high,
+                                              pred_low=pred_low, config=config)
         config["cost_fn"] = cost_object.cost_fn
         if config['opt'] == "RS":
             optimizer = RS_opt(config)
-            sol = optimizer.obtain_solution()
+            if True:
+                sol = optimizer.obtain_solution()
+            else:
+                sol = optimizer.obtain_solution(init_mean=sliding_mean, init_var=init_var)
         elif config['opt'] == "CEM":
             optimizer = CEM_opt(config)
             sol = optimizer.obtain_solution(sliding_mean, init_var)
@@ -200,16 +282,18 @@ def execute_2(env, steps, init_var, model, config, pred_high, pred_low, index_it
         if recorder is not None:
             recorder.capture_frame()
         for k in range(config["K"]):
-            next_state, r, _, _ = env.step(a)
+            next_state, r, done, _ = env.step(a)
             obs.append(next_state)
             acs.append(a)
             reward.append(r)
-        trajectory.append([current_state.copy(), a.copy(), next_state-current_state, -r])
-        model_error += test_model(model, current_state.copy(), a.copy(), next_state-current_state)
+        trajectory.append([current_state.copy(), a.copy(), next_state - current_state, -r])
+        model_error += test_model(model, current_state.copy(), a.copy(), next_state - current_state)
         current_state = next_state
         traject_cost += -r
         sliding_mean[0:-len(a)] = sol[len(a)::]
-    print("Model error: ", model_error/steps)
+        if done:
+            break
+    print("Model error: ", model_error / (i + 1))
     if recorder is not None:
         recorder.capture_frame()
         recorder.close()
@@ -217,7 +301,7 @@ def execute_2(env, steps, init_var, model, config, pred_high, pred_low, index_it
     samples['obs'].append(np.copy(obs))
     samples['reward'].append(np.copy(reward))
     samples['reward_sum'].append(-traject_cost)
-    samples['model_error'].append(model_error/steps)
+    samples['model_error'].append(model_error / steps)
     return np.array(trajectory), traject_cost
 
 
@@ -226,8 +310,8 @@ def execute_3(env, steps, init_var, model, config, pred_high, pred_low, index_it
     controller = config["controller"]
     f_rec = config['video_recording_frequency']
     recorder = None
-    if f_rec and  (index_iter ==1 or index_iter % f_rec == (f_rec - 1)):
-        recorder = VideoRecorder(env, os.path.join(config['logdir'], "iter_" + str(index_iter) + ".mp4"))
+    # ~ if f_rec and  (index_iter ==1 or index_iter % f_rec == (f_rec - 1)):
+    # ~ recorder = VideoRecorder(env, os.path.join(config['logdir'], "iter_" + str(index_iter) + ".mp4"))
     obs = [current_state]
     acs, trajectory, reward, control_sol, motor_actions = [], [], [], [], []
     traject_cost = 0
@@ -235,17 +319,24 @@ def execute_3(env, steps, init_var, model, config, pred_high, pred_low, index_it
     sliding_mean = np.zeros(config["sol_dim"])
     goal = None
     omega = config['omega']
+    with open('../data/good_controllers.pk', 'rb') as f:
+        controllers = pickle.load(f)
     for i in tqdm(range(steps)):
         t = env.minitaur.GetTimeSinceReset()
         if i % config["optimizer_frequency"] == 0:
-            cost_object = config['Cost_ensemble'](ensemble_model=model, init_state=current_state, horizon=config["horizon"],
-                                        action_dim=env.action_space.shape[0], goal=goal, pred_high=pred_high,
-                                        pred_low=pred_low, config=config)
+            cost_object = config['Cost_ensemble'](ensemble_model=model,
+                                                  init_state=np.concatenate((current_state[:28], current_state[30:31])),
+                                                  horizon=config["horizon"],
+                                                  action_dim=env.action_space.shape[0], goal=goal, pred_high=pred_high,
+                                                  t0=t,
+                                                  pred_low=pred_low,
+                                                  config=config)
             config["cost_fn"] = cost_object.cost_fn
             if config['opt'] == "RS":
                 optimizer = RS_opt(config)
                 if i == 0:
-                    sol = optimizer.obtain_solution(t0=t)
+                    init_mean = controllers[np.random.randint(0, len(controllers))]
+                    sol = optimizer.obtain_solution(init_mean, init_var, t0=t)
                 else:
                     sol = optimizer.obtain_solution(init_mean=sliding_mean, init_var=init_var, t0=t)
             elif config['opt'] == "CEM":
@@ -268,22 +359,23 @@ def execute_3(env, steps, init_var, model, config, pred_high, pred_low, index_it
         reward.append(r)
         control_sol.append(np.copy(sol))
         motor_actions.append(np.copy(motor_action['action']))
-        trajectory.append([current_state.copy(), a.copy(), next_state-current_state, -r])
-        model_error += test_model(model, current_state.copy(), a.copy(), next_state-current_state)
+        trajectory.append([current_state.copy(), a.copy(), next_state - current_state, -r])
+        # ~ model_error += test_model(model, np.concatenate((current_state[:28], current_state[30:31])), a.copy(), next_state-current_state)
         current_state = next_state
         traject_cost += -r
         sliding_mean = sol
         if done:
             break
-    print("Model error: ", model_error/(i+1))
+    print("Model error: ", model_error / (i + 1))
     if recorder is not None:
         recorder.capture_frame()
         recorder.close()
+    samples['t0'].append(0)
     samples['acs'].append(np.copy(acs))
     samples['obs'].append(np.copy(obs))
     samples['reward'].append(np.copy(reward))
     samples['reward_sum'].append(-traject_cost)
-    samples['model_error'].append(model_error/(i+1))
+    samples['model_error'].append(model_error / (i + 1))
     samples['controller_sol'].append(np.copy(control_sol))
     samples['motor_actions'].append(np.copy(motor_actions))
     return np.array(trajectory), traject_cost
@@ -295,7 +387,7 @@ def test_model(ensemble_model, init_state, action, state_diff):
     error = []
     for model_index in range(len(ensemble_model.get_models())):
         y_pred = ensemble_model.get_models()[model_index].predict(x)
-        error.append(np.linalg.norm(y-y_pred)/np.linalg.norm(y))
+        error.append(np.linalg.norm(y - y_pred) / np.linalg.norm(y))
     return np.array(error)
 
 
@@ -306,8 +398,25 @@ def extract_action_seq(data):
     return np.array(actions)
 
 
+def analyse_CM(CM, toprint=False):
+    [[TP, FP], [FN, TN]] = CM
+    TPR = TP / (TP + FN) if (TP + FN) != 0 else 0
+    TNR = TN / (TN + FP) if (FP + TN) != 0 else 0
+    ACC = (TP + TN) / (TP + TN + FP + FN) if (TP + TN + FP + FN) != 0 else 0
+    Precision = TP / (TP + FP) if (TP + FP) != 0 else 0
+    FS = 2 * TP / (2 * TP + FP + FN) if (2 * TP + FP + FN) != 0 else 0
+    if toprint:
+        print("TPR: ", TPR)
+        print("TNR: ", TNR)
+        print("ACC: ", ACC)
+        print("Precision: ", Precision)
+        print("FS: ", FS)
+    return [TPR, TNR, ACC, Precision, FS]
+
+
 def main(config):
-    logdir = os.path.join(config['logdir'], strftime("%Y-%m-%d--%H:%M:%S", localtime()) + str(np.random.randint(10**5)))
+    logdir = os.path.join(config['logdir'],
+                          strftime("%Y-%m-%d--%H:%M:%S", localtime()) + str(np.random.randint(10 ** 5)))
     config['logdir'] = logdir
     os.makedirs(logdir)
     with open(os.path.join(config['logdir'], "config.txt"), 'w') as f:
@@ -321,12 +430,20 @@ def main(config):
     data = n_task * [None]
     models = n_task * [None]
     evaluations = n_task * [None]
+    trainer = Evaluation_ensemble(config=config)
 
     for i in range(n_task):
-        with open(os.path.join(config['logdir'], "env_costs_task_" + str(i)+".txt"), "w+") as f:
+        with open(os.path.join(config['logdir'], "env_costs_task_" + str(i) + ".txt"), "w+") as f:
             f.write("")
 
     traj_obs, traj_acs, traj_rets, traj_rews, traj_error, traj_eval, traj_sol, traj_motor = [], [], [], [], [], [], [], []
+
+    if not config['load_data'] is None:
+        with open("../data/train_" + config['load_data'] + ".pk", 'rb') as f:
+            training_samples = pickle.load(f)
+        trainer = Evaluation_ensemble(config=config)
+        trainer.add_samples(training_samples)
+        random_iter = 0
 
     for index_iter in range(config["iterations"]):
         '''Pick a random environment'''
@@ -338,50 +455,44 @@ def main(config):
         c = None
 
         samples = {'acs': [], 'obs': [], 'reward': [], 'reward_sum': [], 'model_error': [],
-                   "controller_sol": [], 'motor_actions': []}
-        if (not config['load_data'] is None) and (data[env_index] is None):
-            with open(config['load_data'], 'rb') as f:
-                data = pickle.load(f)
-            random_iter = 0
-        if data[env_index] is None or index_iter < random_iter * n_task:
+                   "controller_sol": [], 'motor_actions': [], 'controller': [], 't0': []}
+        if index_iter < random_iter * n_task:
             print("Execution (Random actions)...")
             trajectory, c = execute_random(env=env, steps=config["episode_length"], samples=samples,
                                            K=config["K"], config=config)
-            if data[env_index] is None:
-                data[env_index] = trajectory
-            else:
-                data[env_index] = np.concatenate((data[env_index], trajectory), axis=0)
             print("Cost : ", c)
+            trainer.add_samples(samples)
         else:
             '''------------Update models------------'''
-            x, y, high, low = process_data(data[env_index])
-            if index_iter < config['stop_training']:
+            if (index_iter - random_iter) % 10 == 0:
+                low, high = trainer.get_bounds()
+                x, y = trainer.get_data()
                 print("Learning model...")
-                sampling_size = -1 if config['n_ensembles'] == 1 else len(x)
-                models[env_index] = train_ensemble_model(train_in=x, train_out=y, sampling_size=sampling_size, config=config, model=models[env_index])
+                sampling_size = -1  # if config['n_ensembles'] == 1 else len(x)
+                models[env_index] = train_ensemble_model(train_in=x, train_out=y, sampling_size=sampling_size,
+                                                         config=config, model=models[env_index])
                 print("Evaluate model...")
-                evaluator = Evaluation_ensemble(ensemble_model=models[env_index], pred_high=high, pred_low=low, config=config)
-                evaluator.add_sample(traj_obs[-1], traj_acs[-1])
-                error, _ = evaluator.eval_model(models[env_index])
-                print("Training error:", np.mean(error, axis=1))
-                traj_eval.append(np.mean(error, axis=1))
-            elif index_iter % 50 == 0:
-                config['popsize'] = config['popsize'] * 10
+                training_error, training_error0, train_pred, CMs = trainer.eval_traj(models[env_index])
+                for CM in CMs:
+                    analyse_CM(CM, True)
+                print("Training error:", np.mean(training_error, axis=1))
+                traj_eval.append(np.mean(training_error, axis=1))
             print("Execution...")
 
-            trajectory, c = execute_2(env=env,
-                                    model=models[env_index],
-                                    steps=config["episode_length"],
-                                    init_var=config["init_var"] * np.ones(config["sol_dim"]),
-                                    config=config,
-                                    pred_high= high,
-                                    pred_low=low,
-                                    index_iter=index_iter,
-                                    samples=samples)
-            data[env_index] = np.concatenate((data[env_index], trajectory), axis=0)
+            trajectory, c = execute_3(env=env,
+                                      model=models[env_index],
+                                      steps=config["episode_length"],
+                                      init_var=config["init_var"] * np.ones(config["sol_dim"]),
+                                      config=config,
+                                      pred_high=high,
+                                      pred_low=low,
+                                      index_iter=index_iter,
+                                      samples=samples)
             print("Cost : ", c)
-        with open(os.path.join(config['logdir'], "ant_costs_task_" + str(env_index)+".txt"), "a+") as f:
-            f.write(str(c)+"\n")
+            if config['model_type'] == "D":
+                trainer.add_samples(samples)
+        with open(os.path.join(config['logdir'], "ant_costs_task_" + str(env_index) + ".txt"), "a+") as f:
+            f.write(str(c) + "\n")
 
         traj_obs.extend(samples["obs"])
         traj_acs.extend(samples["acs"])

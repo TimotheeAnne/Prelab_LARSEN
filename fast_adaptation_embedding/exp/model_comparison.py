@@ -56,7 +56,7 @@ class Evaluation_ensemble(object):
         self.__type = config['model_type']
         self.H = config['horizon']
         self.indexes = []
-        self.inv_indexes = None
+        self.inv_indexes = []
         self.__pop_batch = config['pop_batch']
 
     def add_samples(self, samples):
@@ -78,11 +78,12 @@ class Evaluation_ensemble(object):
         else:
             ctrl = samples['controller']
             obs = samples['obs']
+            t0 = samples['t0']
             for i in range(len(obs)):
                 T = len(obs[i])
                 for t in range(0, T - self.H):
                     self.__inputs.append(
-                        np.concatenate((obs[i][t][:28], obs[i][t][30:31], ctrl[i], [(t % self.H) / self.H])))
+                        np.concatenate((obs[i][t][:28], obs[i][t][30:31], ctrl[i], [((t + t0[i]) % self.H) / self.H])))
                     self.__outputs.append(obs[i][t + self.H][28:31] - obs[i][t][28:31])
 
     def get_data(self):
@@ -108,12 +109,12 @@ class Evaluation_ensemble(object):
             n_batch = max(1, int(len(self.indexes) / self.__pop_batch))
             per_batch = len(self.indexes) / n_batch
 
-            for i in range(n_batch):
+            for i in tqdm(range(n_batch)):
                 start_index = int(i * per_batch)
-                end_index = len(indexes) if i == n_batch - 1 else int(i * per_batch + per_batch)
+                end_index = len(self.indexes) if i == n_batch - 1 else int(i * per_batch + per_batch)
                 for model_index in range(len(models)):
                     dyn_model = models[model_index]
-                    indexes = self.indexes[start_index:end_index]
+                    indexes = np.array(self.indexes[start_index:end_index])
                     current_state = inputs[indexes, :29]
                     for t in range(self.H):
                         current_input = torch.cat((current_state, inputs[indexes + t, 29:]), dim=1)
