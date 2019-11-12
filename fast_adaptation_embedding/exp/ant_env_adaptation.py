@@ -107,6 +107,7 @@ if __name__ == "__main__":
         "n_ensembles": 1,
         "ensemble_batch_size": 64,
         "ensemble_log_interval": 500,
+        "model_type": "D",
 
         # Optimizer parameters
         "max_iters": 1,
