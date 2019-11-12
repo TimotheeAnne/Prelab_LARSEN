@@ -159,13 +159,13 @@ class Evaluation_ensemble(object):
                                                                                                            start_index:end_index] = dyn_model.compute_error(
                         inputs[start_index:end_index], outputs[start_index:end_index], True)
 
-            pred_notfallen = (pred[:, :, 2] + inputs[:, 28]) > 0.13
-            not_fallen = (outputs[:, 2] + inputs[:, 28]) > 0.13
-            CM = [[[0, 0], [0, 0]] for _ in range(len(models))]
-            for model_index in range(len(models)):
-                for i in range(len(not_fallen)):
-                    CM[model_index][pred_notfallen[model_index][i]][not_fallen[i]] += 1
-            return error.cpu().detach().numpy(), error0.cpu().detach().numpy(), pred.cpu().detach().numpy(), CM
+            # ~ pred_notfallen = (pred[:, :, 2] + inputs[:, 28]) > 0.13
+            # ~ not_fallen = (outputs[:, 2] + inputs[:, 28]) > 0.13
+            # ~ CM = [[[0, 0], [0, 0]] for _ in range(len(models))]
+            # ~ for model_index in range(len(models)):
+                # ~ for i in range(len(not_fallen)):
+                    # ~ CM[model_index][pred_notfallen[model_index][i]][not_fallen[i]] += 1
+            return error.cpu().detach().numpy(), error0.cpu().detach().numpy(), pred.cpu().detach().numpy()#, CM
 
     def eval_model(self, ensemble, return_pred=False):
         models = ensemble.get_models()
@@ -392,7 +392,7 @@ def test_model(ensemble_model, init_state, action, state_diff):
 
 
 def extract_action_seq(data):
-    actions = []
+    actions = [], CMs
     for d in data:
         actions += d[1].tolist()
     return np.array(actions)
@@ -472,14 +472,12 @@ def main(config):
                 models[env_index] = train_ensemble_model(train_in=x, train_out=y, sampling_size=sampling_size,
                                                          config=config, model=models[env_index])
                 print("Evaluate model...")
-                training_error, training_error0, train_pred, CMs = trainer.eval_traj(models[env_index])
-                for CM in CMs:
-                    analyse_CM(CM, True)
-                print("Training error:", np.mean(training_error, axis=1))
-                traj_eval.append(np.mean(training_error, axis=1))
+                training_error, training_error0, train_pred = trainer.eval_traj(models[env_index])
+                print("Training error:", np.mean(training_error, axis=2))
+                traj_eval.append(np.mean(training_error, axis=2))
             print("Execution...")
-
-            trajectory, c = execute_3(env=env,
+            execute = execute_2 if config['env'] == "AntMuJoCoEnv_fastAdapt-v0" else execute_3
+            trajectory, c = execute(env=env,
                                       model=models[env_index],
                                       steps=config["episode_length"],
                                       init_var=config["init_var"] * np.ones(config["sol_dim"]),

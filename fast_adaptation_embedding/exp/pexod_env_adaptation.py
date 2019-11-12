@@ -1,4 +1,5 @@
 import os, inspect
+
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 os.sys.path.insert(0, parentdir)
@@ -26,14 +27,7 @@ if __name__ == "__main__":
             self.__pred_high = pred_high
             self.__pred_low = pred_low
             self.__obs_dim = len(init_state)
-            self.__energy_weight = config['energy_weight']
-            self.__distance_weight = config['distance_weight']
-            self.__survival_weight = config['survival_weight']
-            self.__drift_weight = config['drift_weight']
-            self.__shake_weight = config['shake_weight']
-            self.__action_weight = config['action_weight']
             self.__discount = config['discount']
-            self.__pop_batch = config['pop_batch']
 
         def cost_fn(self, samples):
             action_samples = torch.FloatTensor(samples).cuda() if self.__ensemble_model.CUDA else torch.FloatTensor(
@@ -46,7 +40,8 @@ if __name__ == "__main__":
                 np.zeros(len(samples)))
 
             n_model = len(self.__models)
-            n_batch = max(1, int(len(samples) / self.__pop_batch))
+            # n_batch = min(n_model, int(len(samples)/1024))
+            n_batch = max(1, int(len(samples) / 16384))
             per_batch = len(samples) / n_batch
 
             for i in range(n_batch):
@@ -63,25 +58,21 @@ if __name__ == "__main__":
                     for dim in range(self.__obs_dim):
                         start_states[:, dim].clamp_(self.__pred_low[dim], self.__pred_high[dim])
 
-                    action_cost = torch.sum(actions * actions, dim=1) * self.__action_weight
-                    energy_cost = abs(
-                        torch.sum(start_states[:, 16:24] * start_states[:, 8:16], dim=1)) * 0.02 * self.__energy_weight
-                    x_vel_cost = -diff_state[:, 28] * self.__distance_weight
-                    y_vel_cost = abs(diff_state[:, 29]) * self.__drift_weight
-                    shake_cost = abs(diff_state[:, 30]) * self.__shake_weight
-                    survival_cost = (start_states[:, 30] < 0.13).type(start_states.dtype) * self.__survival_weight
+                    action_cost = torch.sum(actions * actions, dim=1) * 0.0
+                    x_vel_cost = -start_states[:, 13]
+                    survive_cost = (start_states[:, 0] < 0.26).type(start_states.dtype) * 2.0
                     all_costs[start_index: end_index] += x_vel_cost * self.__discount ** h + \
                                                          action_cost * self.__discount ** h + \
-                                                         survival_cost * self.__discount ** h + \
-                                                         y_vel_cost * self.__discount ** h + \
-                                                         shake_cost * self.__discount ** h + \
-                                                         energy_cost * self.__discount ** h
+                                                         survive_cost * self.__discount ** h
             return all_costs.cpu().detach().numpy()
+
 
     config = {
         # exp parameters:
+        "env": "AntMuJoCoEnv_fastAdapt-v0",
+        "env_args": {},
         "horizon": 20,  # NOTE: "sol_dim" must be adjusted
-        "iterations": 200,
+        "iterations": 300,
         "random_iter": 100,
         "episode_length": 1000,
         "init_state": None,  # Must be updated before passing config as param
@@ -89,15 +80,13 @@ if __name__ == "__main__":
         "video_recording_frequency": 20,
         "logdir": logdir,
         "load_data": None,
-        "distance_weight": 1.0,
-        "energy_weight": 0.,
-        "shake_weight": 0.,
-        "drift_weight": 0.,
-        "survival_weight": 0.,
-        "action_weight": 0.,
         "motor_velocity_limit": np.inf,
         "angle_limit": 1,
         "K": 1,
+        'video.frames_per_second': 50,
+        'controller': None,
+        'stop_training': np.inf,
+        "control_time_step": 0.02,
 
         # Model learning parameters
         "epoch": 1000,
@@ -106,9 +95,10 @@ if __name__ == "__main__":
 
         # Ensemble model params'log'
         "ensemble_epoch": 5,
-        "ensemble_dim_in": 8+31,
-        "ensemble_dim_out": 31,
+        "ensemble_dim_in": 8 + 27,
+        "ensemble_dim_out": 27,
         "ensemble_hidden": [200, 200, 100],
+        "ensemble_contact": False,
         "hidden_activation": "relu",
         "ensemble_cuda": True,
         "ensemble_seed": None,
@@ -117,21 +107,26 @@ if __name__ == "__main__":
         "n_ensembles": 1,
         "ensemble_batch_size": 64,
         "ensemble_log_interval": 500,
+        "model_type": "D",
 
         # Optimizer parameters
         "max_iters": 1,
         "epsilon": 0.0001,
         "opt": "RS",
-        "lb": -0.5,
-        "ub": 0.5,
+        "lb": -1,
+        "ub": 1,
         "popsize": 500,
         "pop_batch": 16384,
-        "sol_dim": 8*20,  # NOTE: Depends on Horizon
+        "sol_dim": 8 * 20,  # NOTE: Depends on Horizon
         "num_elites": 50,
         "cost_fn": None,
         "alpha": 0.1,
         "discount": 1.,
-        "Cost_ensemble": Cost_ensemble
+        "Cost_ensemble": Cost_ensemble,
+        "init_var": 0.2,
+        "initial_boost": 25,
+        "omega": None,
+
     }
     for (key, val) in args.config:
         if key in ['horizon', 'K', 'popsize', 'iterations']:
