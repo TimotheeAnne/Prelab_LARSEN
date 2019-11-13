@@ -5,6 +5,7 @@ from __future__ import absolute_import
 import scipy.stats as stats
 import numpy as np
 
+
 class RS_opt(object):
     def __init__(self, config):
         self.initial_boost = config["initial_boost"]#1
@@ -16,6 +17,7 @@ class RS_opt(object):
         self.omega = config["omega"]
         self.dt = config["control_time_step"] * config['K']
         self.controller = config["controller"]
+        self.env = config['env']
 
     def obtain_solution(self, init_mean=None, init_var=None, t0=0):
         """Optimizes the cost function using the provided initial candidate distribution
@@ -29,9 +31,15 @@ class RS_opt(object):
             assert init_mean is not None and init_var is not None, "init mean and var must be provided"
             samples = np.random.normal(init_mean, init_var, size=(self.popsize, self.sol_dim))
             samples = np.clip(samples, self.lb, self.ub)
-        if self.controller is not None:
+        if self.env == 'MinitaurGymEnv_fastAdapt-v0' and self.controller is not None:
             actions = np.concatenate([samples[:, 0:8] * np.sin(self.omega * (t0 + t * self.dt) + samples[:, 8:16])
                                       for t in range(self.horizon)], axis=1)
+            costs = self.cost_function(np.array(actions))
+
+        elif self.env == "PexodQuad-v0":
+            actions = np.zeros((len(samples), 0))
+            for t in range(self.horizon):
+                actions = np.concatenate((actions, np.swapaxes(self.controller(samples, t0+t*self.dt),0,1)), axis=1)
             costs = self.cost_function(np.array(actions))
         else:
             costs = self.cost_function(samples)

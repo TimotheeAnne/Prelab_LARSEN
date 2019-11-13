@@ -73,11 +73,11 @@ class Evaluation_ensemble(object):
                         self.inv_indexes.append((i, t))
                     if self.env == "AntMuJoCoEnv_fastAdapt-v0":
                         self.__inputs.append(np.concatenate((obs[i][t], acs[i][t])))
+                    elif self.env == "PexodQuad-v0":
+                        self.__inputs.append(np.concatenate((obs[i][t][2:], acs[i][t])))
                     else:
                         self.__inputs.append(np.concatenate((obs[i][t][:28], obs[i][t][30:31], acs[i][t])))
                     self.__outputs.append(obs[i][t + 1] - obs[i][t])
-            self.__pred_low = np.min(self.__inputs[:29], axis=0)
-            self.__pred_high = np.max(self.__inputs[:29], axis=0)
         else:
             ctrl = samples['controller']
             obs = samples['obs']
@@ -127,6 +127,18 @@ class Evaluation_ensemble(object):
                                                                           start_index:end_index], diff_pred = dyn_model.compute_error(
                                 current_input, current_output, True)
                             current_state[:, :27] += diff_pred
+                    elif self.env == "PexodQuad-v0":
+                        current_state = inputs[indexes, :38]
+                        for t in range(self.H):
+                            current_input = torch.cat((current_state, inputs[indexes + t, 38:]), dim=1)
+                            current_output = outputs[indexes + t]
+                            error[model_index, t, start_index:end_index], error0[model_index, t,
+                                                                          start_index:end_index], diff_pred = dyn_model.compute_error(
+                                current_input, current_output, True)
+                            current_state += diff_pred[:, 2:]
+                            traj_pred[model_index, t + 1, start_index:end_index, :2] = traj_pred[model_index, t,
+                                                                                       start_index:end_index,
+                                                                                       :2] + diff_pred[:, :2]
                     else:
                         current_state = inputs[indexes, :29]
                         for t in range(self.H):
@@ -163,9 +175,9 @@ class Evaluation_ensemble(object):
             # ~ not_fallen = (outputs[:, 2] + inputs[:, 28]) > 0.13
             # ~ CM = [[[0, 0], [0, 0]] for _ in range(len(models))]
             # ~ for model_index in range(len(models)):
-                # ~ for i in range(len(not_fallen)):
-                    # ~ CM[model_index][pred_notfallen[model_index][i]][not_fallen[i]] += 1
-            return error.cpu().detach().numpy(), error0.cpu().detach().numpy(), pred.cpu().detach().numpy()#, CM
+            # ~ for i in range(len(not_fallen)):
+            # ~ CM[model_index][pred_notfallen[model_index][i]][not_fallen[i]] += 1
+            return error.cpu().detach().numpy(), error0.cpu().detach().numpy(), pred.cpu().detach().numpy()  # , CM
 
     def eval_model(self, ensemble, return_pred=False):
         models = ensemble.get_models()
@@ -198,7 +210,7 @@ def process_data(data):
     return np.array(training_in), np.array(training_out), np.max(training_in, axis=0), np.min(training_in, axis=0)
 
 
-def execute_random(env, steps, samples, K, config):
+def execute_random(env, steps, samples, K, config, index_iter):
     current_state = env.reset()
     obs = [current_state]
     acs = []
@@ -206,26 +218,24 @@ def execute_random(env, steps, samples, K, config):
     reward = []
     traject_cost = 0
     param = []
+    recorder = None
+    # ~ recorder = VideoRecorder(env, os.path.join(config['logdir'], "iter_" + str(index_iter) + ".mp4"))
 
     for i in tqdm(range(steps)):
-        if config["controller"] is not None:
-            if param == []:
-                with open('../data/good_controllers.pk', 'rb') as f:
-                    controllers = pickle.load(f)
-                param = controllers[np.random.randint(0, len(controllers))]
-            t = env.minitaur.GetTimeSinceReset()
-            # ~ param = np.random.normal(param, config['init_var'])
-            # ~ param = np.clip(param, config['lb'], config['ub'])
-            a = config["controller"](t, config['omega'], param)
-        else:
+        if recorder is not None:
+            recorder.capture_frame()
+        if i % (2 * config['horizon']) == 0:
             a = env.action_space.sample()
-        next_state, r = 0, 0
         for k in range(K):
-            next_state, r, done, _ = env.step(a)
-        obs.append(next_state)
-        acs.append(a)
+            next_state, r, done, info = env.step(a)
+        if config['env'] == "PexodQuad-v0":
+            obs.append(info['obs'])
+            acs.append(info['acs'])
+        else:
+            obs.append(next_state)
+            acs.append(a)
         reward.append(r)
-        trajectory.append([current_state.copy(), a.copy(), next_state - current_state, -r])
+        # ~ trajectory.append([current_state.copy(), a.copy(), next_state - current_state, -r])
         current_state = next_state
         traject_cost += -r
         if done:
@@ -237,7 +247,10 @@ def execute_random(env, steps, samples, K, config):
     samples['reward'].append(np.copy(reward))
     samples['reward_sum'].append(-traject_cost)
     samples['controller'].append(np.copy(param))
-    return np.array(trajectory), traject_cost
+    if recorder is not None:
+        recorder.capture_frame()
+        recorder.close()
+    return traject_cost
 
 
 def execute_2(env, steps, init_var, model, config, pred_high, pred_low, index_iter, samples):
@@ -248,7 +261,6 @@ def execute_2(env, steps, init_var, model, config, pred_high, pred_low, index_it
     # ~ recorder = VideoRecorder(env, os.path.join(config['logdir'], "iter_" + str(index_iter) + ".mp4"))
     obs = [current_state]
     acs = []
-    trajectory = []
     reward = []
     traject_cost = 0
     model_error = 0
@@ -286,7 +298,7 @@ def execute_2(env, steps, init_var, model, config, pred_high, pred_low, index_it
             obs.append(next_state)
             acs.append(a)
             reward.append(r)
-        trajectory.append([current_state.copy(), a.copy(), next_state - current_state, -r])
+        # ~ trajectory.append([current_state.copy(), a.copy(), next_state - current_state, -r])
         model_error += test_model(model, current_state.copy(), a.copy(), next_state - current_state)
         current_state = next_state
         traject_cost += -r
@@ -302,7 +314,7 @@ def execute_2(env, steps, init_var, model, config, pred_high, pred_low, index_it
     samples['reward'].append(np.copy(reward))
     samples['reward_sum'].append(-traject_cost)
     samples['model_error'].append(model_error / steps)
-    return np.array(trajectory), traject_cost
+    return traject_cost
 
 
 def execute_3(env, steps, init_var, model, config, pred_high, pred_low, index_iter, samples):
@@ -313,7 +325,7 @@ def execute_3(env, steps, init_var, model, config, pred_high, pred_low, index_it
     # ~ if f_rec and  (index_iter ==1 or index_iter % f_rec == (f_rec - 1)):
     # ~ recorder = VideoRecorder(env, os.path.join(config['logdir'], "iter_" + str(index_iter) + ".mp4"))
     obs = [current_state]
-    acs, trajectory, reward, control_sol, motor_actions = [], [], [], [], []
+    acs, reward, control_sol, motor_actions = [], [], [], []
     traject_cost = 0
     model_error = np.zeros(len(model.get_models()))
     sliding_mean = np.zeros(config["sol_dim"])
@@ -322,32 +334,35 @@ def execute_3(env, steps, init_var, model, config, pred_high, pred_low, index_it
     with open('../data/good_controllers.pk', 'rb') as f:
         controllers = pickle.load(f)
     for i in tqdm(range(steps)):
-        t = env.minitaur.GetTimeSinceReset()
-        if i % config["optimizer_frequency"] == 0:
-            cost_object = config['Cost_ensemble'](ensemble_model=model,
-                                                  init_state=np.concatenate((current_state[:28], current_state[30:31])),
-                                                  horizon=config["horizon"],
-                                                  action_dim=env.action_space.shape[0], goal=goal, pred_high=pred_high,
-                                                  t0=t,
-                                                  pred_low=pred_low,
-                                                  config=config)
-            config["cost_fn"] = cost_object.cost_fn
-            if config['opt'] == "RS":
-                optimizer = RS_opt(config)
-                if i == 0:
-                    init_mean = controllers[np.random.randint(0, len(controllers))]
-                    sol = optimizer.obtain_solution(init_mean, init_var, t0=t)
-                else:
-                    sol = optimizer.obtain_solution(init_mean=sliding_mean, init_var=init_var, t0=t)
-            elif config['opt'] == "CEM":
-                optimizer = CEM_opt(config)
-                sol = optimizer.obtain_solution(sliding_mean, init_var)
-            elif config['opt'] == "CMA-ES":
-                xopt, es = cma.fmin2(None, np.zeros(config["sol_dim"]), 0.5,
-                                     parallel_objective=lambda x: list(config["cost_fn"](x)),
-                                     options={'maxfevals': config['max_iters'] * config['popsize'],
-                                              'popsize': config['popsize']})
-                sol = xopt
+        if config['env'] == "PexodQuad-v0":
+            t = env.get_current_time()
+        else:
+            t = env.minitaur.GetTimeSinceReset()
+
+        cost_object = config['Cost_ensemble'](ensemble_model=model,
+                                              init_state=np.concatenate((current_state[:28], current_state[30:31])),
+                                              horizon=config["horizon"],
+                                              action_dim=env.action_space.shape[0], goal=goal, pred_high=pred_high,
+                                              t0=t,
+                                              pred_low=pred_low,
+                                              config=config)
+        config["cost_fn"] = cost_object.cost_fn
+        if config['opt'] == "RS":
+            optimizer = RS_opt(config)
+            if i == 0:
+                init_mean = controllers[np.random.randint(0, len(controllers))]
+                sol = optimizer.obtain_solution(init_mean, init_var, t0=t)
+            else:
+                sol = optimizer.obtain_solution(init_mean=sliding_mean, init_var=init_var, t0=t)
+        elif config['opt'] == "CEM":
+            optimizer = CEM_opt(config)
+            sol = optimizer.obtain_solution(sliding_mean, init_var)
+        elif config['opt'] == "CMA-ES":
+            xopt, es = cma.fmin2(None, np.zeros(config["sol_dim"]), 0.5,
+                                 parallel_objective=lambda x: list(config["cost_fn"](x)),
+                                 options={'maxfevals': config['max_iters'] * config['popsize'],
+                                          'popsize': config['popsize']})
+            sol = xopt
         a = controller(t, omega, sol)
         next_state, r = 0, 0
         if recorder is not None:
@@ -359,7 +374,7 @@ def execute_3(env, steps, init_var, model, config, pred_high, pred_low, index_it
         reward.append(r)
         control_sol.append(np.copy(sol))
         motor_actions.append(np.copy(motor_action['action']))
-        trajectory.append([current_state.copy(), a.copy(), next_state - current_state, -r])
+        # ~ trajectory.append([current_state.copy(), a.copy(), next_state - current_state, -r])
         # ~ model_error += test_model(model, np.concatenate((current_state[:28], current_state[30:31])), a.copy(), next_state-current_state)
         current_state = next_state
         traject_cost += -r
@@ -378,7 +393,79 @@ def execute_3(env, steps, init_var, model, config, pred_high, pred_low, index_it
     samples['model_error'].append(model_error / (i + 1))
     samples['controller_sol'].append(np.copy(control_sol))
     samples['motor_actions'].append(np.copy(motor_actions))
-    return np.array(trajectory), traject_cost
+    return traject_cost
+
+
+def execute_4(env, steps, init_var, model, config, pred_high, pred_low, index_iter, samples):
+    current_state = env.reset()
+    controller = config["controller"]
+    f_rec = config['video_recording_frequency']
+    recorder = None
+    if f_rec and (index_iter == 1 or index_iter % f_rec == (f_rec - 1)):
+        recorder = VideoRecorder(env, os.path.join(config['logdir'], "iter_" + str(index_iter) + ".mp4"))
+    obs = [current_state]
+    acs, reward, control_sol, motor_actions = [], [], [], []
+    traject_cost = 0
+    model_error = np.zeros(len(model.get_models()))
+    sliding_mean = np.zeros(config["sol_dim"])
+    goal = None
+    omega = config['omega']
+    for i in tqdm(range(steps)):
+        t = env.get_current_time()
+
+        cost_object = config['Cost_ensemble'](ensemble_model=model,
+                                              init_state=current_state[2:],
+                                              horizon=config["horizon"],
+                                              action_dim=env.action_space.shape[0], goal=goal, pred_high=pred_high,
+                                              t0=t,
+                                              pred_low=pred_low,
+                                              config=config)
+        config["cost_fn"] = cost_object.cost_fn
+        if config['opt'] == "RS":
+            optimizer = RS_opt(config)
+            if i == 0:
+                sol = optimizer.obtain_solution(t0=t)
+            else:
+                sol = optimizer.obtain_solution(init_mean=sliding_mean, init_var=init_var, t0=t)
+        elif config['opt'] == "CEM":
+            optimizer = CEM_opt(config)
+            sol = optimizer.obtain_solution(sliding_mean, init_var)
+        elif config['opt'] == "CMA-ES":
+            xopt, es = cma.fmin2(None, np.zeros(config["sol_dim"]), 0.5,
+                                 parallel_objective=lambda x: list(config["cost_fn"](x)),
+                                 options={'maxfevals': config['max_iters'] * config['popsize'],
+                                          'popsize': config['popsize']})
+            sol = xopt
+        a = sol
+        next_state, r = 0, 0
+        if recorder is not None:
+            recorder.capture_frame()
+        for k in range(config["K"]):
+            next_state, r, done, info = env.step(a)
+        obs.append(info['obs'])
+        acs.append(info['acs'])
+        reward.append(r)
+        control_sol.append(np.copy(sol))
+        # ~ trajectory.append([current_state.copy(), a.copy(), next_state - current_state, -r])
+        # ~ model_error += test_model(model, np.concatenate((current_state[:28], current_state[30:31])), a.copy(), next_state-current_state)
+        current_state = info['obs']
+        traject_cost += -r
+        sliding_mean = sol
+        if done:
+            break
+    print("Model error: ", model_error / (i + 1))
+    if recorder is not None:
+        recorder.capture_frame()
+        recorder.close()
+    samples['t0'].append(0)
+    samples['acs'].append(np.copy(acs))
+    samples['obs'].append(np.copy(obs))
+    samples['reward'].append(np.copy(reward))
+    samples['reward_sum'].append(-traject_cost)
+    samples['model_error'].append(model_error / (i + 1))
+    samples['controller_sol'].append(np.copy(control_sol))
+    samples['motor_actions'].append(np.copy(motor_actions))
+    return traject_cost
 
 
 def test_model(ensemble_model, init_state, action, state_diff):
@@ -458,13 +545,13 @@ def main(config):
                    "controller_sol": [], 'motor_actions': [], 'controller': [], 't0': []}
         if index_iter < random_iter * n_task:
             print("Execution (Random actions)...")
-            trajectory, c = execute_random(env=env, steps=config["episode_length"], samples=samples,
-                                           K=config["K"], config=config)
+            c = execute_random(env=env, steps=config["episode_length"], samples=samples,
+                               K=config["K"], config=config, index_iter=index_iter)
             print("Cost : ", c)
             trainer.add_samples(samples)
         else:
             '''------------Update models------------'''
-            if (index_iter - random_iter) % 10 == 0:
+            if (index_iter - random_iter) % 1 == 0:
                 low, high = trainer.get_bounds()
                 x, y = trainer.get_data()
                 print("Learning model...")
@@ -476,16 +563,23 @@ def main(config):
                 print("Training error:", np.mean(training_error, axis=2))
                 traj_eval.append(np.mean(training_error, axis=2))
             print("Execution...")
-            execute = execute_2 if config['env'] == "AntMuJoCoEnv_fastAdapt-v0" else execute_3
-            trajectory, c = execute(env=env,
-                                      model=models[env_index],
-                                      steps=config["episode_length"],
-                                      init_var=config["init_var"] * np.ones(config["sol_dim"]),
-                                      config=config,
-                                      pred_high=high,
-                                      pred_low=low,
-                                      index_iter=index_iter,
-                                      samples=samples)
+
+            if config['env'] == "AntMuJoCoEnv_fastAdapt-v0":
+                execute = execute_2
+            elif config['env'] == "PexodQuad-v0":
+                execute = execute_4
+            else:
+                execute = execute_3
+
+            c = execute(env=env,
+                        model=models[env_index],
+                        steps=config["episode_length"],
+                        init_var=config["init_var"] * np.ones(config["sol_dim"]),
+                        config=config,
+                        pred_high=high,
+                        pred_low=low,
+                        index_iter=index_iter,
+                        samples=samples)
             print("Cost : ", c)
             if config['model_type'] == "D":
                 trainer.add_samples(samples)

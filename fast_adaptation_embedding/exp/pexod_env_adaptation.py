@@ -139,7 +139,7 @@ if __name__ == "__main__":
 
     config['video.frames_per_second'] = int(1 / config['control_time_step'])
     config['sol_dim'] = config['horizon'] * config['action_dim']
-    config["action_repeat"] = int(240 * config['control_time_step'])
+    config["action_repeat"] = int(250 * config['control_time_step'])
     env_args = {'execution_time': 1, 'goal_xy_position': np.array([-20., 0.]), 'visualizationSpeed': 1.0,
                 'simStep': 0.004, 'controlStep': config['control_time_step'], 'jointControlMode': "position"
                 }
