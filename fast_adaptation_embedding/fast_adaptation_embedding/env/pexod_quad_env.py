@@ -23,7 +23,9 @@ class PexodQuad_env(gym.Env):
         'render.modes': ['human', 'rgb_array'],
         'video.frames_per_second': 60
         }
-    def __init__(self, goal_xy_position, execution_time=1.0, simStep=0.004, controlStep=0.01, controller=None, jointControlMode = "position", visualizationSpeed = 1.0, boturdf= base_path + "/assets/urdf/pexod_quad/pexod_quad.urdf", floorurdf= base_path + "/assets/urdf/pexod_quad/plane.urdf", lateral_friction=10.0):
+    def __init__(self, execution_time=1.0, simStep=0.004, controlStep=0.02, controller=None,
+                 jointControlMode = "position", visualizationSpeed = 1.0, boturdf= base_path + "/assets/urdf/pexod_quad/pexod_quad.urdf",
+                 floorurdf= base_path + "/assets/urdf/pexod_quad/plane.urdf", lateral_friction=10.0):
         super(PexodQuad_env, self).__init__()
         self.action_space = gym.spaces.Box(low=-np.ones(4), high=np.ones(4), dtype=np.float32)
         self.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(4,), dtype=np.float32)
@@ -41,7 +43,6 @@ class PexodQuad_env(gym.Env):
         self.boturdf = boturdf
         self.floorurdf=floorurdf
         self.lateral_friction = lateral_friction
-        self.goal_xy_position = goal_xy_position
         self.__env_created = False
         self.render_mode = 'rgb_array'
         self.execution_time = execution_time #seconds
@@ -54,6 +55,7 @@ class PexodQuad_env(gym.Env):
         self._cam_pitch = -50
         self._render_width = 500
         self._render_height = int(self._render_width * 720/1280)
+        self._current_time = 0
 
     def setFriction(self, lateral_friction):
         self.p.changeDynamics(self.__planeId, linkIndex=-1, lateralFriction=lateral_friction, physicsClientId=self.physicsClient)
@@ -80,36 +82,30 @@ class PexodQuad_env(gym.Env):
 
     def step(self, action):
         self.__controller.setParams(action)
-        # if (not goal_position == []) and (not self.goal_position == goal_position):             
-        #     self.goalBodyID = self.p.createMultiBody(baseMass=0.0,baseInertialFramePosition=[0,0,0], baseVisualShapeIndex = self.visualGoalShapeId, basePosition = goal_position, useMaximalCoordinates=True, physicsClientId=self.physicsClient)
+
         self.__base_collision = False
         self.__heightExceed = False
-        # self.goal_position = goal_position
+
         assert not self.__controller == None, "Controller not set"
-        self.__states = [self._getState()] #load with init state
+        self.__states = [self._getState()]  # load with init state
         self.__rotations = [self.getRotation()]
         self.__commands = []
         old_time = 0
         first = True
         self.__command = object
-        controlStep = 0
+
         self.flip = False
-        for i in range (int(self.execution_time/self.__simStep)): 
-            if i*self.__simStep - old_time > self.__controlStep or first:
-                state = self._getState()
-                self.__command = self.__controller.nextCommand(i*self.__simStep) * self.__mismatches[0:12]
-                if not first:
-                    self.__states.append(state)
-                    self.__rotations.append(self.getRotation())
+        for i in range(int(self.__controlStep/self.__simStep)):
+            if first:
+                self.__command = self.__controller.nextCommand(self._current_time) * self.__mismatches[0:12]
                 self.__commands.append(self.__command)
                 first = False
-                old_time = i*self.__simStep
-                controlStep += 1
                 if self.recorder is not None:
                     self.recorder.capture_frame()
             
             self.set_commands(self.__command)
-            self.p.stepSimulation(physicsClientId=self.physicsClient) 
+            self.p.stepSimulation(physicsClientId=self.physicsClient)
+            self._current_time += self.__simStep
             if self.p.getConnectionInfo(self.physicsClient)['connectionMethod'] == self.p.GUI:
                 time.sleep(self.__simStep/float(self.__vspeed)) 
             
@@ -124,9 +120,12 @@ class PexodQuad_env(gym.Env):
             #Jumping behavior when CM crosses 2.2
             if self._getState()[2] > 2.2: 
                 self.__heightExceed = True
-        
+
+        self.__states.append(self._getState())
+        self.__rotations.append(self.getRotation())
         state = self.state
-        return state, np.exp(0.5*(state[1]-0.1*np.abs(state[0]))), copy.copy(self.flip), {}
+        info = {'acs': self.__command[[0, 1, 4, 6]], 'obs': list(state)+self.get_true_observation()}
+        return state, np.exp(0.5*(state[1]-0.1*np.abs(state[0]))), copy.copy(self.flip), info
         
             
     def isBaseCollision(self):
@@ -150,7 +149,16 @@ class PexodQuad_env(gym.Env):
     def controlStep(self):
         return self.__controlStep
 
-     #command should be numpy array
+    def get_true_observation(self):
+        angles, velocities, torques = [], [], []
+        for joint in self.joint_list:
+            info = self.p.getJointState(self.__hexapodId, joint, physicsClientId=self.physicsClient)
+            angles.append(info[0])
+            velocities.append(info[1])
+            torques.append(info[3])
+        return angles+velocities+torques
+
+    # command should be numpy array
     def set_commands(self, commands):
         assert commands.size == len(self.joint_list), "Command length doesn't match with controllable joints"
         counter = 0
@@ -295,8 +303,8 @@ class PexodQuad_env(gym.Env):
         self.__states = [] 
         self.__rotations = []
         self.__commands = [] 
-        pos = self._getState()[0:2] 
-        
+        pos = self._getState()[0:2]
+        self._current_time = 0.
         return self.state
 
     def disconnet(self):
@@ -353,7 +361,7 @@ class HexaControllerSine (GenericController) :
         # Robot specific parameters
         swing_limit = 0.5
         extension_limit = 0.4
-        speed = 10
+        speed = 2
         
         A = np.clip(step_size + steer, -1, 1)
         B = np.clip(step_size - steer, -1, 1)
@@ -362,16 +370,16 @@ class HexaControllerSine (GenericController) :
         min_extension = np.clip(-extension + extension_limit*leg_extension_offset, -extension, 0)
 
         #We want legs to move sinusoidally, smoothly
-        fl = math.sin(t * speed) * (swing_limit * A)
-        br = math.sin(t * speed) * (swing_limit * B)
-        fr = math.sin(t * speed + math.pi) * (swing_limit * B)
-        bl = math.sin(t * speed + math.pi) * (swing_limit * A)
+        fl = math.sin(t * speed * 2 * np.pi) * (swing_limit * A)
+        br = math.sin(t * speed * 2 * np.pi) * (swing_limit * B)
+        fr = math.sin(t * speed * 2 * np.pi + math.pi) * (swing_limit * B)
+        bl = math.sin(t * speed * 2 * np.pi + math.pi) * (swing_limit * A)
         
         #We can legs to reach extreme extension as quickly as possible: More like a smoothed square wave
         e1 = np.clip(3.0 * math.sin(t * speed + math.pi/2), min_extension, max_extension)
         e2 = np.clip(3.0 * math.sin(t * speed + math.pi + math.pi/2), min_extension, max_extension)
         # return np.array([bl,e1,e1, 0,0,0, fl,e2,e2, -fr,e1,e1, 0,0,0, -br,e2,e2]) * np.pi/4
-        return np.array([bl,e1,e1, fl,e2,e2, -fr,e1,e1, -br,e2,e2]) * np.pi/4
+        return np.array([bl, e1, e1, fl, e2, e2, -fr, e1, e1, -br, e2, e2]) * np.pi/4
         
         #Swing
         #0: back_left
@@ -394,17 +402,20 @@ if __name__ == '__main__':
     from gym.wrappers.monitoring.video_recorder import VideoRecorder
     import time
     import fast_adaptation_embedding.env
-    env =  gym.make("PexodQuad-v0",execution_time=3.0, goal_xy_position=np.array([-20., 0.]),visualizationSpeed=2.0, simStep=0.004, controlStep=0.01, jointControlMode = "position")
+
+    env = gym.make("PexodQuad-v0", visualizationSpeed=1.0, simStep=0.004, controlStep=0.02, jointControlMode="position")
+    recorder = None
+    # recorder = VideoRecorder(env, "temp_test.mp4")
     env.render(mode='human')
+    env.setRecorder(recorder)
     env.reset()
-    recorder = None#VideoRecorder(env, "temp_test.mp4")
+    pp_new = env.action_space.sample() * 2. - 1.0
     env.setRecorder = recorder
-    for i in range(100):   
+    for i in range(1):
         # pp_new = np.random.normal(pp_new, 0.05)
-        pp_new = env.action_space.sample() * 2. - 1.0
-        # pp_new[3] = 0 
-        state, rew, flip, _ = env.step(action=pp_new)
-        print(state)
+        state, rew, flip, info = env.step(action=pp_new)
+        print(len(info['obs']))
 
     if recorder is not None:
+        recorder.capture_frame()
         recorder.close()
