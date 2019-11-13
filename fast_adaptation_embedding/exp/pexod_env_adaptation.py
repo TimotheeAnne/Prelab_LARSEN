@@ -7,6 +7,8 @@ import argparse
 import torch
 import numpy as np
 from exp.env_adaptation import main
+from exp.model_comparison import compare
+from exp.collect_data import collect
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -30,17 +32,16 @@ if __name__ == "__main__":
             self.__discount = config['discount']
 
         def cost_fn(self, samples):
-            action_samples = torch.FloatTensor(samples).cuda() if self.__ensemble_model.CUDA else torch.FloatTensor(
-                samples)
-            init_states = torch.FloatTensor(np.repeat([self.__init_state], len(samples),
-                                                      axis=0)).cuda() if self.__ensemble_model.CUDA else torch.FloatTensor(
-                np.repeat([self.__init_state], len(samples), axis=0))
-            all_costs = torch.FloatTensor(
-                np.zeros(len(samples))).cuda() if self.__ensemble_model.CUDA else torch.FloatTensor(
-                np.zeros(len(samples)))
+            action_samples = torch.FloatTensor(samples).cuda() \
+                if self.__ensemble_model.CUDA \
+                else torch.FloatTensor(samples)
+            init_states = torch.FloatTensor(np.repeat([self.__init_state], len(samples),axis=0)).cuda() \
+                if self.__ensemble_model.CUDA \
+                else torch.FloatTensor(np.repeat([self.__init_state], len(samples), axis=0))
+            all_costs = torch.FloatTensor(np.zeros(len(samples))).cuda() \
+                if self.__ensemble_model.CUDA \
+                else torch.FloatTensor(np.zeros(len(samples)))
 
-            n_model = len(self.__models)
-            # n_batch = min(n_model, int(len(samples)/1024))
             n_batch = max(1, int(len(samples) / 16384))
             per_batch = len(samples) / n_batch
 
@@ -54,16 +55,11 @@ if __name__ == "__main__":
                     actions = action_batch[:, h * self.__action_dim: h * self.__action_dim + self.__action_dim]
                     model_input = torch.cat((start_states, actions), dim=1)
                     diff_state = dyn_model.predict_tensor(model_input)
-                    start_states += diff_state
+                    start_states += diff_state[:, 2:]
                     for dim in range(self.__obs_dim):
                         start_states[:, dim].clamp_(self.__pred_low[dim], self.__pred_high[dim])
-
-                    action_cost = torch.sum(actions * actions, dim=1) * 0.0
-                    x_vel_cost = -start_states[:, 13]
-                    survive_cost = (start_states[:, 0] < 0.26).type(start_states.dtype) * 2.0
-                    all_costs[start_index: end_index] += x_vel_cost * self.__discount ** h + \
-                                                         action_cost * self.__discount ** h + \
-                                                         survive_cost * self.__discount ** h
+                    x_vel_cost = -diff_state[:, 0]
+                    all_costs[start_index: end_index] += x_vel_cost * self.__discount ** h
             return all_costs.cpu().detach().numpy()
 
 
@@ -71,12 +67,12 @@ if __name__ == "__main__":
         # exp parameters:
         "env": "AntMuJoCoEnv_fastAdapt-v0",
         "env_args": {},
-        "horizon": 20,  # NOTE: "sol_dim" must be adjusted
+        "horizon": 25,  # NOTE: "sol_dim" must be adjusted
         "iterations": 300,
         "random_iter": 100,
         "episode_length": 1000,
         "init_state": None,  # Must be updated before passing config as param
-        "action_dim": 8,
+        "action_dim": 4,
         "video_recording_frequency": 20,
         "logdir": logdir,
         "load_data": None,
@@ -95,8 +91,8 @@ if __name__ == "__main__":
 
         # Ensemble model params'log'
         "ensemble_epoch": 5,
-        "ensemble_dim_in": 8 + 27,
-        "ensemble_dim_out": 27,
+        "ensemble_dim_in": 4 + 38,
+        "ensemble_dim_out": 40,
         "ensemble_hidden": [200, 200, 100],
         "ensemble_contact": False,
         "hidden_activation": "relu",
@@ -129,13 +125,41 @@ if __name__ == "__main__":
 
     }
     for (key, val) in args.config:
-        if key in ['horizon', 'K', 'popsize', 'iterations']:
+        if key in ['horizon', 'K', 'popsize', 'iterations', 'n_ensembles']:
             config[key] = int(val)
-        elif key in ['load_data']:
+        elif key in ['load_data', 'hidden_activation', 'data_size', 'save_data', 'script', 'model_type']:
             config[key] = val
         elif key in ['ensemble_hidden']:
             config[key] = [int(val), int(val), int(val)]
         else:
             config[key] = float(val)
+    if config['model_type'] == 'C':
+        config["ensemble_dim_in"] = 0
+        config["ensemble_dim_out"] = 0
+
+    config['video.frames_per_second'] = int(1 / config['control_time_step'])
     config['sol_dim'] = config['horizon'] * config['action_dim']
-    main(config)
+    config["action_repeat"] = int(240 * config['control_time_step'])
+    env_args = {'execution_time': 1, 'goal_xy_position': np.array([-20., 0.]), 'visualizationSpeed': 1.0,
+                'simStep': 0.004, 'controlStep': config['control_time_step'], 'jointControlMode': "position"
+                }
+    config['env_args'] = env_args
+    if config['ensemble_contact']:
+        config['ensemble_dim_out'] += 4
+        config['ensemble_dim_in'] += 4
+    if config['controller'] is not None:
+        lb = [0.2] * 8 + [0] * 8
+        ub = [0.8] * 8 + [1] * 8
+        config['lb'] = lb
+        config['ub'] = ub
+        config['sol_dim'] = 16
+        config['init_var'] = np.array([config['init_var']]) * 16
+    # if config['model_type'] == "C":
+    #     config['Cost_ensemble'] = Cost_ensemble_C
+
+    if config['script'] == "collect":
+        collect(config)
+    elif config['script'] == "compare":
+        compare(config)
+    else:
+        main(config)
