@@ -157,6 +157,7 @@ if __name__ == "__main__":
         "init_var": 0.05,
         "initial_boost": 1,
         "omega": None,
+        "only_random": False,
 
     }
     for (key, val) in args.config:

@@ -349,7 +349,7 @@ def execute_3(env, steps, init_var, model, config, pred_high, pred_low, index_it
         config["cost_fn"] = cost_object.cost_fn
         if config['opt'] == "RS":
             optimizer = RS_opt(config)
-            if i == 0:
+            if i == 0 or config['only_random']:
                 init_mean = controllers[np.random.randint(0, len(controllers))]
                 sol = optimizer.obtain_solution(init_mean, init_var, t0=t)
             else:
