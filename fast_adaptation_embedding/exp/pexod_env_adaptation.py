@@ -100,7 +100,7 @@ if __name__ == "__main__":
         "env_args": {},
         "horizon": 25,  # NOTE: "sol_dim" must be adjusted
         "iterations": 50,
-        "random_iter": 10,
+        "random_iter": 1,
         "episode_length": 400,
         "init_state": None,  # Must be updated before passing config as param
         "action_dim": 4,
@@ -116,8 +116,8 @@ if __name__ == "__main__":
         "control_time_step": 0.02,
         "script": 'main',
         "controller": controller,
-        "xreward": 1,
-        "yreward": 0,
+        "xreward": 0,
+        "yreward": 1,
 
         # Model learning parameters
         "epoch": 1000,
@@ -157,7 +157,7 @@ if __name__ == "__main__":
         "init_var": 0.05,
         "initial_boost": 1,
         "omega": None,
-        "only_random": False,
+        "only_random": True,
 
     }
     for (key, val) in args.config:
@@ -167,6 +167,8 @@ if __name__ == "__main__":
             config[key] = val
         elif key in ['ensemble_hidden']:
             config[key] = [int(val), int(val), int(val)]
+        elif key in ['only_random']:
+            config[key] = True if val == 'True' else False
         else:
             config[key] = float(val)
     if config['model_type'] == 'C':

@@ -1,10 +1,42 @@
 [
   {
     "exp":"exp/pexod_env_adaptation.py",
-    "prefix": "pexod_test",
+    "prefix": "pexod_1r_2000p",
     "result_dir":"exp/log",
     "walltime": "0:30",
-    "args": "",
-    "replicates": 1
+    "args": "-c random_iter 1 -c iterations 50 -c popsize 2000",
+    "replicates": 3
+  },
+    {
+    "exp":"exp/pexod_env_adaptation.py",
+    "prefix": "pexod_100r_2000p",
+    "result_dir":"exp/log",
+    "walltime": "0:30",
+    "args": "-c random_iter 100 -c iterations 150 -c popsize 2000",
+    "replicates": 3
+  },
+    {
+    "exp":"exp/pexod_env_adaptation.py",
+    "prefix": "pexod_1r_10000p",
+    "result_dir":"exp/log",
+    "walltime": "1:00",
+    "args": "-c random_iter 1 -c iterations 50 -c popsize 10000",
+    "replicates": 3
+  },
+    {
+    "exp":"exp/pexod_env_adaptation.py",
+    "prefix": "pexod_100r_10000p",
+    "result_dir":"exp/log",
+    "walltime": "1:00",
+    "args": "-c random_iter 100 -c iterations 150 -c popsize 10000",
+    "replicates": 3
+  },
+    {
+    "exp":"exp/pexod_env_adaptation.py",
+    "prefix": "pexod_notfullrandom",
+    "result_dir":"exp/log",
+    "walltime": "0:30",
+    "args": "-c only_random False  -c random_iter 1 -c iterations 50 -c popsize 2000 -c initial_boost 25",
+    "replicates": 3
   }
 ]
