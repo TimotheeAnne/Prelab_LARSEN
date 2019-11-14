@@ -99,8 +99,8 @@ if __name__ == "__main__":
         "env": "PexodQuad-v0",
         "env_args": {},
         "horizon": 25,  # NOTE: "sol_dim" must be adjusted
-        "iterations": 300,
-        "random_iter": 100,
+        "iterations": 50,
+        "random_iter": 10,
         "episode_length": 400,
         "init_state": None,  # Must be updated before passing config as param
         "action_dim": 4,

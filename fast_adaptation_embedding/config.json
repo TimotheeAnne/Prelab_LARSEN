@@ -1,10 +1,10 @@
 [
   {
-    "exp":"exp/ant_env_adaptation.py",
-    "prefix": "ant",
+    "exp":"exp/pexod_env_adaptation.py",
+    "prefix": "pexod_test",
     "result_dir":"exp/log",
-    "walltime": "4:00",
+    "walltime": "0:30",
     "args": "",
-    "replicates": 3
+    "replicates": 1
   }
 ]
