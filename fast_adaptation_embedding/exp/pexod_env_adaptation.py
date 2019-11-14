@@ -9,6 +9,7 @@ import numpy as np
 from exp.env_adaptation import main
 from exp.model_comparison import compare
 from exp.collect_data import collect
+import math
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -19,7 +20,7 @@ if __name__ == "__main__":
 
 
     class Cost_ensemble(object):
-        def __init__(self, ensemble_model, init_state, horizon, action_dim, goal, pred_high, pred_low, config):
+        def __init__(self, ensemble_model, init_state, horizon, action_dim, goal, pred_high, pred_low, config, t0=0):
             self.__ensemble_model = ensemble_model
             self.__init_state = init_state
             self.__horizon = horizon
@@ -30,12 +31,13 @@ if __name__ == "__main__":
             self.__pred_low = pred_low
             self.__obs_dim = len(init_state)
             self.__discount = config['discount']
+            self.__t0 = t0
 
         def cost_fn(self, samples):
             action_samples = torch.FloatTensor(samples).cuda() \
                 if self.__ensemble_model.CUDA \
                 else torch.FloatTensor(samples)
-            init_states = torch.FloatTensor(np.repeat([self.__init_state], len(samples),axis=0)).cuda() \
+            init_states = torch.FloatTensor(np.repeat([self.__init_state], len(samples), axis=0)).cuda() \
                 if self.__ensemble_model.CUDA \
                 else torch.FloatTensor(np.repeat([self.__init_state], len(samples), axis=0))
             all_costs = torch.FloatTensor(np.zeros(len(samples))).cuda() \
@@ -56,24 +58,53 @@ if __name__ == "__main__":
                     model_input = torch.cat((start_states, actions), dim=1)
                     diff_state = dyn_model.predict_tensor(model_input)
                     start_states += diff_state[:, 2:]
-                    for dim in range(self.__obs_dim):
-                        start_states[:, dim].clamp_(self.__pred_low[dim], self.__pred_high[dim])
-                    x_vel_cost = -diff_state[:, 0]
-                    all_costs[start_index: end_index] += x_vel_cost * self.__discount ** h
+                    # ~ for dim in range(self.__obs_dim):
+                    # ~ start_states[:, dim].clamp_(self.__pred_low[dim], self.__pred_high[dim])
+                    x_vel_cost = -diff_state[:, 0] * config['xreward']
+                    y_vel_cost = -diff_state[:, 1] * config['yreward']
+                    all_costs[
+                    start_index: end_index] += x_vel_cost * self.__discount ** h + y_vel_cost * self.__discount ** h
             return all_costs.cpu().detach().numpy()
+
+
+    def controller(params, t):
+        steer = params[:, 0]  # Move in different directions
+        step_size = params[:, 1]  # Walk with different step_size forward or backward
+        leg_extension = params[:, 2]  # Walk on different terrain
+        leg_extension_offset = params[:, 3]
+
+        # Robot specific parameters
+        swing_limit = 0.5
+        extension_limit = 0.4
+        speed = 2
+
+        A = np.clip(step_size + steer, -1, 1)
+        B = np.clip(step_size - steer, -1, 1)
+        extension = extension_limit * (leg_extension + 1.0) * 0.5
+        max_extension = np.clip(extension + extension_limit * leg_extension_offset, 0, extension)
+        min_extension = np.clip(-extension + extension_limit * leg_extension_offset, -extension, 0)
+
+        # We want legs to move sinusoidally, smoothly
+        fr = np.sin(t * speed * 2 * np.pi + np.pi) * (swing_limit * B)
+        bl = np.sin(t * speed * 2 * np.pi + np.pi) * (swing_limit * A)
+
+        # We can legs to reach extreme extension as quickly as possible: More like a smoothed square wave
+        e1 = np.clip(3.0 * np.sin(t * speed * 2 * np.pi + np.pi / 2), min_extension, max_extension)
+        e2 = np.clip(3.0 * np.sin(t * speed * 2 * np.pi + np.pi + np.pi / 2), min_extension, max_extension)
+        return np.array([bl, e1, e2, -fr]) * np.pi / 4
 
 
     config = {
         # exp parameters:
-        "env": "AntMuJoCoEnv_fastAdapt-v0",
+        "env": "PexodQuad-v0",
         "env_args": {},
         "horizon": 25,  # NOTE: "sol_dim" must be adjusted
         "iterations": 300,
         "random_iter": 100,
-        "episode_length": 1000,
+        "episode_length": 400,
         "init_state": None,  # Must be updated before passing config as param
         "action_dim": 4,
-        "video_recording_frequency": 20,
+        "video_recording_frequency": 5,
         "logdir": logdir,
         "load_data": None,
         "motor_velocity_limit": np.inf,
@@ -83,6 +114,10 @@ if __name__ == "__main__":
         'controller': None,
         'stop_training': np.inf,
         "control_time_step": 0.02,
+        "script": 'main',
+        "controller": controller,
+        "xreward": 1,
+        "yreward": 0,
 
         # Model learning parameters
         "epoch": 1000,
@@ -111,16 +146,16 @@ if __name__ == "__main__":
         "opt": "RS",
         "lb": -1,
         "ub": 1,
-        "popsize": 500,
+        "popsize": 2000,
         "pop_batch": 16384,
-        "sol_dim": 8 * 20,  # NOTE: Depends on Horizon
+        "sol_dim": 4 * 25,  # NOTE: Depends on Horizon
         "num_elites": 50,
         "cost_fn": None,
         "alpha": 0.1,
         "discount": 1.,
         "Cost_ensemble": Cost_ensemble,
-        "init_var": 0.2,
-        "initial_boost": 25,
+        "init_var": 0.05,
+        "initial_boost": 1,
         "omega": None,
 
     }
@@ -139,21 +174,22 @@ if __name__ == "__main__":
 
     config['video.frames_per_second'] = int(1 / config['control_time_step'])
     config['sol_dim'] = config['horizon'] * config['action_dim']
-    config["action_repeat"] = int(250 * config['control_time_step'])
-    env_args = {'execution_time': 1, 'goal_xy_position': np.array([-20., 0.]), 'visualizationSpeed': 1.0,
-                'simStep': 0.004, 'controlStep': config['control_time_step'], 'jointControlMode': "position"
+    config["action_repeat"] = int(240 * config['control_time_step'])
+    env_args = {'execution_time': 1, 'visualizationSpeed': 1.0,
+                'simStep': 0.004, 'controlStep': config['control_time_step'], 'jointControlMode': "position",
+                'xreward': config['xreward'], 'yreward': config['yreward']
                 }
     config['env_args'] = env_args
     if config['ensemble_contact']:
         config['ensemble_dim_out'] += 4
         config['ensemble_dim_in'] += 4
     if config['controller'] is not None:
-        lb = [0.2] * 8 + [0] * 8
-        ub = [0.8] * 8 + [1] * 8
+        lb = -1
+        ub = 1
         config['lb'] = lb
         config['ub'] = ub
-        config['sol_dim'] = 16
-        config['init_var'] = np.array([config['init_var']]) * 16
+        config['sol_dim'] = 4
+        config['init_var'] = np.array([config['init_var']]) * 4
     # if config['model_type'] == "C":
     #     config['Cost_ensemble'] = Cost_ensemble_C
 
