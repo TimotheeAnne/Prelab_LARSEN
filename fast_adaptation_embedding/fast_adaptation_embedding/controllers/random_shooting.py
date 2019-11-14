@@ -38,8 +38,7 @@ class RS_opt(object):
 
         elif self.env == "PexodQuad-v0":
             actions = np.zeros((len(samples), 0))
-            for t in range(self.horizon):
-                actions = np.concatenate((actions, np.swapaxes(self.controller(samples, t0+t*self.dt),0,1)), axis=1)
+            actions = np.concatenate([np.swapaxes(self.controller(samples, t0+t*self.dt),0,1) for t in range(self.horizon)], axis=1)
             costs = self.cost_function(np.array(actions))
         else:
             costs = self.cost_function(samples)
