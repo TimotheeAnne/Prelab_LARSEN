@@ -161,7 +161,7 @@ if __name__ == "__main__":
 
     }
     for (key, val) in args.config:
-        if key in ['horizon', 'K', 'popsize', 'iterations', 'n_ensembles']:
+        if key in ['horizon', 'K', 'popsize', 'iterations', 'n_ensembles', 'initial_boost']:
             config[key] = int(val)
         elif key in ['load_data', 'hidden_activation', 'data_size', 'save_data', 'script', 'model_type']:
             config[key] = val
