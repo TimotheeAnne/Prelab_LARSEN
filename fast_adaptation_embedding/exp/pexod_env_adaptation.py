@@ -62,8 +62,7 @@ if __name__ == "__main__":
                     # ~ start_states[:, dim].clamp_(self.__pred_low[dim], self.__pred_high[dim])
                     x_vel_cost = -diff_state[:, 0] * config['xreward']
                     y_vel_cost = -diff_state[:, 1] * config['yreward']
-                    all_costs[
-                    start_index: end_index] += x_vel_cost * self.__discount ** h + y_vel_cost * self.__discount ** h
+                    all_costs[start_index: end_index] += x_vel_cost * self.__discount ** h + y_vel_cost * self.__discount ** h
             return all_costs.cpu().detach().numpy()
 
 
@@ -98,7 +97,8 @@ if __name__ == "__main__":
         # exp parameters:
         "env": "PexodQuad-v0",
         "env_args": {},
-        "horizon": 25,  # NOTE: "sol_dim" must be adjusted
+        "horizon": 50,  # NOTE: "sol_dim" must be adjusted
+        "T": 25,
         "iterations": 100,
         "random_iter": 50,
         "episode_length": 1000,
@@ -155,13 +155,13 @@ if __name__ == "__main__":
         "discount": 1.,
         "Cost_ensemble": Cost_ensemble,
         "init_var": 0.05,
-        "initial_boost": 10,
+        "initial_boost": 5,
         "omega": None,
         "only_random": False,
 
     }
     for (key, val) in args.config:
-        if key in ['horizon', 'K', 'popsize', 'iterations', 'n_ensembles', 'initial_boost']:
+        if key in ['horizon', 'K', 'popsize', 'iterations', 'n_ensembles']:
             config[key] = int(val)
         elif key in ['load_data', 'hidden_activation', 'data_size', 'save_data', 'script', 'model_type']:
             config[key] = val
@@ -191,7 +191,7 @@ if __name__ == "__main__":
         ub = 1
         config['lb'] = lb
         config['ub'] = ub
-        config['sol_dim'] = 4
+        config['sol_dim'] = 4 * int(config['horizon']/config['T'])
         config['init_var'] = np.array([config['init_var']]) * 4
     # if config['model_type'] == "C":
     #     config['Cost_ensemble'] = Cost_ensemble_C

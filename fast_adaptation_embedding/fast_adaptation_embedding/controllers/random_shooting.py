@@ -18,6 +18,7 @@ class RS_opt(object):
         self.dt = config["control_time_step"] * config['K']
         self.controller = config["controller"]
         self.env = config['env']
+        self.T = config['T']
 
     def obtain_solution(self, init_mean=None, init_var=None, t0=0):
         """Optimizes the cost function using the provided initial candidate distribution
@@ -35,10 +36,9 @@ class RS_opt(object):
             actions = np.concatenate([samples[:, 0:8] * np.sin(self.omega * (t0 + t * self.dt) + samples[:, 8:16])
                                       for t in range(self.horizon)], axis=1)
             costs = self.cost_function(np.array(actions))
-
         elif self.env == "PexodQuad-v0":
-            actions = np.zeros((len(samples), 0))
-            actions = np.concatenate([np.swapaxes(self.controller(samples, t0+t*self.dt),0,1) for t in range(self.horizon)], axis=1)
+            actions = np.zeros((len(samples[0]), 0))
+            actions = np.concatenate([np.swapaxes(self.controller(samples[:, 4*int(t/self.T):4*(int(t/self.T)+1)], t0+t*self.dt),0,1) for t in range(self.horizon)], axis=1)
             costs = self.cost_function(np.array(actions))
         else:
             costs = self.cost_function(samples)
