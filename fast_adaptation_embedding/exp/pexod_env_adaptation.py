@@ -99,12 +99,12 @@ if __name__ == "__main__":
         "env": "PexodQuad-v0",
         "env_args": {},
         "horizon": 25,  # NOTE: "sol_dim" must be adjusted
-        "iterations": 50,
-        "random_iter": 1,
-        "episode_length": 400,
+        "iterations": 100,
+        "random_iter": 50,
+        "episode_length": 1000,
         "init_state": None,  # Must be updated before passing config as param
         "action_dim": 4,
-        "video_recording_frequency": 5,
+        "video_recording_frequency": 10,
         "logdir": logdir,
         "load_data": None,
         "motor_velocity_limit": np.inf,
@@ -155,9 +155,9 @@ if __name__ == "__main__":
         "discount": 1.,
         "Cost_ensemble": Cost_ensemble,
         "init_var": 0.05,
-        "initial_boost": 1,
+        "initial_boost": 10,
         "omega": None,
-        "only_random": True,
+        "only_random": False,
 
     }
     for (key, val) in args.config:

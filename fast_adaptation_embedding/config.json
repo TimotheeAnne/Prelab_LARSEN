@@ -1,43 +1,42 @@
 [
    {
     "exp":"exp/pexod_env_adaptation.py",
-    "prefix": "pexod_001var",
+    "prefix": "pexod_H25",
     "result_dir":"exp/log",
-    "walltime": "0:30",
-    "args": "-c only_random False  -c random_iter 1 -c iterations 50 -c popsize 2000 -c initial_boost 10 -c init_var 0.01",
+    "walltime": "1:00",
+    "args": "-c horizon 25  ",
     "replicates": 3
   },
      {
     "exp":"exp/pexod_env_adaptation.py",
-    "prefix": "pexod_002var",
+    "prefix": "pexod_H50",
     "result_dir":"exp/log",
-    "walltime": "0:30",
-    "args": "-c only_random False  -c random_iter 1 -c iterations 50 -c popsize 2000 -c initial_boost 10 -c init_var 0.02",
-    "replicates": 3
-  },
-     {
-    "exp":"exp/pexod_env_adaptation.py",
-    "prefix": "pexod_005var",
-    "result_dir":"exp/log",
-    "walltime": "0:30",
-    "args": "-c only_random False  -c random_iter 1 -c iterations 50 -c popsize 2000 -c initial_boost 10 -c init_var 0.05",
-    "replicates": 3
-  },
-     {
-    "exp":"exp/pexod_env_adaptation.py",
-    "prefix": "pexod_01var",
-    "result_dir":"exp/log",
-    "walltime": "0:30",
-    "args": "-c only_random False  -c random_iter 1 -c iterations 50 -c popsize 2000 -c initial_boost 10 -c init_var 0.1",
+    "walltime": "1:00",
+    "args": "-c horizon 50  ",
     "replicates": 3
   },
   {
     "exp":"exp/pexod_env_adaptation.py",
-    "prefix": "pexod_02var",
+    "prefix": "pexod_H100",
     "result_dir":"exp/log",
-    "walltime": "0:30",
-    "args": "-c only_random False  -c random_iter 1 -c iterations 50 -c popsize 2000 -c initial_boost 10 -c init_var 0.2",
+    "walltime": "1:00",
+    "args": "-c horizon 100  ",
+    "replicates": 3
+  },
+  {
+    "exp":"exp/pexod_env_adaptation.py",
+    "prefix": "pexod_H200",
+    "result_dir":"exp/log",
+    "walltime": "1:00",
+    "args": "-c horizon 200  ",
+    "replicates": 3
+  },
+       {
+    "exp":"exp/pexod_env_adaptation.py",
+    "prefix": "pexod_H400",
+    "result_dir":"exp/log",
+    "walltime": "1:00",
+    "args": "-c horizon 400  ",
     "replicates": 3
   }
-
 ]
