@@ -36,7 +36,7 @@ class RS_opt(object):
             actions = np.concatenate([samples[:, 0:8] * np.sin(self.omega * (t0 + t * self.dt) + samples[:, 8:16])
                                       for t in range(self.horizon)], axis=1)
             costs = self.cost_function(np.array(actions))
-        elif self.env == "PexodQuad-v0":
+        elif self.env == "PexodQuad-v0" and self.controller is not None:
             actions = np.zeros((len(samples[0]), 0))
             actions = np.concatenate([np.swapaxes(self.controller(samples[:, 4*int(t/self.T):4*(int(t/self.T)+1)], t0+t*self.dt),0,1) for t in range(self.horizon)], axis=1)
             costs = self.cost_function(np.array(actions))

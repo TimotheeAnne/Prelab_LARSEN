@@ -24,7 +24,7 @@ class PexodQuad_env(gym.Env):
     "Hexapod environment"
     metadata = {
         'render.modes': ['human', 'rgb_array'],
-        'video.frames_per_second': 60
+        'video.frames_per_second': 50
     }
 
     def __init__(self, execution_time=1.0, simStep=0.004, controlStep=0.02, controller=None,
@@ -167,7 +167,7 @@ class PexodQuad_env(gym.Env):
             angles.append(info[0])
             velocities.append(info[1])
             torques.append(info[3])
-        return angles + velocities + torques
+        return angles + velocities #+ torques
 
     # command should be numpy array
     def set_commands(self, commands):
@@ -326,7 +326,7 @@ class PexodQuad_env(gym.Env):
         pos = self._getState()[0:2]
         self._current_time = 0.
         self.previous_state = np.copy(self.state)
-        return list(self.state) + self.get_true_observation()
+        return list(self.state) #+ self.get_true_observation()
 
     def get_current_time(self):
         return self._current_time

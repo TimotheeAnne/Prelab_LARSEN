@@ -58,8 +58,6 @@ if __name__ == "__main__":
                     model_input = torch.cat((start_states, actions), dim=1)
                     diff_state = dyn_model.predict_tensor(model_input)
                     start_states += diff_state[:, 2:]
-                    # ~ for dim in range(self.__obs_dim):
-                    # ~ start_states[:, dim].clamp_(self.__pred_low[dim], self.__pred_high[dim])
                     x_vel_cost = -diff_state[:, 0] * config['xreward']
                     y_vel_cost = -diff_state[:, 1] * config['yreward']
                     all_costs[start_index: end_index] += x_vel_cost * self.__discount ** h + y_vel_cost * self.__discount ** h
@@ -97,11 +95,11 @@ if __name__ == "__main__":
         # exp parameters:
         "env": "PexodQuad-v0",
         "env_args": {},
-        "horizon": 50,  # NOTE: "sol_dim" must be adjusted
-        "T": 25,
+        "horizon": 10,  # NOTE: "sol_dim" must be adjusted
+        "T": 1,
         "iterations": 100,
         "random_iter": 50,
-        "episode_length": 1000,
+        "episode_length": 40,
         "init_state": None,  # Must be updated before passing config as param
         "action_dim": 4,
         "video_recording_frequency": 10,
@@ -109,13 +107,12 @@ if __name__ == "__main__":
         "load_data": None,
         "motor_velocity_limit": np.inf,
         "angle_limit": 1,
-        "K": 1,
+        "K": 50,
         'video.frames_per_second': 50,
         'controller': None,
         'stop_training': np.inf,
         "control_time_step": 0.02,
         "script": 'main',
-        "controller": controller,
         "xreward": 0,
         "yreward": 1,
 
@@ -126,9 +123,9 @@ if __name__ == "__main__":
 
         # Ensemble model params'log'
         "ensemble_epoch": 5,
-        "ensemble_dim_in": 4 + 38,
-        "ensemble_dim_out": 40,
-        "ensemble_hidden": [200, 200, 100],
+        "ensemble_dim_in": 4 + 2,
+        "ensemble_dim_out": 4,
+        "ensemble_hidden": [20, 20],
         "ensemble_contact": False,
         "hidden_activation": "relu",
         "ensemble_cuda": True,
@@ -148,7 +145,7 @@ if __name__ == "__main__":
         "ub": 1,
         "popsize": 2000,
         "pop_batch": 16384,
-        "sol_dim": 4 * 25,  # NOTE: Depends on Horizon
+        "sol_dim": 0,  # NOTE: Depends on Horizon
         "num_elites": 50,
         "cost_fn": None,
         "alpha": 0.1,
@@ -157,7 +154,7 @@ if __name__ == "__main__":
         "init_var": 0.05,
         "initial_boost": 5,
         "omega": None,
-        "only_random": False,
+        "only_random": True,
 
     }
     for (key, val) in args.config:

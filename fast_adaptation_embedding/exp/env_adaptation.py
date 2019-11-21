@@ -128,9 +128,9 @@ class Evaluation_ensemble(object):
                                 current_input, current_output, True)
                             current_state[:, :27] += diff_pred
                     elif self.env == "PexodQuad-v0":
-                        current_state = inputs[indexes, :38]
+                        current_state = inputs[indexes, :2]
                         for t in range(self.H):
-                            current_input = torch.cat((current_state, inputs[indexes + t, 38:]), dim=1)
+                            current_input = torch.cat((current_state, inputs[indexes + t, 2:]), dim=1)
                             current_output = outputs[indexes + t]
                             error[model_index, t, start_index:end_index], error0[model_index, t,
                                                                           start_index:end_index], diff_pred = dyn_model.compute_error(
@@ -224,20 +224,21 @@ def execute_random(env, steps, samples, K, config, index_iter):
     for i in tqdm(range(steps)):
         if recorder is not None:
             recorder.capture_frame()
-        if i % (2 * config['horizon']) == 0:
-            a = env.action_space.sample()
+        a = env.action_space.sample()
+        rew = 0
         for k in range(K):
             next_state, r, done, info = env.step(a)
-        if config['env'] == "PexodQuad-v0":
+            rew += r
+        if config['env'] == "PexodQuad-v0" and not config['controller'] is None:
             obs.append(info['obs'])
             acs.append(info['acs'])
         else:
             obs.append(next_state)
             acs.append(a)
-        reward.append(r)
+        reward.append(rew)
         # ~ trajectory.append([current_state.copy(), a.copy(), next_state - current_state, -r])
         current_state = next_state
-        traject_cost += -r
+        traject_cost += -rew
         if done:
             print(i)
             break
@@ -254,11 +255,14 @@ def execute_random(env, steps, samples, K, config, index_iter):
 
 
 def execute_2(env, steps, init_var, model, config, pred_high, pred_low, index_iter, samples):
+    # for environment without controller
     current_state = env.reset()
     f_rec = config['video_recording_frequency']
     recorder = None
-    # ~ if f_rec and index_iter % f_rec == (f_rec - 1):
-    # ~ recorder = VideoRecorder(env, os.path.join(config['logdir'], "iter_" + str(index_iter) + ".mp4"))
+    if f_rec and index_iter % f_rec == (f_rec - 1):
+        recorder = VideoRecorder(env, os.path.join(config['logdir'], "iter_" + str(index_iter) + ".mp4"))
+        if config['env'] == "PexodQuad-v0":
+            env.setRecorder(recorder)
     obs = [current_state]
     acs = []
     reward = []
@@ -270,7 +274,8 @@ def execute_2(env, steps, init_var, model, config, pred_high, pred_low, index_it
     mutation *= np.array([1.0 if r > 0.25 else 0.0 for r in rand])
     goal = None
     for i in tqdm(range(steps)):
-        cost_object = config['Cost_ensemble'](ensemble_model=model, init_state=current_state, horizon=config["horizon"],
+        cost_object = config['Cost_ensemble'](ensemble_model=model, init_state=current_state[2:],
+                                              horizon=config["horizon"],
                                               action_dim=env.action_space.shape[0], goal=goal, pred_high=pred_high,
                                               pred_low=pred_low, config=config)
         config["cost_fn"] = cost_object.cost_fn
@@ -291,23 +296,22 @@ def execute_2(env, steps, init_var, model, config, pred_high, pred_low, index_it
             sol = xopt
         a = sol[0:env.action_space.shape[0]]
         next_state, r = 0, 0
-        if recorder is not None:
-            recorder.capture_frame()
+        rew = 0
         for k in range(config["K"]):
             next_state, r, done, _ = env.step(a)
-            obs.append(next_state)
-            acs.append(a)
-            reward.append(r)
+            rew += r
+        obs.append(next_state)
+        acs.append(a)
+        reward.append(rew)
         # ~ trajectory.append([current_state.copy(), a.copy(), next_state - current_state, -r])
-        model_error += test_model(model, current_state.copy(), a.copy(), next_state - current_state)
+        # model_error += test_model(model, current_state.copy(), a.copy(), next_state - current_state)
         current_state = next_state
-        traject_cost += -r
+        traject_cost += -rew
         sliding_mean[0:-len(a)] = sol[len(a)::]
         if done:
             break
     print("Model error: ", model_error / (i + 1))
     if recorder is not None:
-        recorder.capture_frame()
         recorder.close()
     samples['acs'].append(np.copy(acs))
     samples['obs'].append(np.copy(obs))
@@ -318,6 +322,7 @@ def execute_2(env, steps, init_var, model, config, pred_high, pred_low, index_it
 
 
 def execute_3(env, steps, init_var, model, config, pred_high, pred_low, index_iter, samples):
+    # Environment with controller
     current_state = env.reset()
     controller = config["controller"]
     f_rec = config['video_recording_frequency']
@@ -397,12 +402,14 @@ def execute_3(env, steps, init_var, model, config, pred_high, pred_low, index_it
 
 
 def execute_4(env, steps, init_var, model, config, pred_high, pred_low, index_iter, samples):
+    # For Pexod Env with full action space and observation space: D
     current_state = env.reset()
     controller = config["controller"]
     f_rec = config['video_recording_frequency']
     recorder = None
     if f_rec and (index_iter == 1 or index_iter % f_rec == (f_rec - 1)):
         recorder = VideoRecorder(env, os.path.join(config['logdir'], "iter_" + str(index_iter) + ".mp4"))
+        env.setRecorder(recorder)
     obs = [current_state]
     acs, reward, control_sol, motor_actions = [], [], [], []
     traject_cost = 0
@@ -412,7 +419,6 @@ def execute_4(env, steps, init_var, model, config, pred_high, pred_low, index_it
     omega = config['omega']
     for i in tqdm(range(steps)):
         t = env.get_current_time()
-
         cost_object = config['Cost_ensemble'](ensemble_model=model,
                                               init_state=current_state[2:],
                                               horizon=config["horizon"],
@@ -436,6 +442,7 @@ def execute_4(env, steps, init_var, model, config, pred_high, pred_low, index_it
                                  options={'maxfevals': config['max_iters'] * config['popsize'],
                                           'popsize': config['popsize']})
             sol = xopt
+
         a = sol
         next_state, r = 0, 0
         if recorder is not None:
@@ -537,6 +544,11 @@ def main(config):
         env_index = int(index_iter % n_task)
         env = envs[env_index]
 
+        if index_iter == 0:
+            mismatches = [1] * 12 + [0]
+            mismatches[0] = 0
+            env.set_mismatch(mismatches)
+
         print("Episode: ", index_iter)
         print("Env index: ", env_index)
         c = None
@@ -551,7 +563,7 @@ def main(config):
             trainer.add_samples(samples)
         else:
             '''------------Update models------------'''
-            if (index_iter - random_iter) % 1 == 0:
+            if (index_iter - random_iter) % 1 == 0 and index_iter < np.inf:
                 low, high = trainer.get_bounds()
                 x, y = trainer.get_data()
                 print("Learning model...")
@@ -564,7 +576,9 @@ def main(config):
                 traj_eval.append(np.mean(training_error, axis=2))
             print("Execution...")
 
-            if config['env'] == "AntMuJoCoEnv_fastAdapt-v0":
+            if config['env'] == "AntMuJoCoEnv_fastAdapt-v0" or (
+                    config['env'] == "PexodQuad-v0" and config['controller'] is None):
+                print('Bana')
                 execute = execute_2
             elif config['env'] == "PexodQuad-v0":
                 execute = execute_4
