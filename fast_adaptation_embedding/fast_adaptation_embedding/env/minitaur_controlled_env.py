@@ -684,11 +684,11 @@ def controller2(params, t):
 
     # Robot specific parameters
     swing_limit = 0.6
-    extension_limit = 2
+    extension_limit = 0.5
     speed = 2.0  # cycle per second
 
-    extension = extension_limit * (leg_extension + 1.0) * 0.5
-    leg_extension_offset = leg_extension_offset * 0.5
+    extension = extension_limit * (leg_extension + 1) * 0.5
+    leg_extension_offset = 0.1 * leg_extension_offset - 0.4
     # Steer modulates only the magnitude (abs) of step_size
     A = np.clip(abs(step_size) + steer, 0, 1) if step_size >= 0 else -np.clip(abs(step_size) + steer, 0, 1)
     B = np.clip(abs(step_size) - steer, 0, 1) if step_size >= 0 else -np.clip(abs(step_size) - steer, 0, 1)
@@ -700,9 +700,9 @@ def controller2(params, t):
     bl = math.sin(t * speed * 2 * np.pi + math.pi) * (swing_limit * A)
 
     # Sawtooth for faster contraction
-    e1 = -(extension * sawtooth(t, speed, 0.25) - 1.) - leg_extension_offset
-    e2 = -(extension * sawtooth(t, speed, 0.5 + 0.25) - 1.) - leg_extension_offset
-    return np.clip(np.array([fl, bl, fr, br, e1, e2, e2, e1]), -1, 1)
+    e1 = extension * sawtooth(t, speed, 0.25) + leg_extension_offset
+    e2 = extension * sawtooth(t, speed, 0.5 + 0.25) + leg_extension_offset
+    return np.clip(np.array([fl, bl, fr, br, -e1, -e2, -e2, -e1]), -1, 1)
 
 
 if __name__ == "__main__":

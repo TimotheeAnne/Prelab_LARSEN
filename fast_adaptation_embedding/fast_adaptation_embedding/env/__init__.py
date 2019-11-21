@@ -32,8 +32,8 @@ register(
 register(
 	id='MinitaurControlledEnv_fastAdapt-v0',
 	entry_point='fast_adaptation_embedding.env.minitaur_controlled_env:MinitaurControlledEnv',
-	max_episode_steps=1000,
-	reward_threshold=5.0
+	max_episode_steps=10000,
+	reward_threshold=10000.0
 )
 
 register(
