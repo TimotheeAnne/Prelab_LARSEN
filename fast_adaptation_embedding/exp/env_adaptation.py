@@ -73,7 +73,7 @@ class Evaluation_ensemble(object):
                         self.inv_indexes.append((i, t))
                     if self.env == "AntMuJoCoEnv_fastAdapt-v0":
                         self.__inputs.append(np.concatenate((obs[i][t], acs[i][t])))
-                    elif self.env == "PexodQuad-v0":
+                    elif self.env in ["PexodQuad-v0", "MinitaurControlledEnv_fastAdapt-v0"]:
                         self.__inputs.append(np.concatenate((obs[i][t][2:], acs[i][t])))
                     else:
                         self.__inputs.append(np.concatenate((obs[i][t][:28], obs[i][t][30:31], acs[i][t])))
@@ -101,9 +101,12 @@ class Evaluation_ensemble(object):
 
     def eval_traj(self, ensemble):
         models = ensemble.get_models()
+        if len(self.indexes) == 0:
+            print("Not enough data for evaluation.")
+            return np.zeros((len(models), self.H, 1)), np.zeros((len(models), self.H, 1)), np.zeros(
+                (len(models), self.H, 1))
         inputs = torch.FloatTensor(self.__inputs).cuda()
         outputs = torch.FloatTensor(self.__outputs).cuda()
-
         if self.__type == "D":
             error = torch.FloatTensor(np.zeros((len(models), self.H, len(self.indexes)))).cuda()
             error0 = torch.FloatTensor(np.zeros((len(models), self.H, len(self.indexes)))).cuda()
@@ -127,7 +130,7 @@ class Evaluation_ensemble(object):
                                                                           start_index:end_index], diff_pred = dyn_model.compute_error(
                                 current_input, current_output, True)
                             current_state[:, :27] += diff_pred
-                    elif self.env == "PexodQuad-v0":
+                    elif self.env in ["PexodQuad-v0", "MinitaurControlledEnv_fastAdapt-v0"]:
                         current_state = inputs[indexes, :2]
                         for t in range(self.H):
                             current_input = torch.cat((current_state, inputs[indexes + t, 2:]), dim=1)
@@ -222,13 +225,13 @@ def execute_random(env, steps, samples, K, config, index_iter):
     # ~ recorder = VideoRecorder(env, os.path.join(config['logdir'], "iter_" + str(index_iter) + ".mp4"))
 
     for i in tqdm(range(steps)):
-        if recorder is not None:
-            recorder.capture_frame()
         a = env.action_space.sample()
         rew = 0
         for k in range(K):
             next_state, r, done, info = env.step(a)
             rew += r
+            if recorder is not None:
+                recorder.capture_frame()
         if config['env'] == "PexodQuad-v0" and not config['controller'] is None:
             obs.append(info['obs'])
             acs.append(info['acs'])
@@ -240,7 +243,6 @@ def execute_random(env, steps, samples, K, config, index_iter):
         current_state = next_state
         traject_cost += -rew
         if done:
-            print(i)
             break
     samples['t0'].append(0)
     samples['acs'].append(np.copy(acs))
@@ -261,8 +263,6 @@ def execute_2(env, steps, init_var, model, config, pred_high, pred_low, index_it
     recorder = None
     if f_rec and index_iter % f_rec == (f_rec - 1):
         recorder = VideoRecorder(env, os.path.join(config['logdir'], "iter_" + str(index_iter) + ".mp4"))
-        if config['env'] == "PexodQuad-v0":
-            env.setRecorder(recorder)
     obs = [current_state]
     acs = []
     reward = []
@@ -300,6 +300,8 @@ def execute_2(env, steps, init_var, model, config, pred_high, pred_low, index_it
         for k in range(config["K"]):
             next_state, r, done, _ = env.step(a)
             rew += r
+            if not recorder is None:
+                recorder.capture_frame()
         obs.append(next_state)
         acs.append(a)
         reward.append(rew)
@@ -409,7 +411,6 @@ def execute_4(env, steps, init_var, model, config, pred_high, pred_low, index_it
     recorder = None
     if f_rec and (index_iter == 1 or index_iter % f_rec == (f_rec - 1)):
         recorder = VideoRecorder(env, os.path.join(config['logdir'], "iter_" + str(index_iter) + ".mp4"))
-        env.setRecorder(recorder)
     obs = [current_state]
     acs, reward, control_sol, motor_actions = [], [], [], []
     traject_cost = 0
@@ -544,10 +545,10 @@ def main(config):
         env_index = int(index_iter % n_task)
         env = envs[env_index]
 
-        if index_iter == 0:
-            mismatches = [1] * 12 + [0]
-            mismatches[0] = 0
-            env.set_mismatch(mismatches)
+        # ~ if index_iter == 0:
+        # ~ mismatches = [1] * 12 + [0]
+        # ~ mismatches[0] = 0
+        # ~ env.set_mismatch(mismatches)
 
         print("Episode: ", index_iter)
         print("Env index: ", env_index)
@@ -577,10 +578,10 @@ def main(config):
             print("Execution...")
 
             if config['env'] == "AntMuJoCoEnv_fastAdapt-v0" or (
-                    config['env'] == "PexodQuad-v0" and config['controller'] is None):
-                print('Bana')
+                    config['env'] in ["PexodQuad-v0", "MinitaurControlledEnv_fastAdapt-v0"] and config[
+                'controller'] is None):
                 execute = execute_2
-            elif config['env'] == "PexodQuad-v0":
+            elif config['env'] in ["PexodQuad-v0", "MinitaurControlledEnv_fastAdapt-v0"]:
                 execute = execute_4
             else:
                 execute = execute_3
