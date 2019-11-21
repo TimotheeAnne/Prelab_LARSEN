@@ -52,7 +52,7 @@ def convert_to_list(obj):
     return [obj]
 
 
-class MinitaurGymEnv(gym.Env):
+class MinitaurControlledEnv(gym.Env):
   """The gym environment for the minitaur.
 
   It simulates the locomotion of a minitaur, a quadruped robot. The state space
@@ -68,7 +68,7 @@ class MinitaurGymEnv(gym.Env):
                urdf_root=pybullet_data.getDataPath(),
                urdf_version=None,
                distance_weight=1.0,
-               energy_weight=0.005,
+               energy_weight=0.0,
                shake_weight=0.0,
                drift_weight=0.0,
                survival_weight=0.0,
@@ -222,6 +222,7 @@ class MinitaurGymEnv(gym.Env):
     self._reflection = reflection
     self._env_randomizers = convert_to_list(env_randomizer) if env_randomizer else []
     self._episode_proto = minitaur_logging_pb2.MinitaurEpisode()
+    self.controller = controller2
     if self._is_render:
       self._pybullet_client = bullet_client.BulletClient(connection_mode=pybullet.GUI)
     else:
@@ -233,7 +234,7 @@ class MinitaurGymEnv(gym.Env):
     self.reset()
     observation_high = (self._get_observation_upper_bound() + OBSERVATION_EPS)
     observation_low = (self._get_observation_lower_bound() - OBSERVATION_EPS)
-    action_dim = NUM_MOTORS
+    action_dim = 4  # [steering, step_size, leg_extension, leg_extension_offset]
     action_high = np.array([self._action_bound] * action_dim)
     self.action_space = spaces.Box(-action_high, action_high)
     self.observation_space = spaces.Box(observation_low, observation_high)
@@ -351,7 +352,8 @@ class MinitaurGymEnv(gym.Env):
 
     for env_randomizer in self._env_randomizers:
       env_randomizer.randomize_step(self)
-
+    t = self.minitaur.GetTimeSinceReset()
+    action = self.controller(action, t)
     action = self._transform_action_to_motor_command(action)
     self.minitaur.Step(action)
     reward = self._reward()
@@ -420,7 +422,7 @@ class MinitaurGymEnv(gym.Env):
       Positions = []
       for foot_id in self.minitaur._foot_link_ids:
         pos = self.pybullet_client.getLinkState(self.minitaur.quadruped, foot_id)
-        if foot_id in [3,6,9,12,16,19,22,25]:
+        if foot_id in [3, 6, 9, 12, 16, 19, 22, 25]:
             Positions.append(pos[0])
       return Positions
 
@@ -475,7 +477,7 @@ class MinitaurGymEnv(gym.Env):
     # rot_mat = self._pybullet_client.getMatrixFromQuaternion(orientation)
     # local_up = rot_mat[6:]
     pos = self.minitaur.GetBasePosition()
-    return (pos[2] < 0.13)
+    return pos[2] < 0.13
 
   def _termination(self):
     position = self.minitaur.GetBasePosition()
@@ -528,13 +530,14 @@ class MinitaurGymEnv(gym.Env):
     Returns:
       The noisy observation with latency.
     """
-
     observation = []
-    observation.extend(self.minitaur.GetMotorAngles().tolist())
-    observation.extend(self.minitaur.GetMotorVelocities().tolist())
-    observation.extend(self.minitaur.GetMotorTorques().tolist())
-    observation.extend(list(self.minitaur.GetBaseOrientation()))
-    observation.extend(list(self.minitaur.GetBasePosition()))
+    observation.extend(list(self.minitaur.GetBasePosition())[:2])
+    quaternion = self.minitaur.GetBaseOrientation()
+    euler = pybullet.getEulerFromQuaternion(quaternion)
+    yaw = euler[2]
+    z_ang_sin = np.sin(yaw)
+    z_ang_cos = np.cos(yaw)
+    observation.extend([z_ang_sin, z_ang_cos])
     # observation.extend(self.get_foot_contact())
     self._observation = observation
     return self._observation
@@ -635,6 +638,7 @@ class MinitaurGymEnv(gym.Env):
 
 
 def controller(t, w, params):
+    """general sinusoidal controller"""
     a = [params[0] * np.sin(w * t + params[8]*2*np.pi),   #s FL
          params[1] * np.sin(w * t + params[9]*2*np.pi),   #s BL
          params[2] * np.sin(w * t + params[10]*2*np.pi),  #s FR
@@ -672,6 +676,7 @@ def sawtooth(t, freq, phase=0):
 
 
 def controller2(params, t):
+    """Sawtooth controller"""
     steer = params[0]  # Move in different directions
     step_size = params[1]  # Walk with different step_size forward or backward
     leg_extension = params[2]  # Walk on different terrain
@@ -711,7 +716,7 @@ if __name__ == "__main__":
     # render = False
     ctrl_time_step = 0.02
 
-    system = gym.make("MinitaurGymEnv_fastAdapt-v0", render=render, on_rack=0,
+    system = gym.make("MinitaurControlledEnv_fastAdapt-v0", render=render, on_rack=0,
                       control_time_step=ctrl_time_step,
                       action_repeat=int(240*ctrl_time_step),
                       accurate_motor_model_enabled=1,
@@ -722,29 +727,18 @@ if __name__ == "__main__":
     recorder = None
     Params, R = [], []
     # recorder = VideoRecorder(system, "test.mp4")
-    # previous_obs = system.reset()
-    # system.unwrapped.minitaur.SetFootFriction(0.0)
     Obs, a_action, m_action, position = [], [], [], []
     I = []
     previous_obs = system.reset(friction=1)
     for i in range(2000):
         if recorder is not None:
             recorder.capture_frame()
-        t = system.minitaur.GetTimeSinceReset()
-        # w = 2 * 2 * np.pi
-        params = [0, 1, 0, 0]
-        # a = controller(t, w, params)
-        a = controller2(params, t)
-
-        # a = a * [1,0,0,0,1,0,0,0]
+        a = [0, 1, 0, 0]
         obs, r, done, info = system.step(a)
         previous_obs = np.copy(obs)
         # rew += r
         Obs.append(obs)
-        # a_action.append(a)
-        # m_action.append(info['action'])
-        # print(system.get_foot_position())
-        # position.append(system.get_foot_position())
+        print(obs)
         time.sleep(0.02)
         if done:
             break

@@ -30,17 +30,10 @@ register(
 )
 
 register(
-	id='PexodAnt-v0',
-	entry_point='fast_adaptation_embedding.env.pexod_ant:PexodAnt_env',
-	max_episode_steps=10000,
-	reward_threshold=10000.0
-)
-
-register(
-	id='PexodAnt-v2',
-	entry_point='fast_adaptation_embedding.env.pexod_ant_v2:PexodAnt_env',
-	max_episode_steps=10000,
-	reward_threshold=10000.0
+	id='MinitaurControlledEnv_fastAdapt-v0',
+	entry_point='fast_adaptation_embedding.env.minitaur_controlled_env:MinitaurControlledEnv',
+	max_episode_steps=1000,
+	reward_threshold=5.0
 )
 
 register(
