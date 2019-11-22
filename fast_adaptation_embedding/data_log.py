@@ -157,3 +157,16 @@ dropout02_200 = [
 ['./exp/log/Saved/model_size/22_10_02/model_dropout_8_200/model_dropout_8_200_replicate_0/2019-10-22--10:02:1724518/logs.mat', ],
 ['./exp/log/Saved/model_size/22_10_02/model_dropout_9_200/model_dropout_9_200_replicate_0/2019-10-22--10:02:1765824/logs.mat', ],
 ]
+
+contact_200 = [
+['./exp/log/Saved/model_size/23_10_01/model_contact_0_200/model_contact_0_200_replicate_0/2019-10-22--16:47:5174880/logs.mat', ],
+['./exp/log/Saved/model_size/23_10_01/model_contact_1_200/model_contact_1_200_replicate_0/2019-10-22--16:47:5474712/logs.mat', ],
+['./exp/log/Saved/model_size/23_10_01/model_contact_2_200/model_contact_2_200_replicate_0/2019-10-22--16:47:5224711/logs.mat', ],
+['./exp/log/Saved/model_size/23_10_01/model_contact_3_200/model_contact_3_200_replicate_0/2019-10-22--16:47:5226078/logs.mat', ],
+['./exp/log/Saved/model_size/23_10_01/model_contact_4_200/model_contact_4_200_replicate_0/2019-10-22--16:47:5296102/logs.mat', ],
+['./exp/log/Saved/model_size/23_10_01/model_contact_5_200/model_contact_5_200_replicate_0/2019-10-22--16:47:524850/logs.mat', ],
+['./exp/log/Saved/model_size/23_10_01/model_contact_6_200/model_contact_6_200_replicate_0/2019-10-22--16:47:5272240/logs.mat', ],
+['./exp/log/Saved/model_size/23_10_01/model_contact_7_200/model_contact_7_200_replicate_0/2019-10-22--16:47:5219769/logs.mat', ],
+['./exp/log/Saved/model_size/23_10_01/model_contact_8_200/model_contact_8_200_replicate_0/2019-10-22--16:47:5262402/logs.mat', ],
+['./exp/log/Saved/model_size/23_10_01/model_contact_9_200/model_contact_9_200_replicate_0/2019-10-22--16:48:1285533/logs.mat', ],
+]

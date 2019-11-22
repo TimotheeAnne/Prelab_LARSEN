@@ -1,14 +1,14 @@
 import os, sys
 from time import time, localtime, strftime
 
-path = './exp/log/Saved/21_10_02/'
+path = './exp/log/Saved/Pexod/15_11_03/'
 
-txt = "tan200 = [\n"
+txt = "Horizon2 = [\n"
 
 files = os.listdir(path)
 files.sort()
 for name in files:
-    if "lrelu" not in name and "_200" in name:
+    if "" in name and "" in name:
         txt += '['
         replicates = os.listdir(path+name)
         for replicate in replicates:
