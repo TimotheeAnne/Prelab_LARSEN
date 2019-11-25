@@ -1,76 +1,42 @@
 [
    {
     "exp":"exp/controlled_minitaur_env_adaptation.py",
-    "prefix": "minitaur_H1_K25",
+    "prefix": "minitaur_friction05",
     "result_dir":"exp/log",
     "walltime": "0:20",
-    "args": "-c horizon 1 -c K 25 -c episode_length 40",
+    "args": "-c friction 0.5",
+    "replicates": 3
+  },
+   {
+    "exp":"exp/controlled_minitaur_env_adaptation.py",
+    "prefix": "minitaur_friction1",
+    "result_dir":"exp/log",
+    "walltime": "0:20",
+    "args": "-c friction 1",
     "replicates": 3
   },
      {
     "exp":"exp/controlled_minitaur_env_adaptation.py",
-    "prefix": "minitaur_H5_K25",
+    "prefix": "minitaur_friction2",
     "result_dir":"exp/log",
     "walltime": "0:20",
-    "args": "-c horizon 5 -c K 25 -c episode_length 40",
+    "args": "-c friction 2",
     "replicates": 3
   },
      {
     "exp":"exp/controlled_minitaur_env_adaptation.py",
-    "prefix": "minitaur_H10_K25",
+    "prefix": "minitaur_friction5",
     "result_dir":"exp/log",
     "walltime": "0:20",
-    "args": "-c horizon 10 -c K 25 -c episode_length 40",
+    "args": "-c friction 5",
     "replicates": 3
   },
-
-  {
+       {
     "exp":"exp/controlled_minitaur_env_adaptation.py",
-    "prefix": "minitaur_H1_K100",
+    "prefix": "minitaur_friction10",
     "result_dir":"exp/log",
     "walltime": "0:20",
-    "args": "-c horizon 1 -c K 100 -c episode_length 10",
-    "replicates": 3
-  },
-    {
-    "exp":"exp/controlled_minitaur_env_adaptation.py",
-    "prefix": "minitaur_H5_K100",
-    "result_dir":"exp/log",
-    "walltime": "0:20",
-    "args": "-c horizon 5 -c K 100 -c episode_length 10",
-    "replicates": 3
-  },
-    {
-    "exp":"exp/controlled_minitaur_env_adaptation.py",
-    "prefix": "minitaur_H10_K100",
-    "result_dir":"exp/log",
-    "walltime": "0:20",
-    "args": "-c horizon 10 -c K 100 -c episode_length 10",
-    "replicates": 3
-  },
-
-    {
-    "exp":"exp/controlled_minitaur_env_adaptation.py",
-    "prefix": "minitaur_H1_K50",
-    "result_dir":"exp/log",
-    "walltime": "0:20",
-    "args": "-c horizon 1 -c K 50 -c episode_length 20",
-    "replicates": 3
-  },
-      {
-    "exp":"exp/controlled_minitaur_env_adaptation.py",
-    "prefix": "minitaur_H5_K50",
-    "result_dir":"exp/log",
-    "walltime": "0:20",
-    "args": "-c horizon 5 -c K 50 -c episode_length 20",
-    "replicates": 3
-  },
-  {
-    "exp":"exp/controlled_minitaur_env_adaptation.py",
-    "prefix": "minitaur_H10_K50",
-    "result_dir":"exp/log",
-    "walltime": "0:20",
-    "args": "-c horizon 10 -c K 50 -c episode_length 20",
+    "args": "-c friction 10",
     "replicates": 3
   }
 ]

@@ -72,7 +72,7 @@ if __name__ == "__main__":
         "T": 1,
         "iterations": 100,
         "random_iter": 50,
-        "episode_length": 20,
+        "episode_length": 40,
         "init_state": None,  # Must be updated before passing config as param
         "action_dim": 4,
         "video_recording_frequency": 10,
@@ -80,7 +80,7 @@ if __name__ == "__main__":
         "load_data": None,
         "motor_velocity_limit": np.inf,
         "angle_limit": 1,
-        "K": 50,
+        "K": 25,
         'video.frames_per_second': 50,
         'controller': None,
         'stop_training': np.inf,
