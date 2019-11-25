@@ -89,6 +89,7 @@ if __name__ == "__main__":
         "xreward": 1,
         "yreward": 0,
         "friction": 1,
+        "slope": 0,
         "accurate_model": False,
 
         # Model learning parameters
@@ -98,7 +99,7 @@ if __name__ == "__main__":
 
         # Ensemble model params'log'
         "ensemble_epoch": 5,
-        "ensemble_dim_in": 4 + 2,
+        "ensemble_dim_in": 5 + 2,
         "ensemble_dim_out": 4,
         "ensemble_hidden": [20, 20],
         "ensemble_contact": False,
@@ -149,8 +150,8 @@ if __name__ == "__main__":
 
     config['video.frames_per_second'] = int(1 / config['control_time_step'])
     config['sol_dim'] = config['horizon'] * config['action_dim']
-    config["action_repeat"] = int(240 * config['control_time_step'])
-    env_args = {'control_time_step': config['control_time_step'], 'action_repeat': int(240*config['control_time_step']),
+    config["action_repeat"] = int(250 * config['control_time_step'])
+    env_args = {'control_time_step': config['control_time_step'], 'action_repeat': config["action_repeat"],
                 'accurate_motor_model_enabled': config['accurate_model'], 'pd_control_enabled': True,
                 }
     config['env_args'] = env_args
@@ -162,8 +163,8 @@ if __name__ == "__main__":
         ub = 1
         config['lb'] = lb
         config['ub'] = ub
-        config['sol_dim'] = 4 * int(config['horizon']/config['T'])
-        config['init_var'] = np.array([config['init_var']]) * 4
+        config['sol_dim'] = config['action_dim'] * int(config['horizon']/config['T'])
+        config['init_var'] = np.array([config['init_var']]) * config['action_dim']
     # if config['model_type'] == "C":
     #     config['Cost_ensemble'] = Cost_ensemble_C
 

@@ -214,7 +214,7 @@ def process_data(data):
 
 
 def execute_random(env, steps, samples, K, config, index_iter):
-    current_state = env.reset(friction=config['friction'])
+    current_state = env.reset(friction=config['friction'], alpha=config['slope'])
     obs = [current_state]
     acs = []
     trajectory = []
@@ -260,7 +260,7 @@ def execute_random(env, steps, samples, K, config, index_iter):
 
 def execute_2(env, steps, init_var, model, config, pred_high, pred_low, index_iter, samples):
     # for environment without controller
-    current_state = env.reset(friction=config['friction'])
+    current_state = env.reset(friction=config['friction'], alpha=config['slope'])
     f_rec = config['video_recording_frequency']
     recorder = None
     if f_rec and index_iter % f_rec == (f_rec - 1):

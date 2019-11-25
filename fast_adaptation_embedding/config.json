@@ -1,42 +1,42 @@
 [
    {
     "exp":"exp/controlled_minitaur_env_adaptation.py",
-    "prefix": "minitaur_friction05",
+    "prefix": "minitaur_slope0",
     "result_dir":"exp/log",
     "walltime": "0:20",
-    "args": "-c friction 0.5",
+    "args": "-c slope 0",
     "replicates": 3
   },
    {
     "exp":"exp/controlled_minitaur_env_adaptation.py",
-    "prefix": "minitaur_friction1",
+    "prefix": "minitaur_slope2",
     "result_dir":"exp/log",
     "walltime": "0:20",
-    "args": "-c friction 1",
+    "args": "-c slope 2",
     "replicates": 3
   },
      {
     "exp":"exp/controlled_minitaur_env_adaptation.py",
-    "prefix": "minitaur_friction2",
+    "prefix": "minitaur_slope5",
     "result_dir":"exp/log",
     "walltime": "0:20",
-    "args": "-c friction 2",
+    "args": "-c slope 5",
     "replicates": 3
   },
      {
     "exp":"exp/controlled_minitaur_env_adaptation.py",
-    "prefix": "minitaur_friction5",
+    "prefix": "minitaur_slope10",
     "result_dir":"exp/log",
     "walltime": "0:20",
-    "args": "-c friction 5",
+    "args": "-c slope 10",
     "replicates": 3
   },
        {
     "exp":"exp/controlled_minitaur_env_adaptation.py",
-    "prefix": "minitaur_friction10",
+    "prefix": "minitaur_slope20",
     "result_dir":"exp/log",
     "walltime": "0:20",
-    "args": "-c friction 10",
+    "args": "-c slope 20",
     "replicates": 3
   }
 ]
