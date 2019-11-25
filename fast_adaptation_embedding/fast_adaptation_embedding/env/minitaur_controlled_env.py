@@ -261,6 +261,7 @@ class MinitaurControlledEnv(gym.Env):
           numSolverIterations=int(self._num_bullet_solver_iterations))
       self._pybullet_client.setTimeStep(self._time_step)
       self._ground_id = self._pybullet_client.loadURDF("%s/plane.urdf" % self._urdf_root)
+      self._pybullet_client.changeDynamics(self._ground_id, linkIndex=-1, lateralFriction=friction)
       if (self._reflection):
         self._pybullet_client.changeVisualShape(self._ground_id, -1, rgbaColor=[1, 1, 1, 0.8])
         self._pybullet_client.configureDebugVisualizer(
@@ -729,8 +730,8 @@ if __name__ == "__main__":
     # recorder = VideoRecorder(system, "test.mp4")
     Obs, a_action, m_action, position = [], [], [], []
     I = []
-    previous_obs = system.reset(friction=1)
-    for i in range(1250):
+    previous_obs = system.reset(friction=10)
+    for i in range(2000):
         if recorder is not None:
             recorder.capture_frame()
         a = [0, 1, 0, 0]
