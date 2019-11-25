@@ -74,7 +74,7 @@ if __name__ == "__main__":
         "random_iter": 50,
         "episode_length": 40,
         "init_state": None,  # Must be updated before passing config as param
-        "action_dim": 4,
+        "action_dim": 5,
         "video_recording_frequency": 10,
         "logdir": logdir,
         "load_data": None,

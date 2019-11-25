@@ -234,7 +234,7 @@ class MinitaurControlledEnv(gym.Env):
     self.reset()
     observation_high = (self._get_observation_upper_bound() + OBSERVATION_EPS)
     observation_low = (self._get_observation_lower_bound() - OBSERVATION_EPS)
-    action_dim = 4  # [steering, step_size, leg_extension, leg_extension_offset]
+    action_dim = 5  # [steering, step_size, leg_extension, leg_extension_offset]
     action_high = np.array([self._action_bound] * action_dim)
     self.action_space = spaces.Box(-action_high, action_high)
     self.observation_space = spaces.Box(observation_low, observation_high)
@@ -249,7 +249,7 @@ class MinitaurControlledEnv(gym.Env):
   def add_env_randomizer(self, env_randomizer):
     self._env_randomizers.append(env_randomizer)
 
-  def reset(self, initial_motor_angles=None, reset_duration=1.0, friction=1.0):
+  def reset(self, initial_motor_angles=None, reset_duration=1.0, friction=1.0, alpha=0):
     self._pybullet_client.configureDebugVisualizer(self._pybullet_client.COV_ENABLE_RENDERING, 0)
     if self._env_step_counter > 0:
       self.logging.save_episode(self._episode_proto)
@@ -266,7 +266,8 @@ class MinitaurControlledEnv(gym.Env):
         self._pybullet_client.changeVisualShape(self._ground_id, -1, rgbaColor=[1, 1, 1, 0.8])
         self._pybullet_client.configureDebugVisualizer(
             self._pybullet_client.COV_ENABLE_PLANAR_REFLECTION, self._ground_id)
-      self._pybullet_client.setGravity(0, 0, -10)
+      alpha = np.pi/180*alpha
+      self._pybullet_client.setGravity(-10*np.sin(alpha), 0, -10*np.cos(alpha))
       acc_motor = self._accurate_motor_model_enabled
       motor_protect = self._motor_overheat_protection
       if self._urdf_version not in MINIATUR_URDF_VERSION_MAP:
@@ -637,6 +638,13 @@ class MinitaurControlledEnv(gym.Env):
   def env_step_counter(self):
     return self._env_step_counter
 
+  def add_obstacles(self, orientation):
+    colBoxId = self._pybullet_client.createCollisionShape(self._pybullet_client.GEOM_BOX,  halfExtents=[0.01, 2, 0.1])
+    self._pybullet_client.createMultiBody(baseMass=0, baseCollisionShapeIndex=colBoxId, basePosition=[0, 0, 1.], baseOrientation=[ 0, 0.6427876, 0, 0.7660444 ])
+
+    # visBoxId = self._pybullet_client.createVisualShape(self._pybullet_client.GEOM_BOX, halfExtents=[(obstacle[1]-obstacle[0])/2.0+0.005, (obstacle[3]-obstacle[2])/2.0+0.005, 0.4], rgbaColor=[0.1,0.7,0.6, 1.0], specularColor=[0.3, 0.5, 0.5, 1.0])
+    # self._pybullet_client.createMultiBody(baseMass=0, baseInertialFramePosition=[0, 0, 0], baseVisualShapeIndex=visBoxId, useMaximalCoordinates=True, basePosition=[(obstacle[0]+obstacle[1])/2.0, (obstacle[2]+obstacle[3])/2.0, 0.04])
+
 
 def controller(t, w, params):
     """general sinusoidal controller"""
@@ -682,11 +690,13 @@ def controller2(params, t):
     step_size = params[1]  # Walk with different step_size forward or backward
     leg_extension = params[2]  # Walk on different terrain
     leg_extension_offset = params[3]
+    swing_offset = params[4]  # Walk in slopes
 
     # Robot specific parameters
     swing_limit = 0.6
-    extension_limit = 0.5
+    extension_limit = 1
     speed = 2.0  # cycle per second
+    swing_offset = swing_offset * 0.2
 
     extension = extension_limit * (leg_extension + 1) * 0.5
     leg_extension_offset = 0.1 * leg_extension_offset - 0.8
@@ -695,10 +705,10 @@ def controller2(params, t):
     B = np.clip(abs(step_size) - steer, 0, 1) if step_size >= 0 else -np.clip(abs(step_size) - steer, 0, 1)
 
     # We want legs to move sinusoidally, smoothly
-    fl = math.sin(t * speed * 2 * np.pi) * (swing_limit * A)
-    br = math.sin(t * speed * 2 * np.pi) * (swing_limit * B)
-    fr = math.sin(t * speed * 2 * np.pi + math.pi) * (swing_limit * B)
-    bl = math.sin(t * speed * 2 * np.pi + math.pi) * (swing_limit * A)
+    fl = math.sin(t * speed * 2 * np.pi) * (swing_limit * A) + swing_offset
+    br = math.sin(t * speed * 2 * np.pi) * (swing_limit * B) + swing_offset
+    fr = math.sin(t * speed * 2 * np.pi + math.pi) * (swing_limit * B) + swing_offset
+    bl = math.sin(t * speed * 2 * np.pi + math.pi) * (swing_limit * A) + swing_offset
 
     # Sawtooth for faster contraction
     e1 = extension * sawtooth(t, speed, 0.25) + leg_extension_offset
@@ -715,34 +725,35 @@ if __name__ == "__main__":
     from pybullet_envs.bullet import minitaur_gym_env
     render = True
     # render = False
-    ctrl_time_step = 0.004
+    ctrl_time_step = 0.02
 
-    system = gym.make("MinitaurControlledEnv_fastAdapt-v0", render=render, on_rack=0,
+    env = gym.make("MinitaurControlledEnv_fastAdapt-v0", render=render, on_rack=0,
                       control_time_step=ctrl_time_step,
                       action_repeat=int(250*ctrl_time_step),
                       accurate_motor_model_enabled=0,
                       pd_control_enabled=1,
                       env_randomizer=None)
 
-
+    # orientation = [ 0, -0.3826834, 0, 0.9238795 ]
     recorder = None
     Params, R = [], []
     # recorder = VideoRecorder(system, "test.mp4")
     Obs, a_action, m_action, position = [], [], [], []
     I = []
-    previous_obs = system.reset(friction=10)
-    for i in range(2000):
+    previous_obs = env.reset(friction=2, alpha=10)
+    # env.add_obstacles(orientation)
+    for i in range(20000):
         if recorder is not None:
             recorder.capture_frame()
-        a = [0, 1, 0, 0]
-        obs, r, done, info = system.step(a)
+        a = [0, 1, 1, 0, -0]
+        obs, r, done, info = env.step(a)
         previous_obs = np.copy(obs)
         # rew += r
         Obs.append(obs)
         a_action.append(info['action'])
         # print(a_action)
         # print(obs)
-        # time.sleep(0.1)
+        time.sleep(0.02)
         if done:
             break
     with open("foot_pos.pk", 'wb') as f:
