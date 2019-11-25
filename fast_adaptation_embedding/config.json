@@ -3,7 +3,7 @@
     "exp":"exp/controlled_minitaur_env_adaptation.py",
     "prefix": "minitaur_H1_K25",
     "result_dir":"exp/log",
-    "walltime": "1:00",
+    "walltime": "0:20",
     "args": "-c horizon 1 -c K 25 -c episode_length 40",
     "replicates": 3
   },
@@ -11,7 +11,7 @@
     "exp":"exp/controlled_minitaur_env_adaptation.py",
     "prefix": "minitaur_H5_K25",
     "result_dir":"exp/log",
-    "walltime": "1:00",
+    "walltime": "0:20",
     "args": "-c horizon 5 -c K 25 -c episode_length 40",
     "replicates": 3
   },
@@ -19,7 +19,7 @@
     "exp":"exp/controlled_minitaur_env_adaptation.py",
     "prefix": "minitaur_H10_K25",
     "result_dir":"exp/log",
-    "walltime": "1:00",
+    "walltime": "0:20",
     "args": "-c horizon 10 -c K 25 -c episode_length 40",
     "replicates": 3
   },
@@ -28,7 +28,7 @@
     "exp":"exp/controlled_minitaur_env_adaptation.py",
     "prefix": "minitaur_H1_K100",
     "result_dir":"exp/log",
-    "walltime": "1:00",
+    "walltime": "0:20",
     "args": "-c horizon 1 -c K 100 -c episode_length 10",
     "replicates": 3
   },
@@ -36,7 +36,7 @@
     "exp":"exp/controlled_minitaur_env_adaptation.py",
     "prefix": "minitaur_H5_K100",
     "result_dir":"exp/log",
-    "walltime": "1:00",
+    "walltime": "0:20",
     "args": "-c horizon 5 -c K 100 -c episode_length 10",
     "replicates": 3
   },
@@ -44,7 +44,7 @@
     "exp":"exp/controlled_minitaur_env_adaptation.py",
     "prefix": "minitaur_H10_K100",
     "result_dir":"exp/log",
-    "walltime": "1:00",
+    "walltime": "0:20",
     "args": "-c horizon 10 -c K 100 -c episode_length 10",
     "replicates": 3
   },
@@ -53,7 +53,7 @@
     "exp":"exp/controlled_minitaur_env_adaptation.py",
     "prefix": "minitaur_H1_K50",
     "result_dir":"exp/log",
-    "walltime": "1:00",
+    "walltime": "0:20",
     "args": "-c horizon 1 -c K 50 -c episode_length 20",
     "replicates": 3
   },
@@ -61,7 +61,7 @@
     "exp":"exp/controlled_minitaur_env_adaptation.py",
     "prefix": "minitaur_H5_K50",
     "result_dir":"exp/log",
-    "walltime": "1:00",
+    "walltime": "0:20",
     "args": "-c horizon 5 -c K 50 -c episode_length 20",
     "replicates": 3
   },
@@ -69,7 +69,7 @@
     "exp":"exp/controlled_minitaur_env_adaptation.py",
     "prefix": "minitaur_H10_K50",
     "result_dir":"exp/log",
-    "walltime": "1:00",
+    "walltime": "0:20",
     "args": "-c horizon 10 -c K 50 -c episode_length 20",
     "replicates": 3
   }
