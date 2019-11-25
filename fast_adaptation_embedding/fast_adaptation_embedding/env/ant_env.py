@@ -432,8 +432,7 @@ class AntMuJoCoEnv(WalkerBaseMuJoCoEnv):
 
         state = self.robot.calc_state()  # also calculates self.joints_at_limit
 
-        alive = float(self.robot.alive_bonus(state[0] + self.robot.initial_z, self.robot.body_rpy[
-            1]))  # state[0] is body height above ground, body_rpy[1] is pitch
+        alive = float(self.robot.alive_bonus(state[0] + self.robot.initial_z, self.robot.body_rpy[1]))  # state[0] is body height above ground, body_rpy[1] is pitch
         done = alive < 0
         if not np.isfinite(state).all():
             print("~INF~", state)
@@ -520,24 +519,39 @@ class AntMuJoCoEnv(WalkerBaseMuJoCoEnv):
     def get_state(self):
         return self.robot.calc_state()
 
+def controller(t, w, params):
+    a = [params[0] * np.sin(w * t + params[8]),
+         params[1] * np.sin(w * t + params[9]),
+         params[2] * np.sin(w * t + params[10]),
+         params[3] * np.sin(w * t + params[11]),
+         params[4] * np.sin(w * t + params[12]),
+         params[5] * np.sin(w * t + params[13]),
+         params[6] * np.sin(w * t + params[14]),
+         params[7] * np.sin(w * t + params[15])
+         ]
+    return a
+
 
 if __name__ == "__main__":
     import gym
     import time
     import fast_adaptation_embedding.env
-
+    import pickle
     system = gym.make("AntMuJoCoEnv_fastAdapt-v0")
     # system.render(mode="human")
     import time
-    recorder = VideoRecorder(system, "test.mp4")
+    # recorder = VideoRecorder(system, "test.mp4")
+    recorder = None
+    R = []
 
     system.reset()
     rew = 0
-    for i in tqdm(range(100)):
-        recorder.capture_frame()
+    for i in range(1000):
+        # recorder.capture_frame()
         actions = np.random.random(8) * 2 - 1
-        _, r, _, _ = system.step(actions)
+        obs, r, done, _ = system.step(actions)
         rew += r
-        time.sleep(0.01)
-    recorder.close()
-    print(rew)
+        if done:
+            break
+        # time.sleep(0.01)
+

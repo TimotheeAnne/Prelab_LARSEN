@@ -711,7 +711,7 @@ if __name__ == "__main__":
     # render = False
     ctrl_time_step = 0.02
 
-    system = gym.make("MinitaurGymEnv_fastAdapt-v0", render=render, on_rack=0,
+    system = gym.make("MinitaurGymEnv_fastAdapt-v0", render=render, on_rack=1,
                       control_time_step=ctrl_time_step,
                       action_repeat=int(240*ctrl_time_step),
                       accurate_motor_model_enabled=1,
@@ -736,11 +736,12 @@ if __name__ == "__main__":
         # a = controller(t, w, params)
         a = controller2(params, t)
 
-        # a = a * [1,0,0,0,1,0,0,0]
+        a = [0, 0, 0, 0, 0, 0, 0, 0]
         obs, r, done, info = system.step(a)
         previous_obs = np.copy(obs)
         # rew += r
         Obs.append(obs)
+        print(info['action'])
         # a_action.append(a)
         # m_action.append(info['action'])
         # print(system.get_foot_position())

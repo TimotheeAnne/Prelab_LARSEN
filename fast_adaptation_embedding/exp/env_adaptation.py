@@ -214,22 +214,23 @@ def process_data(data):
 
 
 def execute_random(env, steps, samples, K, config, index_iter):
-    current_state = env.reset()
+    current_state = env.reset(friction=config['friction'])
     obs = [current_state]
     acs = []
     trajectory = []
     reward = []
     traject_cost = 0
     param = []
+    motor_actions = []
     recorder = None
     # ~ recorder = VideoRecorder(env, os.path.join(config['logdir'], "iter_" + str(index_iter) + ".mp4"))
-
     for i in tqdm(range(steps)):
         a = env.action_space.sample()
         rew = 0
         for k in range(K):
             next_state, r, done, info = env.step(a)
             rew += r
+            motor_actions.append(info['action'])
             if recorder is not None:
                 recorder.capture_frame()
         if config['env'] == "PexodQuad-v0" and not config['controller'] is None:
@@ -239,7 +240,7 @@ def execute_random(env, steps, samples, K, config, index_iter):
             obs.append(next_state)
             acs.append(a)
         reward.append(rew)
-        # ~ trajectory.append([current_state.copy(), a.copy(), next_state - current_state, -r])
+        param.append(a)
         current_state = next_state
         traject_cost += -rew
         if done:
@@ -250,6 +251,7 @@ def execute_random(env, steps, samples, K, config, index_iter):
     samples['reward'].append(np.copy(reward))
     samples['reward_sum'].append(-traject_cost)
     samples['controller'].append(np.copy(param))
+    samples['motor_actions'].append(np.copy(motor_actions))
     if recorder is not None:
         recorder.capture_frame()
         recorder.close()
@@ -258,7 +260,7 @@ def execute_random(env, steps, samples, K, config, index_iter):
 
 def execute_2(env, steps, init_var, model, config, pred_high, pred_low, index_iter, samples):
     # for environment without controller
-    current_state = env.reset()
+    current_state = env.reset(friction=config['friction'])
     f_rec = config['video_recording_frequency']
     recorder = None
     if f_rec and index_iter % f_rec == (f_rec - 1):
@@ -266,6 +268,8 @@ def execute_2(env, steps, init_var, model, config, pred_high, pred_low, index_it
     obs = [current_state]
     acs = []
     reward = []
+    param = []
+    motor_actions = []
     traject_cost = 0
     model_error = 0
     sliding_mean = np.zeros(config["sol_dim"])
@@ -298,15 +302,17 @@ def execute_2(env, steps, init_var, model, config, pred_high, pred_low, index_it
         next_state, r = 0, 0
         rew = 0
         for k in range(config["K"]):
-            next_state, r, done, _ = env.step(a)
+            next_state, r, done, info = env.step(a)
             rew += r
+            motor_actions.append(info['action'])
             if not recorder is None:
                 recorder.capture_frame()
         obs.append(next_state)
         acs.append(a)
+        param.append(a)
         reward.append(rew)
         # ~ trajectory.append([current_state.copy(), a.copy(), next_state - current_state, -r])
-        # model_error += test_model(model, current_state.copy(), a.copy(), next_state - current_state)
+        model_error += test_model(model, current_state[2:], a.copy(), next_state-current_state)
         current_state = next_state
         traject_cost += -rew
         sliding_mean[0:-len(a)] = sol[len(a)::]
@@ -320,6 +326,8 @@ def execute_2(env, steps, init_var, model, config, pred_high, pred_low, index_it
     samples['reward'].append(np.copy(reward))
     samples['reward_sum'].append(-traject_cost)
     samples['model_error'].append(model_error / steps)
+    samples['controller'].append(np.copy(param))
+    samples['motor_actions'].append(np.copy(motor_actions))
     return traject_cost
 
 
@@ -455,7 +463,7 @@ def execute_4(env, steps, init_var, model, config, pred_high, pred_low, index_it
         reward.append(r)
         control_sol.append(np.copy(sol))
         # ~ trajectory.append([current_state.copy(), a.copy(), next_state - current_state, -r])
-        # ~ model_error += test_model(model, np.concatenate((current_state[:28], current_state[30:31])), a.copy(), next_state-current_state)
+        # ~ model_error += test_model(model, np.concatenate(current_state[2:]), a.copy(), next_state-current_state)
         current_state = info['obs']
         traject_cost += -r
         sliding_mean = sol
@@ -555,7 +563,7 @@ def main(config):
         c = None
 
         samples = {'acs': [], 'obs': [], 'reward': [], 'reward_sum': [], 'model_error': [],
-                   "controller_sol": [], 'motor_actions': [], 'controller': [], 't0': []}
+                   "controller": [], 'motor_actions': [], 't0': []}
         if index_iter < random_iter * n_task:
             print("Execution (Random actions)...")
             c = execute_random(env=env, steps=config["episode_length"], samples=samples,
@@ -606,19 +614,31 @@ def main(config):
         traj_rets.extend(samples["reward_sum"])
         traj_rews.extend(samples["reward"])
         traj_error.extend(samples["model_error"])
-        traj_sol.extend(samples["controller_sol"])
+        traj_sol.extend(samples["controller"])
         traj_motor.extend(samples['motor_actions'])
-        savemat(
-            os.path.join(config['logdir'], "logs.mat"),
-            {
+
+        # ~ savemat(
+            # ~ os.path.join(config['logdir'], "logs.mat"),
+            # ~ {
+                # ~ "observations": traj_obs,
+                # ~ "actions": traj_acs,
+                # ~ "reward_sum": traj_rets,
+                # ~ "rewards": traj_rews,
+                # ~ "model_error": traj_error,
+                # ~ "model_eval": traj_eval,
+                # ~ "controller": traj_sol,
+                # ~ "motor_actions": traj_motor
+            # ~ }
+        # ~ )
+        with open(os.path.join(config['logdir'], "logs.mat"), 'wb') as f:
+            pickle.dump(             {
                 "observations": traj_obs,
                 "actions": traj_acs,
                 "reward_sum": traj_rets,
                 "rewards": traj_rews,
                 "model_error": traj_error,
                 "model_eval": traj_eval,
-                "controller_sol": traj_sol,
+                "controller": traj_sol,
                 "motor_actions": traj_motor
-            }
-        )
+            }, f)
         print("-------------------------------\n")

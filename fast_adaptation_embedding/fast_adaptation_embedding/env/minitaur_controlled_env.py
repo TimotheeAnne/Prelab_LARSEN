@@ -688,7 +688,7 @@ def controller2(params, t):
     speed = 2.0  # cycle per second
 
     extension = extension_limit * (leg_extension + 1) * 0.5
-    leg_extension_offset = 0.1 * leg_extension_offset - 0.4
+    leg_extension_offset = 0.1 * leg_extension_offset - 0.8
     # Steer modulates only the magnitude (abs) of step_size
     A = np.clip(abs(step_size) + steer, 0, 1) if step_size >= 0 else -np.clip(abs(step_size) + steer, 0, 1)
     B = np.clip(abs(step_size) - steer, 0, 1) if step_size >= 0 else -np.clip(abs(step_size) - steer, 0, 1)
@@ -714,13 +714,13 @@ if __name__ == "__main__":
     from pybullet_envs.bullet import minitaur_gym_env
     render = True
     # render = False
-    ctrl_time_step = 0.02
+    ctrl_time_step = 0.004
 
     system = gym.make("MinitaurControlledEnv_fastAdapt-v0", render=render, on_rack=0,
                       control_time_step=ctrl_time_step,
-                      action_repeat=int(240*ctrl_time_step),
-                      accurate_motor_model_enabled=1,
-                      pd_control_enabled=True,
+                      action_repeat=int(250*ctrl_time_step),
+                      accurate_motor_model_enabled=0,
+                      pd_control_enabled=1,
                       env_randomizer=None)
 
 
@@ -730,7 +730,7 @@ if __name__ == "__main__":
     Obs, a_action, m_action, position = [], [], [], []
     I = []
     previous_obs = system.reset(friction=1)
-    for i in range(2000):
+    for i in range(1250):
         if recorder is not None:
             recorder.capture_frame()
         a = [0, 1, 0, 0]
@@ -738,14 +738,16 @@ if __name__ == "__main__":
         previous_obs = np.copy(obs)
         # rew += r
         Obs.append(obs)
-        print(obs)
-        time.sleep(0.02)
+        a_action.append(info['action'])
+        # print(a_action)
+        # print(obs)
+        # time.sleep(0.1)
         if done:
             break
     with open("foot_pos.pk", 'wb') as f:
         pickle.dump([Obs, a_action, m_action, position], f)
 
-    # print(np.sum(info['rewards'], axis=0))
+    print(np.sum(info['rewards'], axis=0))
     if recorder is not None:
         recorder.capture_frame()
         recorder.close()
