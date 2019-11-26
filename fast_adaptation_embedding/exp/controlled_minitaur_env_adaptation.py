@@ -68,11 +68,11 @@ if __name__ == "__main__":
         # exp parameters:
         "env": "MinitaurControlledEnv_fastAdapt-v0",
         "env_args": {},
-        "horizon": 5,  # NOTE: "sol_dim" must be adjusted
+        "horizon": 1,  # NOTE: "sol_dim" must be adjusted
         "T": 1,
         "iterations": 100,
         "random_iter": 50,
-        "episode_length": 40,
+        "episode_length": 10,
         "init_state": None,  # Must be updated before passing config as param
         "action_dim": 5,
         "video_recording_frequency": 10,
@@ -80,7 +80,7 @@ if __name__ == "__main__":
         "load_data": None,
         "motor_velocity_limit": np.inf,
         "angle_limit": 1,
-        "K": 25,
+        "K": 100,
         'video.frames_per_second': 50,
         'controller': None,
         'stop_training': np.inf,
