@@ -222,6 +222,8 @@ class MinitaurControlledEnv(gym.Env):
     self._reflection = reflection
     self._env_randomizers = convert_to_list(env_randomizer) if env_randomizer else []
     self._episode_proto = minitaur_logging_pb2.MinitaurEpisode()
+    self._slope_degree = 0
+    self._friction = 1
     self.controller = controller2
     if self._is_render:
       self._pybullet_client = bullet_client.BulletClient(connection_mode=pybullet.GUI)
@@ -241,6 +243,7 @@ class MinitaurControlledEnv(gym.Env):
     self.viewer = None
     self._hard_reset = hard_reset  # This assignment need to be after reset()
 
+
   def close(self):
     if self._env_step_counter > 0:
       self.logging.save_episode(self._episode_proto)
@@ -249,7 +252,7 @@ class MinitaurControlledEnv(gym.Env):
   def add_env_randomizer(self, env_randomizer):
     self._env_randomizers.append(env_randomizer)
 
-  def reset(self, initial_motor_angles=None, reset_duration=1.0, friction=1.0, alpha=0):
+  def reset(self, initial_motor_angles=None, reset_duration=1.0):
     self._pybullet_client.configureDebugVisualizer(self._pybullet_client.COV_ENABLE_RENDERING, 0)
     if self._env_step_counter > 0:
       self.logging.save_episode(self._episode_proto)
@@ -261,12 +264,12 @@ class MinitaurControlledEnv(gym.Env):
           numSolverIterations=int(self._num_bullet_solver_iterations))
       self._pybullet_client.setTimeStep(self._time_step)
       self._ground_id = self._pybullet_client.loadURDF("%s/plane.urdf" % self._urdf_root)
-      self._pybullet_client.changeDynamics(self._ground_id, linkIndex=-1, lateralFriction=friction)
+      self._pybullet_client.changeDynamics(self._ground_id, linkIndex=-1, lateralFriction=self._friction)
       if (self._reflection):
         self._pybullet_client.changeVisualShape(self._ground_id, -1, rgbaColor=[1, 1, 1, 0.8])
         self._pybullet_client.configureDebugVisualizer(
             self._pybullet_client.COV_ENABLE_PLANAR_REFLECTION, self._ground_id)
-      alpha = np.pi/180*alpha
+      alpha = np.pi/180*self._slope_degree
       self._pybullet_client.setGravity(-10*np.sin(alpha), 0, -10*np.cos(alpha))
       acc_motor = self._accurate_motor_model_enabled
       motor_protect = self._motor_overheat_protection
@@ -294,7 +297,7 @@ class MinitaurControlledEnv(gym.Env):
     self.minitaur.Reset(reload_urdf=False,
                         default_motor_angles=initial_motor_angles,
                         reset_time=reset_duration)
-    self.minitaur.SetFootFriction(friction)
+    # self.minitaur.SetFootFriction(self._friction)
     # Loop over all env randomizers.
     for env_randomizer in self._env_randomizers:
       env_randomizer.randomize_env(self)
@@ -374,11 +377,11 @@ class MinitaurControlledEnv(gym.Env):
     base_pos = self.minitaur.GetBasePosition()
     view_matrix = self._pybullet_client.computeViewMatrixFromYawPitchRoll(
         cameraTargetPosition=base_pos,
-        distance=self._cam_dist,
-        yaw=self._cam_yaw,
-        pitch=self._cam_pitch,
+        distance=-self._cam_dist,
+        yaw=self._cam_yaw + self._slope_degree,
+        pitch=-80,
         roll=0,
-        upAxisIndex=2)
+        upAxisIndex=1)
     proj_matrix = self._pybullet_client.computeProjectionMatrixFOV(fov=60,
                                                                    aspect=float(RENDER_WIDTH) /
                                                                    RENDER_HEIGHT,
@@ -393,6 +396,12 @@ class MinitaurControlledEnv(gym.Env):
     rgb_array = np.array(px)
     rgb_array = rgb_array[:, :, :3]
     return rgb_array
+
+  def set_mismatch(self, mismatch):
+      slope = mismatch[0]
+      friction = mismatch[1]
+      self._slope_degree = 25 * slope
+      self._friction = (1 + 9 * friction) if friction >= 0 else (1 + friction)
 
   def get_foot_contact(self):
       """
@@ -737,12 +746,13 @@ if __name__ == "__main__":
     # orientation = [ 0, -0.3826834, 0, 0.9238795 ]
     recorder = None
     Params, R = [], []
-    # recorder = VideoRecorder(system, "test.mp4")
+    recorder = VideoRecorder(env, "test.mp4")
     Obs, a_action, m_action, position = [], [], [], []
     I = []
-    previous_obs = env.reset(friction=2, alpha=10)
+    env.set_mismatch([0.1, 0])
+    previous_obs = env.reset()
     # env.add_obstacles(orientation)
-    for i in range(20000):
+    for i in range(50):
         if recorder is not None:
             recorder.capture_frame()
         a = [0, 1, 1, 0, -0]
@@ -753,7 +763,7 @@ if __name__ == "__main__":
         a_action.append(info['action'])
         # print(a_action)
         # print(obs)
-        time.sleep(0.02)
+        # time.sleep(0.02)
         if done:
             break
     with open("foot_pos.pk", 'wb') as f:

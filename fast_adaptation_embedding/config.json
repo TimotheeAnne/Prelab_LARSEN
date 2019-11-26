@@ -1,7 +1,7 @@
 [
    {
     "exp":"exp/controlled_minitaur_env_adaptation.py",
-    "prefix": "minitaur_slope0",
+    "prefix": "minitaur_slope_0",
     "result_dir":"exp/log",
     "walltime": "0:20",
     "args": "-c slope 0",
@@ -9,34 +9,34 @@
   },
    {
     "exp":"exp/controlled_minitaur_env_adaptation.py",
-    "prefix": "minitaur_slope2",
+    "prefix": "minitaur_slope_m10",
     "result_dir":"exp/log",
     "walltime": "0:20",
-    "args": "-c slope 2",
+    "args": "-c slope -0.4",
     "replicates": 3
   },
      {
     "exp":"exp/controlled_minitaur_env_adaptation.py",
-    "prefix": "minitaur_slope5",
+    "prefix": "minitaur_slope_10",
     "result_dir":"exp/log",
     "walltime": "0:20",
-    "args": "-c slope 5",
+    "args": "-c slope 0.4",
     "replicates": 3
   },
      {
     "exp":"exp/controlled_minitaur_env_adaptation.py",
-    "prefix": "minitaur_slope10",
+    "prefix": "minitaur_slope_m15",
     "result_dir":"exp/log",
     "walltime": "0:20",
-    "args": "-c slope 10",
+    "args": "-c slope -0.6",
     "replicates": 3
   },
        {
     "exp":"exp/controlled_minitaur_env_adaptation.py",
-    "prefix": "minitaur_slope20",
+    "prefix": "minitaur_slope_15",
     "result_dir":"exp/log",
     "walltime": "0:20",
-    "args": "-c slope 20",
+    "args": "-c slope 0.6",
     "replicates": 3
   }
 ]

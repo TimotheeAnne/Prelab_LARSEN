@@ -88,8 +88,8 @@ if __name__ == "__main__":
         "script": 'main',
         "xreward": 1,
         "yreward": 0,
-        "friction": 1,
-        "slope": 0,
+        "friction": 0,  # [-1,1] = [0,10]
+        "slope": 0,  # [-1,1] = [-25°,25°]
         "accurate_model": False,
 
         # Model learning parameters

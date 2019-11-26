@@ -214,7 +214,7 @@ def process_data(data):
 
 
 def execute_random(env, steps, samples, K, config, index_iter):
-    current_state = env.reset(friction=config['friction'], alpha=config['slope'])
+    current_state = env.reset()
     obs = [current_state]
     acs = []
     trajectory = []
@@ -260,7 +260,7 @@ def execute_random(env, steps, samples, K, config, index_iter):
 
 def execute_2(env, steps, init_var, model, config, pred_high, pred_low, index_iter, samples):
     # for environment without controller
-    current_state = env.reset(friction=config['friction'], alpha=config['slope'])
+    current_state = env.reset()
     f_rec = config['video_recording_frequency']
     recorder = None
     if f_rec and index_iter % f_rec == (f_rec - 1):
@@ -495,7 +495,7 @@ def test_model(ensemble_model, init_state, action, state_diff):
 
 
 def extract_action_seq(data):
-    actions = [], CMs
+    actions = []
     for d in data:
         actions += d[1].tolist()
     return np.array(actions)
@@ -534,7 +534,7 @@ def main(config):
     models = n_task * [None]
     evaluations = n_task * [None]
     trainer = Evaluation_ensemble(config=config)
-
+    envs[0].set_mismatch([config['slope'], config['friction']])
     for i in range(n_task):
         with open(os.path.join(config['logdir'], "env_costs_task_" + str(i) + ".txt"), "w+") as f:
             f.write("")
@@ -617,19 +617,6 @@ def main(config):
         traj_sol.extend(samples["controller"])
         traj_motor.extend(samples['motor_actions'])
 
-        # ~ savemat(
-            # ~ os.path.join(config['logdir'], "logs.mat"),
-            # ~ {
-                # ~ "observations": traj_obs,
-                # ~ "actions": traj_acs,
-                # ~ "reward_sum": traj_rets,
-                # ~ "rewards": traj_rews,
-                # ~ "model_error": traj_error,
-                # ~ "model_eval": traj_eval,
-                # ~ "controller": traj_sol,
-                # ~ "motor_actions": traj_motor
-            # ~ }
-        # ~ )
         with open(os.path.join(config['logdir'], "logs.mat"), 'wb') as f:
             pickle.dump(             {
                 "observations": traj_obs,
