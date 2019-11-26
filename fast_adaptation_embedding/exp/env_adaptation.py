@@ -535,6 +535,7 @@ def main(config):
     evaluations = n_task * [None]
     trainer = Evaluation_ensemble(config=config)
     envs[0].set_mismatch([config['slope'], config['friction']])
+    envs[0].steering(config['steering'])
     for i in range(n_task):
         with open(os.path.join(config['logdir'], "env_costs_task_" + str(i) + ".txt"), "w+") as f:
             f.write("")

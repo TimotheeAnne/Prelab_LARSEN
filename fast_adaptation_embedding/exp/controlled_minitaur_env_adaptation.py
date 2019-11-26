@@ -90,6 +90,7 @@ if __name__ == "__main__":
         "yreward": 0,
         "friction": 0,  # [-1,1] = [0,10]
         "slope": 0,  # [-1,1] = [-25°,25°]
+        "steering": False,
         "accurate_model": False,
 
         # Model learning parameters

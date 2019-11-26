@@ -224,7 +224,8 @@ class MinitaurControlledEnv(gym.Env):
     self._episode_proto = minitaur_logging_pb2.MinitaurEpisode()
     self._slope_degree = 0
     self._friction = 1
-    self.controller = controller2
+    self._unblocked_steering = True
+    self.controller = self.controller_sawtooth
     if self._is_render:
       self._pybullet_client = bullet_client.BulletClient(connection_mode=pybullet.GUI)
     else:
@@ -243,6 +244,8 @@ class MinitaurControlledEnv(gym.Env):
     self.viewer = None
     self._hard_reset = hard_reset  # This assignment need to be after reset()
 
+  def steering(self, unblock):
+      self._unblocked_steering = unblock
 
   def close(self):
     if self._env_step_counter > 0:
@@ -654,8 +657,39 @@ class MinitaurControlledEnv(gym.Env):
     # visBoxId = self._pybullet_client.createVisualShape(self._pybullet_client.GEOM_BOX, halfExtents=[(obstacle[1]-obstacle[0])/2.0+0.005, (obstacle[3]-obstacle[2])/2.0+0.005, 0.4], rgbaColor=[0.1,0.7,0.6, 1.0], specularColor=[0.3, 0.5, 0.5, 1.0])
     # self._pybullet_client.createMultiBody(baseMass=0, baseInertialFramePosition=[0, 0, 0], baseVisualShapeIndex=visBoxId, useMaximalCoordinates=True, basePosition=[(obstacle[0]+obstacle[1])/2.0, (obstacle[2]+obstacle[3])/2.0, 0.04])
 
+  def controller_sawtooth(self, params, t):
+        """Sawtooth controller"""
+        steer = params[0] if self._unblocked_steering else 0  # Move in different directions
+        step_size = params[1]  # Walk with different step_size forward or backward
+        leg_extension = params[2]  # Walk on different terrain
+        leg_extension_offset = params[3]
+        swing_offset = params[4]  # Walk in slopes
 
-def controller(t, w, params):
+        # Robot specific parameters
+        swing_limit = 0.6
+        extension_limit = 1
+        speed = 2.0  # cycle per second
+        swing_offset = swing_offset * 0.2
+
+        extension = extension_limit * (leg_extension + 1) * 0.5
+        leg_extension_offset = 0.1 * leg_extension_offset - 0.8
+        # Steer modulates only the magnitude (abs) of step_size
+        A = np.clip(abs(step_size) + steer, 0, 1) if step_size >= 0 else -np.clip(abs(step_size) + steer, 0, 1)
+        B = np.clip(abs(step_size) - steer, 0, 1) if step_size >= 0 else -np.clip(abs(step_size) - steer, 0, 1)
+
+        # We want legs to move sinusoidally, smoothly
+        fl = math.sin(t * speed * 2 * np.pi) * (swing_limit * A) + swing_offset
+        br = math.sin(t * speed * 2 * np.pi) * (swing_limit * B) + swing_offset
+        fr = math.sin(t * speed * 2 * np.pi + math.pi) * (swing_limit * B) + swing_offset
+        bl = math.sin(t * speed * 2 * np.pi + math.pi) * (swing_limit * A) + swing_offset
+
+        # Sawtooth for faster contraction
+        e1 = extension * sawtooth(t, speed, 0.25) + leg_extension_offset
+        e2 = extension * sawtooth(t, speed, 0.5 + 0.25) + leg_extension_offset
+        return np.clip(np.array([fl, bl, fr, br, -e1, -e2, -e2, -e1]), -1, 1)
+
+
+def controller_old(t, w, params):
     """general sinusoidal controller"""
     a = [params[0] * np.sin(w * t + params[8]*2*np.pi),   #s FL
          params[1] * np.sin(w * t + params[9]*2*np.pi),   #s BL
@@ -693,38 +727,6 @@ def sawtooth(t, freq, phase=0):
     return y
 
 
-def controller2(params, t):
-    """Sawtooth controller"""
-    steer = params[0]  # Move in different directions
-    step_size = params[1]  # Walk with different step_size forward or backward
-    leg_extension = params[2]  # Walk on different terrain
-    leg_extension_offset = params[3]
-    swing_offset = params[4]  # Walk in slopes
-
-    # Robot specific parameters
-    swing_limit = 0.6
-    extension_limit = 1
-    speed = 2.0  # cycle per second
-    swing_offset = swing_offset * 0.2
-
-    extension = extension_limit * (leg_extension + 1) * 0.5
-    leg_extension_offset = 0.1 * leg_extension_offset - 0.8
-    # Steer modulates only the magnitude (abs) of step_size
-    A = np.clip(abs(step_size) + steer, 0, 1) if step_size >= 0 else -np.clip(abs(step_size) + steer, 0, 1)
-    B = np.clip(abs(step_size) - steer, 0, 1) if step_size >= 0 else -np.clip(abs(step_size) - steer, 0, 1)
-
-    # We want legs to move sinusoidally, smoothly
-    fl = math.sin(t * speed * 2 * np.pi) * (swing_limit * A) + swing_offset
-    br = math.sin(t * speed * 2 * np.pi) * (swing_limit * B) + swing_offset
-    fr = math.sin(t * speed * 2 * np.pi + math.pi) * (swing_limit * B) + swing_offset
-    bl = math.sin(t * speed * 2 * np.pi + math.pi) * (swing_limit * A) + swing_offset
-
-    # Sawtooth for faster contraction
-    e1 = extension * sawtooth(t, speed, 0.25) + leg_extension_offset
-    e2 = extension * sawtooth(t, speed, 0.5 + 0.25) + leg_extension_offset
-    return np.clip(np.array([fl, bl, fr, br, -e1, -e2, -e2, -e1]), -1, 1)
-
-
 if __name__ == "__main__":
     import gym
     import time
@@ -732,8 +734,8 @@ if __name__ == "__main__":
     import fast_adaptation_embedding.env
     from gym.wrappers.monitoring.video_recorder import VideoRecorder
     from pybullet_envs.bullet import minitaur_gym_env
-    render = True
-    # render = False
+    render = False
+    # render = True
     ctrl_time_step = 0.02
 
     env = gym.make("MinitaurControlledEnv_fastAdapt-v0", render=render, on_rack=0,
@@ -749,13 +751,14 @@ if __name__ == "__main__":
     recorder = VideoRecorder(env, "test.mp4")
     Obs, a_action, m_action, position = [], [], [], []
     I = []
-    env.set_mismatch([0.1, 0])
+    env.set_mismatch([0., 0])
     previous_obs = env.reset()
+    env.steering(False)
     # env.add_obstacles(orientation)
     for i in range(50):
         if recorder is not None:
             recorder.capture_frame()
-        a = [0, 1, 1, 0, -0]
+        a = [1, 1, 1, 0, 0]
         obs, r, done, info = env.step(a)
         previous_obs = np.copy(obs)
         # rew += r
