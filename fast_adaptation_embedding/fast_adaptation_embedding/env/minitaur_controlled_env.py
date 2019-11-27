@@ -237,7 +237,7 @@ class MinitaurControlledEnv(gym.Env):
     self.reset()
     observation_high = (self._get_observation_upper_bound() + OBSERVATION_EPS)
     observation_low = (self._get_observation_lower_bound() - OBSERVATION_EPS)
-    action_dim = 5  # [steering, step_size, leg_extension, leg_extension_offset]
+    action_dim = 4  # [steering, step_size, leg_extension, leg_extension_offset]
     action_high = np.array([self._action_bound] * action_dim)
     self.action_space = spaces.Box(-action_high, action_high)
     self.observation_space = spaces.Box(observation_low, observation_high)
@@ -659,11 +659,12 @@ class MinitaurControlledEnv(gym.Env):
 
   def controller_sawtooth(self, params, t):
         """Sawtooth controller"""
-        steer = params[0] if self._unblocked_steering else 0  # Move in different directions
-        step_size = params[1]  # Walk with different step_size forward or backward
-        leg_extension = params[2]  # Walk on different terrain
-        leg_extension_offset = params[3]
-        swing_offset = params[4]  # Walk in slopes
+        # ~ steer = params[0] if self._unblocked_steering else 0  # Move in different directions
+        steer= 0
+        step_size = params[0]  # Walk with different step_size forward or backward
+        leg_extension = params[1]  # Walk on different terrain
+        leg_extension_offset = params[2]
+        swing_offset = params[3]  # Walk in slopes
 
         # Robot specific parameters
         swing_limit = 0.6
@@ -758,7 +759,7 @@ if __name__ == "__main__":
     for i in range(50):
         if recorder is not None:
             recorder.capture_frame()
-        a = [1, 1, 1, 0, 0]
+        a = [1, 1, 0, 0]
         obs, r, done, info = env.step(a)
         previous_obs = np.copy(obs)
         # rew += r

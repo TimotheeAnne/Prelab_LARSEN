@@ -71,10 +71,10 @@ if __name__ == "__main__":
         "horizon": 1,  # NOTE: "sol_dim" must be adjusted
         "T": 1,
         "iterations": 100,
-        "random_iter": 50,
+        "random_iter": 1,
         "episode_length": 10,
         "init_state": None,  # Must be updated before passing config as param
-        "action_dim": 5,
+        "action_dim": 4,
         "video_recording_frequency": 10,
         "logdir": logdir,
         "load_data": None,
@@ -100,7 +100,7 @@ if __name__ == "__main__":
 
         # Ensemble model params'log'
         "ensemble_epoch": 5,
-        "ensemble_dim_in": 5 + 2,
+        "ensemble_dim_in": 4 + 2,
         "ensemble_dim_out": 4,
         "ensemble_hidden": [20, 20],
         "ensemble_contact": False,

@@ -1,42 +1,74 @@
 [
    {
     "exp":"exp/controlled_minitaur_env_adaptation.py",
-    "prefix": "minitaur_slope_0",
+    "prefix": "minitaur_slope_m20",
     "result_dir":"exp/log",
-    "walltime": "0:20",
-    "args": "-c slope 0",
+    "walltime": "0:30",
+    "args": "-c slope -0.8",
     "replicates": 3
   },
-   {
-    "exp":"exp/controlled_minitaur_env_adaptation.py",
-    "prefix": "minitaur_slope_m10",
-    "result_dir":"exp/log",
-    "walltime": "0:20",
-    "args": "-c slope -0.4",
-    "replicates": 3
-  },
-     {
-    "exp":"exp/controlled_minitaur_env_adaptation.py",
-    "prefix": "minitaur_slope_10",
-    "result_dir":"exp/log",
-    "walltime": "0:20",
-    "args": "-c slope 0.4",
-    "replicates": 3
-  },
-     {
+    {
     "exp":"exp/controlled_minitaur_env_adaptation.py",
     "prefix": "minitaur_slope_m15",
     "result_dir":"exp/log",
-    "walltime": "0:20",
+    "walltime": "0:30",
     "args": "-c slope -0.6",
     "replicates": 3
   },
-       {
+      {
+    "exp":"exp/controlled_minitaur_env_adaptation.py",
+    "prefix": "minitaur_slope_m10",
+    "result_dir":"exp/log",
+    "walltime": "0:30",
+    "args": "-c slope -0.4",
+    "replicates": 3
+  },
+      {
+    "exp":"exp/controlled_minitaur_env_adaptation.py",
+    "prefix": "minitaur_slope_m5",
+    "result_dir":"exp/log",
+    "walltime": "0:30",
+    "args": "-c slope -0.2",
+    "replicates": 3
+  },
+      {
+    "exp":"exp/controlled_minitaur_env_adaptation.py",
+    "prefix": "minitaur_slope_0",
+    "result_dir":"exp/log",
+    "walltime": "0:30",
+    "args": "-c slope 0",
+    "replicates": 3
+  },
+      {
+    "exp":"exp/controlled_minitaur_env_adaptation.py",
+    "prefix": "minitaur_slope_5",
+    "result_dir":"exp/log",
+    "walltime": "0:30",
+    "args": "-c slope 0.2",
+    "replicates": 3
+  },
+      {
+    "exp":"exp/controlled_minitaur_env_adaptation.py",
+    "prefix": "minitaur_slope_10",
+    "result_dir":"exp/log",
+    "walltime": "0:30",
+    "args": "-c slope 0.4",
+    "replicates": 3
+  },
+      {
     "exp":"exp/controlled_minitaur_env_adaptation.py",
     "prefix": "minitaur_slope_15",
     "result_dir":"exp/log",
-    "walltime": "0:20",
+    "walltime": "0:30",
     "args": "-c slope 0.6",
+    "replicates": 3
+  },
+      {
+    "exp":"exp/controlled_minitaur_env_adaptation.py",
+    "prefix": "minitaur_slope_20",
+    "result_dir":"exp/log",
+    "walltime": "0:30",
+    "args": "-c slope 0.8",
     "replicates": 3
   }
 ]
