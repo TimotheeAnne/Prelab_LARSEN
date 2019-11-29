@@ -224,6 +224,7 @@ class MinitaurControlledEnv(gym.Env):
     self._episode_proto = minitaur_logging_pb2.MinitaurEpisode()
     self._slope_degree = 0
     self._friction = 1
+    self._g = 10
     self._unblocked_steering = True
     self.controller = self.controller_sawtooth
     if self._is_render:
@@ -273,7 +274,7 @@ class MinitaurControlledEnv(gym.Env):
         self._pybullet_client.configureDebugVisualizer(
             self._pybullet_client.COV_ENABLE_PLANAR_REFLECTION, self._ground_id)
       alpha = np.pi/180*self._slope_degree
-      self._pybullet_client.setGravity(-10*np.sin(alpha), 0, -10*np.cos(alpha))
+      self._pybullet_client.setGravity(-self._g*np.sin(alpha), 0, -self._g*np.cos(alpha))
       acc_motor = self._accurate_motor_model_enabled
       motor_protect = self._motor_overheat_protection
       if self._urdf_version not in MINIATUR_URDF_VERSION_MAP:
@@ -403,8 +404,10 @@ class MinitaurControlledEnv(gym.Env):
   def set_mismatch(self, mismatch):
       slope = mismatch[0]
       friction = mismatch[1]
+      g = mismatch[2]
+      self._g = 10 + 10 * g
       self._slope_degree = 25 * slope
-      self._friction = (1 + 9 * friction) if friction >= 0 else (1 + friction)
+      self._friction = (1 + 2*friction) if friction >= 0 else (1 + friction)
 
   def get_foot_contact(self):
       """
@@ -660,8 +663,8 @@ class MinitaurControlledEnv(gym.Env):
   def controller_sawtooth(self, params, t):
         """Sawtooth controller"""
         # ~ steer = params[0] if self._unblocked_steering else 0  # Move in different directions
-        steer= 0
-        step_size = params[0]  # Walk with different step_size forward or backward
+        steer = 0
+        step_size = params[0]*0.5+0.5  # Walk with different step_size forward or backward
         leg_extension = params[1]  # Walk on different terrain
         leg_extension_offset = params[2]
         swing_offset = params[3]  # Walk in slopes
@@ -732,11 +735,12 @@ if __name__ == "__main__":
     import gym
     import time
     import pickle
+    from tqdm import tqdm
     import fast_adaptation_embedding.env
     from gym.wrappers.monitoring.video_recorder import VideoRecorder
     from pybullet_envs.bullet import minitaur_gym_env
-    render = False
-    # render = True
+    # render = False
+    render = True
     ctrl_time_step = 0.02
 
     env = gym.make("MinitaurControlledEnv_fastAdapt-v0", render=render, on_rack=0,
@@ -748,35 +752,138 @@ if __name__ == "__main__":
 
     # orientation = [ 0, -0.3826834, 0, 0.9238795 ]
     recorder = None
-    Params, R = [], []
-    recorder = VideoRecorder(env, "test.mp4")
-    Obs, a_action, m_action, position = [], [], [], []
-    I = []
-    env.set_mismatch([0., 0])
+    # recorder = VideoRecorder(env, "test.mp4")
+    Obs, action, R = [], [], []
+    env.set_mismatch([0., 0., 1])
+
     previous_obs = env.reset()
-    env.steering(False)
-    # env.add_obstacles(orientation)
-    for i in range(50):
+    # a = np.random.random(4)*2-1
+    # a[0] = np.random.random(1)
+    obs = []
+    for i in range(500):
         if recorder is not None:
             recorder.capture_frame()
-        a = [1, 1, 0, 0]
-        obs, r, done, info = env.step(a)
-        previous_obs = np.copy(obs)
-        # rew += r
-        Obs.append(obs)
-        a_action.append(info['action'])
-        # print(a_action)
-        # print(obs)
-        # time.sleep(0.02)
+        a = [1, -0.2,  0, 0]
+        # a = [0.5, 0,  -0.75, 0]
+
+        o, r, done, info = env.step(a)
+        obs.append(o)
+        time.sleep(0.02)
         if done:
             break
-    with open("foot_pos.pk", 'wb') as f:
-        pickle.dump([Obs, a_action, m_action, position], f)
+    action.append(a)
+    R.append(np.sum(info['rewards'], axis=0))
+    Obs.append(obs)
+    # tbar.set_description(str(np.max(R, axis=0)))
 
-    print(np.sum(info['rewards'], axis=0))
     if recorder is not None:
         recorder.capture_frame()
         recorder.close()
+
+    #
+    # l1 = 0.1
+    # l2 = 0.2
+    #
+    # def polar(motor_angles):
+    #     """
+    #     Args:
+    #       The eight desired motor angles
+    #       [sequence_length, LF+LB+RF+RB] where LF=LB=RF=RB=(theta1, theta2)
+    #     Returns:
+    #         r: array of radius for each leg [sequence_length, 4]
+    #         theta: array of polar angle [sequence_length, 4]
+    #         (legs order [LF, LB, RF, RB])
+    #     """
+    #     R = []
+    #     Theta = []
+    #     for i in range(4):
+    #         o1, o2 = motor_angles[:, 2 * i], motor_angles[:, 2 * i + 1]
+    #         beta = (o1 + o2) / 2
+    #         r = np.sqrt(l2 ** 2 - (l1 * np.sin(beta)) ** 2) - l1 * np.cos(beta)
+    #         R.append(r)
+    #         Theta.append(np.pi + (o1 - o2) / 2)
+    #     return R, Theta
+    #
+    #
+    # def cartesian(r, theta):
+    #     """
+    #     Args:
+    #         r: array of radius for each leg [sequence_length, 4]
+    #         theta: array of polar angle [sequence_length, 4]
+    #         (legs order [LF, LB, RF, RB])
+    #
+    #     Returns:
+    #         (x,y) array of cartesian position of the foot of each legs x=y=[sequence_length, 4]
+    #     """
+    #     return (r * np.cos(theta), r * np.sin(theta))
+    #
+    #
+    # y_1, x_1 = (np.array([-2.28274431e-17, 4.41696016e-03, 8.82821117e-03, 1.32201690e-02,
+    #                       1.75793830e-02, 2.18926243e-02, 2.61469692e-02, 3.03298771e-02,
+    #                       3.44292620e-02, 3.84335553e-02, 4.23317602e-02, 4.61134960e-02,
+    #                       4.97690328e-02, 5.32893154e-02, 5.66659778e-02, 5.98913464e-02,
+    #                       6.29584352e-02, 6.58609302e-02, 6.85931679e-02, 7.11501048e-02,
+    #                       7.35272825e-02, 7.57207869e-02, 7.77272049e-02, 7.95435782e-02,
+    #                       8.11673574e-02, 8.25963554e-02, 8.38287033e-02, 8.48628095e-02,
+    #                       8.56973224e-02, 8.63310981e-02, 8.67631747e-02, 8.69927522e-02,
+    #                       8.70191800e-02, 8.68419523e-02, 8.64607102e-02, 8.58752520e-02,
+    #                       8.50855511e-02, 8.40917805e-02, 8.28943444e-02, 8.14939152e-02,
+    #                       7.98914761e-02, 7.80883672e-02, 7.60863347e-02, 7.38875822e-02,
+    #                       7.14948218e-02, 6.89113246e-02, 6.61409690e-02, 6.31882850e-02,
+    #                       6.00584937e-02, 5.67575402e-02, 5.32921193e-02, 4.96696927e-02,
+    #                       4.58984961e-02, 4.19875371e-02, 3.79465816e-02, 3.37861297e-02,
+    #                       2.95173807e-02, 2.51521870e-02, 2.07029981e-02, 1.61827949e-02,
+    #                       1.16050152e-02, 6.98347183e-03, 2.33226506e-03, -2.33431039e-03,
+    #                       -7.00186080e-03, -1.16559905e-02, -1.62823987e-02, -2.08669738e-02,
+    #                       -2.53958846e-02, -2.98556656e-02, -3.42332964e-02, -3.85162725e-02,
+    #                       -4.26926674e-02, -4.67511847e-02, -5.06811998e-02, -5.44727913e-02,
+    #                       -5.81167604e-02, -6.16046409e-02, -6.49286976e-02, -6.80819159e-02,
+    #                       -7.10579815e-02, -7.38512532e-02, -7.64567277e-02, -7.88699995e-02,
+    #                       -8.10872164e-02, -8.31050320e-02, -8.49205564e-02, -8.65313076e-02,
+    #                       -8.79351632e-02, -8.91303153e-02, -9.01152288e-02, -9.08886050e-02,
+    #                       -9.14493505e-02, -9.17965527e-02, -8.22886337e-02, -8.22186354e-02,
+    #                       -8.19558991e-02, -8.15001491e-02, -8.08512657e-02, -8.00093055e-02,
+    #                       -7.89745275e-02, -7.77474263e-02, -7.63287695e-02, -7.47196395e-02,
+    #                       -7.29214795e-02, -7.09361406e-02, -6.87659304e-02, -6.64136617e-02,
+    #                       -6.38826990e-02, -6.11770026e-02, -5.83011687e-02, -5.52604633e-02,
+    #                       -5.20608509e-02, -4.87090143e-02, -4.52123664e-02, -4.15790531e-02,
+    #                       -3.78179453e-02, -3.39386221e-02, -2.99513421e-02, -2.58670054e-02,
+    #                       -2.16971055e-02, -1.74536714e-02, -1.31492012e-02, -8.79658870e-03,
+    #                       -4.40904232e-03]),
+    #             np.array([0.18640022, 0.1865152, 0.18652607, 0.18643421, 0.18624212,
+    #                       0.18595333, 0.18557243, 0.18510496, 0.18455737, 0.18393696,
+    #                       0.18325176, 0.18251045, 0.18172229, 0.18089698, 0.18004458,
+    #                       0.17917539, 0.17829984, 0.17742839, 0.17657141, 0.17573911,
+    #                       0.17494138, 0.17418778, 0.17348736, 0.17284866, 0.17227956,
+    #                       0.17178729, 0.17137828, 0.17105816, 0.17083173, 0.17070285,
+    #                       0.17067448, 0.17074859, 0.17092622, 0.17120737, 0.17159109,
+    #                       0.17207545, 0.17265753, 0.17333347, 0.17409848, 0.17494691,
+    #                       0.17587225, 0.17686721, 0.17792378, 0.17903328, 0.18018646,
+    #                       0.18137356, 0.18258441, 0.18380855, 0.18503529, 0.18625383,
+    #                       0.1874534, 0.18862331, 0.18975314, 0.1908328, 0.19185265,
+    #                       0.19280363, 0.19367735, 0.19446618, 0.19516337, 0.19576308,
+    #                       0.19626052, 0.19665194, 0.19693474, 0.19710745, 0.19716977,
+    #                       0.1971226, 0.19696799, 0.19670913, 0.19635035, 0.19589699,
+    #                       0.19535543, 0.19473293, 0.1940376, 0.19327832, 0.19246456,
+    #                       0.19160637, 0.19071421, 0.18979884, 0.18887125, 0.18794246,
+    #                       0.18702352, 0.18612531, 0.18525845, 0.18443323, 0.18365949,
+    #                       0.18294654, 0.18230305, 0.181737, 0.18125561, 0.18086526,
+    #                       0.18057145, 0.18037875, 0.18029077, 0.1803101, 0.16151539,
+    #                       0.16173478, 0.16205175, 0.16246495, 0.16297209, 0.16356995,
+    #                       0.16425446, 0.16502068, 0.16586286, 0.16677446, 0.16774826,
+    #                       0.16877635, 0.16985025, 0.17096096, 0.17209906, 0.17325478,
+    #                       0.1744181, 0.17557885, 0.17672681, 0.17785183, 0.17894391,
+    #                       0.17999333, 0.18099075, 0.18192731, 0.18279474, 0.18358545,
+    #                       0.18429262, 0.18491029, 0.18543341, 0.18585794, 0.18618085]))
+    # R, Theta = polar(np.array(m_action))
+    # (x, y) = cartesian(R, Theta)
+    #
+    # print(-x[0])
+    # import matplotlib.pyplot as plt
+    # plt.plot(-y[0], -x[0])
+    # plt.plot(y_1,x_1-0.04, c='g')
+    # plt.show()
+    # np.save("forward.npy", [-x, -y])
 
 
 
