@@ -933,7 +933,7 @@
   <!-- Lower contacts -->
   <joint name="contact_back_leftR" type="fixed">
     <axis xyz="0 0 0"/>
-    <parent link="lower_leg_back_leftR_link"/>
+    <parent link="lower_leg_back_leftL_link"/>
     <child link="contact_back_leftR_link"/>
     <origin rpy="0 0 0" xyz="0.0 0.0 0.213"/>
   </joint>
@@ -966,7 +966,7 @@
 
   <joint name="contact_back_rightL" type="fixed">
     <axis xyz="0 0 0"/>
-    <parent link="lower_leg_back_rightL_link"/>
+    <parent link="lower_leg_back_rightR_link"/>
     <child link="contact_back_rightL_link"/>
     <origin rpy="0 0 0" xyz="0.0 0.0 0.213"/>
   </joint>
@@ -999,7 +999,7 @@
 
   <joint name="contact_front_leftR" type="fixed">
     <axis xyz="0 0 0"/>
-    <parent link="lower_leg_front_leftR_link"/>
+    <parent link="lower_leg_front_leftL_link"/>
     <child link="contact_front_leftR_link"/>
     <origin rpy="0 0 0" xyz="0.0 0.0 0.213"/>
   </joint>
@@ -1032,7 +1032,7 @@
 
   <joint name="contact_front_rightL" type="fixed">
     <axis xyz="0 0 0"/>
-    <parent link="lower_leg_front_rightL_link"/>
+    <parent link="lower_leg_front_rightR_link"/>
     <child link="contact_front_rightL_link"/>
     <origin rpy="0 0 0" xyz="0.0 0.0 0.213"/>
   </joint>
